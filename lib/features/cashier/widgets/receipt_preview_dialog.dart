@@ -144,7 +144,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                   borderRadius: BorderRadius.circular(12),
                   child: Image.file(
                     File(settings.storeLogoPath),
-                    height: 65,
+                    height: 95,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -158,7 +158,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                 ),
                 child: Icon(
                   _getLogoIconData(logoIconName),
-                  size: 38,
+                  size: 48,
                   color: AppColors.primary,
                 ),
               ),
@@ -194,47 +194,31 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
 
             const Divider(thickness: 1.5, color: Colors.black87),
 
-            // 3. INVOICE META & ORDER TYPE
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('فاتورة رقم: #${widget.order.id ?? 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(_orderTypeLabel(widget.order.orderType), style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('التاريخ: ${_formatFullDateTime(widget.order.createdAt)}', style: const TextStyle(fontSize: 11)),
-                Text('الدفع: ${_paymentMethodLabel(widget.order.paymentMethod)}', style: const TextStyle(fontSize: 11)),
-              ],
-            ),
-
-            // Table Number Info if DINE_IN
+            // 3. INVOICE META & ORDER TYPE & SEPARATE DATE / TIME LINES
             if (widget.order.orderType == 'DINE_IN' && widget.tableName != null) ...[
-              const SizedBox(height: 6),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.table_restaurant, size: 18, color: Colors.orange),
-                    const SizedBox(width: 6),
-                    Text(
-                      'رقم الطاولة: ${widget.tableName}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.orange),
-                    ),
-                  ],
-                ),
+              Text(
+                'طاولة: ${widget.tableName!.startsWith("طاولة") ? widget.tableName!.replaceFirst("طاولة", "").trim() : widget.tableName}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ] else ...[
+              Text(
+                'نوع الطلب: ${_orderTypeLabel(widget.order.orderType)}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                textAlign: TextAlign.center,
               ),
             ],
+            const SizedBox(height: 2),
+            Text(
+              'التاريخ: ${_formatDateOnly(widget.order.createdAt)}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'الوقت: ${_formatTimeOnly(widget.order.createdAt)}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
 
             // Delivery Customer Phone & Address
             if (widget.order.orderType == 'DELIVERY' || (widget.order.customerPhone != null && widget.order.customerPhone!.isNotEmpty)) ...[
@@ -470,6 +454,31 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
         return 'آجل (ذمم)';
       default:
         return method;
+    }
+  }
+
+  String _formatDateOnly(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString);
+      final year = dt.year;
+      final month = dt.month.toString().padLeft(2, '0');
+      final day = dt.day.toString().padLeft(2, '0');
+      return '$year-$month-$day';
+    } catch (_) {
+      return isoString.split('T').first;
+    }
+  }
+
+  String _formatTimeOnly(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString);
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final second = dt.second.toString().padLeft(2, '0');
+      return '$hour:$minute:$second';
+    } catch (_) {
+      final parts = isoString.split('T');
+      return parts.length > 1 ? parts.last.split('.').first : '';
     }
   }
 

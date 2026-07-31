@@ -175,6 +175,32 @@ class PrintService {
         }
       }
 
+      // Parse Date & Time
+      String formattedDate = '';
+      String formattedTime = '';
+      try {
+        final dt = DateTime.parse(order.createdAt);
+        formattedDate = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+        final hourStr = dt.hour.toString().padLeft(2, '0');
+        final minStr = dt.minute.toString().padLeft(2, '0');
+        final secStr = dt.second.toString().padLeft(2, '0');
+        formattedTime = '$hourStr:$minStr:$secStr';
+      } catch (_) {
+        final parts = order.createdAt.split('T');
+        formattedDate = parts.first;
+        formattedTime = parts.length > 1 ? parts.last.split('.').first : '';
+      }
+
+      // Format Table Name & Order Type
+      String cleanTable = tableName ?? '';
+      if (cleanTable.startsWith('طاولة')) {
+        cleanTable = cleanTable.replaceFirst('طاولة', '').trim();
+      }
+
+      String typeText = 'طاولة (محلي)';
+      if (order.orderType == 'TAKEAWAY') typeText = 'سفري';
+      if (order.orderType == 'DELIVERY') typeText = 'توصيل دليفري';
+
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(
           base: arabicFont,
@@ -185,177 +211,191 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+          margin: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
-                // 1. Logo (Centered)
-                if (logoImage != null)
-                  pw.Center(
-                    child: pw.Container(
-                      height: 55,
-                      margin: const pw.EdgeInsets.only(bottom: 6),
-                      child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-                    ),
-                  ),
-
-                // 2. Store Header Info (Centered)
-                pw.Center(
-                  child: pw.Text(
-                    settings.storeName,
-                    style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-                if (settings.storeAddress.isNotEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      settings.storeAddress,
-                      style: const pw.TextStyle(fontSize: 9),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                if (settings.storePhone.isNotEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      'هاتف: ${settings.storePhone}',
-                      style: const pw.TextStyle(fontSize: 9),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                if (settings.receiptHeader.isNotEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      settings.receiptHeader,
-                      style: const pw.TextStyle(fontSize: 9),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-
-                pw.SizedBox(height: 4),
-                pw.Divider(thickness: 1),
-
-                // 3. Invoice Meta (Centered)
-                pw.Center(
-                  child: pw.Text(
-                    'فاتورة رقم: #${order.id ?? 1} (${order.orderType})',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-                if (tableName != null)
-                  pw.Center(
-                    child: pw.Text(
-                      'طاولة: $tableName',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                pw.Center(
-                  child: pw.Text(
-                    'التاريخ: ${order.createdAt}',
-                    style: const pw.TextStyle(fontSize: 8),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-                pw.Divider(thickness: 1),
-
-                // 4. Items Table Header
-                pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                  child: pw.Row(
-                    children: [
-                      pw.Expanded(
-                        flex: 3,
-                        child: pw.Text('الصنف / المادة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  // 1. Logo (Enlarged & Centered)
+                  if (logoImage != null)
+                    pw.Center(
+                      child: pw.Container(
+                        height: 90,
+                        margin: const pw.EdgeInsets.only(bottom: 8),
+                        child: pw.Image(logoImage, fit: pw.BoxFit.contain),
                       ),
-                      pw.Expanded(
-                        flex: 1,
-                        child: pw.Text('الكمية', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.center),
-                      ),
-                      pw.Expanded(
-                        flex: 2,
-                        child: pw.Text('المجموع', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.left),
-                      ),
-                    ],
-                  ),
-                ),
-                pw.Divider(thickness: 0.5),
+                    ),
 
-                // 5. Items Rows
-                ...items.map((item) {
-                  return pw.Padding(
+                  // 2. Store Header Info (Centered)
+                  pw.Center(
+                    child: pw.Text(
+                      settings.storeName,
+                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  if (settings.storeAddress.isNotEmpty)
+                    pw.Center(
+                      child: pw.Text(
+                        settings.storeAddress,
+                        style: const pw.TextStyle(fontSize: 9),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  if (settings.storePhone.isNotEmpty)
+                    pw.Center(
+                      child: pw.Text(
+                        'هاتف: ${settings.storePhone}',
+                        style: const pw.TextStyle(fontSize: 9),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  if (settings.receiptHeader.isNotEmpty)
+                    pw.Center(
+                      child: pw.Text(
+                        settings.receiptHeader,
+                        style: const pw.TextStyle(fontSize: 9),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+
+                  pw.SizedBox(height: 4),
+                  pw.Divider(thickness: 1),
+
+                  // 3. Order Info & Separate Date / Time Lines (Centered)
+                  if (cleanTable.isNotEmpty)
+                    pw.Center(
+                      child: pw.Text(
+                        'طاولة: $cleanTable',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    )
+                  else
+                    pw.Center(
+                      child: pw.Text(
+                        'نوع الطلب: $typeText',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+
+                  pw.SizedBox(height: 2),
+                  pw.Center(
+                    child: pw.Text(
+                      'التاريخ: $formattedDate',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  pw.Center(
+                    child: pw.Text(
+                      'الوقت: $formattedTime',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  pw.Divider(thickness: 1),
+
+                  // 4. Items Table Header
+                  pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Row(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Expanded(
-                          flex: 3,
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(item.productName ?? 'صنف', style: const pw.TextStyle(fontSize: 9)),
-                              if (item.notes != null && item.notes!.isNotEmpty)
-                                pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 7)),
-                            ],
-                          ),
+                          flex: 5,
+                          child: pw.Text('الصنف / المادة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
                         ),
                         pw.Expanded(
                           flex: 1,
-                          child: pw.Text(item.formattedQuantity, style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.center),
+                          child: pw.Text('الكمية', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.center),
                         ),
                         pw.Expanded(
                           flex: 2,
-                          child: pw.Text('${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.left),
+                          child: pw.Text('المجموع', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.left),
                         ),
                       ],
                     ),
-                  );
-                }),
-                pw.Divider(thickness: 1),
+                  ),
+                  pw.Divider(thickness: 0.5),
 
-                // 6. Summary
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                    pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                  ],
-                ),
-                if (cashPaid > 0) ...[
+                  // 5. Items Rows
+                  ...items.map((item) {
+                    return pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                      child: pw.Row(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Expanded(
+                            flex: 5,
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  item.productName ?? 'صنف',
+                                  style: const pw.TextStyle(fontSize: 9),
+                                  softWrap: true,
+                                ),
+                                if (item.notes != null && item.notes!.isNotEmpty)
+                                  pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 7)),
+                              ],
+                            ),
+                          ),
+                          pw.Expanded(
+                            flex: 1,
+                            child: pw.Text(item.formattedQuantity, style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.center),
+                          ),
+                          pw.Expanded(
+                            flex: 2,
+                            child: pw.Text('${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.left),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  pw.Divider(thickness: 1),
+
+                  // 6. Summary
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9)),
-                      pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                      pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
                     ],
                   ),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9)),
-                      pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
-                    ],
-                  ),
-                ],
-                pw.Divider(thickness: 1),
-
-                // 7. Footer (Centered)
-                if (settings.receiptFooter.isNotEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      settings.receiptFooter,
-                      style: const pw.TextStyle(fontSize: 9),
-                      textAlign: pw.TextAlign.center,
+                  if (cashPaid > 0) ...[
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
+                      ],
                     ),
-                  ),
-              ],
-            ),
-          );
-        },
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
+                      ],
+                    ),
+                  ],
+                  pw.Divider(thickness: 1),
+
+                  // 7. Footer (Centered)
+                  if (settings.receiptFooter.isNotEmpty)
+                    pw.Center(
+                      child: pw.Text(
+                        settings.receiptFooter,
+                        style: const pw.TextStyle(fontSize: 9),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       );
 
