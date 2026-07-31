@@ -526,107 +526,131 @@ class PrintService {
 
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(24),
+          pageFormat: PdfPageFormat.roll80,
+          margin: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
-                // Header
-                pw.Center(
-                  child: pw.Column(
-                    children: [
-                      pw.Text(
-                        settings.storeName,
-                        style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        reportTitle,
-                        style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text('الفترة الزمنيـة: $dateRangeText', style: const pw.TextStyle(fontSize: 11), textAlign: pw.TextAlign.center),
-                      pw.Text('تاريخ الطباعة: ${DateTime.now().toString().substring(0, 16)} | المنفذ: $generatedBy', style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.center),
-                    ],
+                  // 1. Store & Report Header (Centered)
+                  pw.Center(
+                    child: pw.Text(
+                      settings.storeName,
+                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
                   ),
-                ),
-                pw.Divider(thickness: 1.5),
-                pw.SizedBox(height: 12),
-
-                // Financial Overview Box
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey400),
-                    borderRadius: pw.BorderRadius.circular(8),
+                  pw.SizedBox(height: 2),
+                  pw.Center(
+                    child: pw.Text(
+                      reportTitle,
+                      style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
                   ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                    children: [
-                      pw.Column(
-                        children: [
-                          pw.Text('إجمالي المبيعات (الوارد)', style: const pw.TextStyle(fontSize: 10)),
-                          pw.Text('${totalSales.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-                        ],
-                      ),
-                      pw.Column(
-                        children: [
-                          pw.Text('إجمالي المصروفات', style: const pw.TextStyle(fontSize: 10)),
-                          pw.Text('${totalExpenses.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-                        ],
-                      ),
-                      pw.Column(
-                        children: [
-                          pw.Text('عدد الفواتير', style: const pw.TextStyle(fontSize: 10)),
-                          pw.Text('$totalOrders فاتورة', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-                        ],
-                      ),
-                      pw.Column(
-                        children: [
-                          pw.Text('صافي الربح / الوارد الصافي', style: const pw.TextStyle(fontSize: 10)),
-                          pw.Text('${netProfit.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-                        ],
-                      ),
-                    ],
+                  pw.SizedBox(height: 2),
+                  pw.Center(
+                    child: pw.Text(
+                      'الفترة: $dateRangeText',
+                      style: const pw.TextStyle(fontSize: 8.5),
+                      textAlign: pw.TextAlign.center,
+                    ),
                   ),
-                ),
-                pw.SizedBox(height: 20),
+                  pw.Center(
+                    child: pw.Text(
+                      'المنفذ: $generatedBy | ${DateTime.now().toString().substring(0, 16)}',
+                      style: const pw.TextStyle(fontSize: 8),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  pw.Divider(thickness: 1),
 
-                // Table of Products / Breakdown / Custom Table
-                pw.Text(tableTitle ?? 'تفاصيل مبيعات المنتجات والأصناف:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 8),
+                  // 2. Financial Summary Box (Optimized for 80mm roll)
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(6),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey400),
+                      borderRadius: pw.BorderRadius.circular(6),
+                    ),
+                    child: pw.Column(
+                      children: [
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('إجمالي المبيعات:', style: const pw.TextStyle(fontSize: 9)),
+                            pw.Text('${totalSales.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                        if (totalExpenses > 0) ...[
+                          pw.SizedBox(height: 2),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('إجمالي المصروفات:', style: const pw.TextStyle(fontSize: 9)),
+                              pw.Text('${totalExpenses.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                            ],
+                          ),
+                        ],
+                        pw.SizedBox(height: 2),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('عدد الفواتير:', style: const pw.TextStyle(fontSize: 9)),
+                            pw.Text('$totalOrders فاتورة', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                        pw.Divider(thickness: 0.5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('صافي الوارد / الربح:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                            pw.Text('${netProfit.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
 
-                pw.TableHelper.fromTextArray(
-                  headers: customHeaders ?? ['اسم الصنف / المنتج', 'الكمية المباعة', 'إجمالي المبلغ'],
-                  data: customDataRows ?? productBreakdown.map((p) => [
-                    p['name'].toString(),
-                    '${p['qty']} قطعة',
-                    '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
-                  ]).toList(),
-                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
-                  cellStyle: const pw.TextStyle(fontSize: 10),
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                ),
+                  // 3. Breakdown Table Title
+                  pw.Center(
+                    child: pw.Text(
+                      tableTitle ?? 'تفاصيل الأصناف المباعة:',
+                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
 
-                pw.Spacer(),
-                pw.Divider(),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('توقيع المحاسب / المدير: ....................', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('نظام HAPPY DAY POS', style: const pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+                  // 4. Product Breakdown Table (Thermal roll layout)
+                  pw.TableHelper.fromTextArray(
+                    headers: customHeaders ?? ['اسم الصنف / المنتج', 'الكمية', 'المجموع'],
+                    data: customDataRows ?? productBreakdown.map((p) => [
+                      p['name'].toString(),
+                      '${p['qty']}',
+                      '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
+                    ]).toList(),
+                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5),
+                    cellStyle: const pw.TextStyle(fontSize: 8.5),
+                    border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                    headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  ),
+
+                  pw.SizedBox(height: 10),
+                  pw.Divider(thickness: 0.5),
+                  pw.Center(
+                    child: pw.Text(
+                      'نظام HAPPY DAY POS للتقارير',
+                      style: const pw.TextStyle(fontSize: 8),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       );
 
