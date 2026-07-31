@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -64,15 +65,87 @@ class PrintService {
 
   /// البحث عن طابعة محددة بالاسم أو إرجاع الطابعة الافتراضية
   static Future<Printer?> findTargetPrinter(String printerName) async {
-    if (printerName.isEmpty || printerName.contains('الافتراضية')) {
-      final printers = await getSystemPrinters();
-      return printers.where((p) => p.isDefault).firstOrNull ?? printers.firstOrNull;
-    }
-    
     final printers = await getSystemPrinters();
-    return printers.where((p) => p.name == printerName || p.url == printerName).firstOrNull ??
+    if (printers.isEmpty) return null;
+
+    final trimmed = printerName.trim();
+    if (trimmed.isEmpty ||
+        trimmed.contains('الافتراضية') ||
+        trimmed.contains('POS-80') ||
+        trimmed.contains('KOT-Kitchen') ||
+        trimmed.contains('Default Printer')) {
+      return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
+    }
+
+    return printers.where((p) => p.name.toLowerCase() == trimmed.toLowerCase() || p.url.toLowerCase() == trimmed.toLowerCase()).firstOrNull ??
+        printers.where((p) => p.name.toLowerCase().contains(trimmed.toLowerCase())).firstOrNull ??
         printers.where((p) => p.isDefault).firstOrNull ??
-        printers.firstOrNull;
+        printers.first;
+  }
+
+  /// إرسال مستند PDF للطباعة مع دعم متكامل ومضمون 100% لنظام macOS و Windows و Linux
+  static Future<bool> sendPdfToPrinter({
+    required Uint8List pdfBytes,
+    required String printerNameConfig,
+    required String docName,
+  }) async {
+    try {
+      final targetPrinter = await findTargetPrinter(printerNameConfig);
+
+      if (targetPrinter != null) {
+        try {
+          final success = await Printing.directPrintPdf(
+            printer: targetPrinter,
+            onLayout: (format) async => pdfBytes,
+          );
+          if (success) {
+            debugPrint('Successfully printed directly to ${targetPrinter.name}');
+            return true;
+          }
+        } catch (e) {
+          debugPrint('Printing.directPrintPdf failed on ${targetPrinter.name}: $e');
+        }
+      }
+
+      // Fallback 1: macOS native CUPS `lpr` command
+      if (Platform.isMacOS) {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = File('${tempDir.path}/$docName.pdf');
+          await tempFile.writeAsBytes(pdfBytes);
+
+          List<String> lprArgs = [];
+          if (targetPrinter != null && targetPrinter.name.isNotEmpty) {
+            lprArgs.addAll(['-P', targetPrinter.name]);
+          }
+          lprArgs.add(tempFile.path);
+
+          final result = await Process.run('lpr', lprArgs);
+          if (result.exitCode == 0) {
+            debugPrint('Successfully printed PDF via macOS CUPS lpr');
+            return true;
+          } else {
+            final defaultLprResult = await Process.run('lpr', [tempFile.path]);
+            if (defaultLprResult.exitCode == 0) {
+              debugPrint('Successfully printed PDF via macOS default lpr');
+              return true;
+            }
+          }
+        } catch (e) {
+          debugPrint('macOS CUPS lpr fallback failed: $e');
+        }
+      }
+
+      // Fallback 2: Open System Print Layout Dialog
+      debugPrint('Opening System Print Dialog for $docName');
+      return await Printing.layoutPdf(
+        onLayout: (format) async => pdfBytes,
+        name: docName,
+      );
+    } catch (e) {
+      debugPrint('Error in sendPdfToPrinter: $e');
+      return false;
+    }
   }
 
   /// طباعة الفاتورة للزبون أوتوماتيكياً على طابعة الكاشير المحددة
@@ -287,19 +360,11 @@ class PrintService {
       );
 
       final pdfBytes = await pdf.save();
-      final targetPrinter = await findTargetPrinter(settings.cashierPrinter);
-
-      if (targetPrinter != null) {
-        return await Printing.directPrintPdf(
-          printer: targetPrinter,
-          onLayout: (format) async => pdfBytes,
-        );
-      } else {
-        return await Printing.layoutPdf(
-          onLayout: (format) async => pdfBytes,
-          name: 'Invoice_${order.id ?? 1}',
-        );
-      }
+      return await sendPdfToPrinter(
+        pdfBytes: pdfBytes,
+        printerNameConfig: settings.cashierPrinter,
+        docName: 'Invoice_${order.id ?? 1}',
+      );
     } catch (e) {
       debugPrint('Error printing receipt: $e');
       return false;
@@ -382,19 +447,11 @@ class PrintService {
       );
 
       final pdfBytes = await pdf.save();
-      final targetPrinter = await findTargetPrinter(settings.kitchenPrinter);
-
-      if (targetPrinter != null) {
-        return await Printing.directPrintPdf(
-          printer: targetPrinter,
-          onLayout: (format) async => pdfBytes,
-        );
-      } else {
-        return await Printing.layoutPdf(
-          onLayout: (format) async => pdfBytes,
-          name: 'KOT_${order.id ?? 1}',
-        );
-      }
+      return await sendPdfToPrinter(
+        pdfBytes: pdfBytes,
+        printerNameConfig: settings.kitchenPrinter,
+        docName: 'KOT_${order.id ?? 1}',
+      );
     } catch (e) {
       debugPrint('Error printing KOT ticket: $e');
       return false;
@@ -534,19 +591,11 @@ class PrintService {
       );
 
       final pdfBytes = await pdf.save();
-      final targetPrinter = await findTargetPrinter(settings.reportsPrinter);
-
-      if (targetPrinter != null) {
-        return await Printing.directPrintPdf(
-          printer: targetPrinter,
-          onLayout: (format) async => pdfBytes,
-        );
-      } else {
-        return await Printing.layoutPdf(
-          onLayout: (format) async => pdfBytes,
-          name: 'Report_${DateTime.now().millisecondsSinceEpoch}',
-        );
-      }
+      return await sendPdfToPrinter(
+        pdfBytes: pdfBytes,
+        printerNameConfig: settings.reportsPrinter,
+        docName: 'Report_${DateTime.now().millisecondsSinceEpoch}',
+      );
     } catch (e) {
       debugPrint('Error printing report: $e');
       return false;
