@@ -306,15 +306,27 @@ class PrintService {
                       children: [
                         pw.Expanded(
                           flex: 5,
-                          child: pw.Text('الصنف / المادة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                        ),
-                        pw.Expanded(
-                          flex: 1,
-                          child: pw.Text('الكمية', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.center),
+                          child: pw.Text(
+                            'الصنف / المادة',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                            textAlign: pw.TextAlign.right,
+                          ),
                         ),
                         pw.Expanded(
                           flex: 2,
-                          child: pw.Text('المجموع', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.left),
+                          child: pw.Text(
+                            'الكمية',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Expanded(
+                          flex: 3,
+                          child: pw.Text(
+                            'المجموع',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                            textAlign: pw.TextAlign.left,
+                          ),
                         ),
                       ],
                     ),
@@ -323,8 +335,11 @@ class PrintService {
 
                   // 5. Items Rows
                   ...items.map((item) {
+                    final pName = (item.productName != null && item.productName!.isNotEmpty)
+                        ? item.productName!
+                        : 'صنف #${item.productId}';
                     return pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                      padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
                       child: pw.Row(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
@@ -334,22 +349,35 @@ class PrintService {
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
                                 pw.Text(
-                                  item.productName ?? 'صنف',
-                                  style: const pw.TextStyle(fontSize: 9),
+                                  pName,
+                                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                  textAlign: pw.TextAlign.right,
                                   softWrap: true,
                                 ),
                                 if (item.notes != null && item.notes!.isNotEmpty)
-                                  pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 7)),
+                                  pw.Text(
+                                    'ملاحظة: ${item.notes}',
+                                    style: const pw.TextStyle(fontSize: 7.5),
+                                    textAlign: pw.TextAlign.right,
+                                  ),
                               ],
                             ),
                           ),
                           pw.Expanded(
-                            flex: 1,
-                            child: pw.Text(item.formattedQuantity, style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.center),
+                            flex: 2,
+                            child: pw.Text(
+                              item.formattedQuantity,
+                              style: const pw.TextStyle(fontSize: 9.5),
+                              textAlign: pw.TextAlign.center,
+                            ),
                           ),
                           pw.Expanded(
-                            flex: 2,
-                            child: pw.Text('${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.left),
+                            flex: 3,
+                            child: pw.Text(
+                              '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: const pw.TextStyle(fontSize: 9.5),
+                              textAlign: pw.TextAlign.left,
+                            ),
                           ),
                         ],
                       ),
@@ -671,10 +699,22 @@ class PrintService {
     try {
       final targetPrinter = await findTargetPrinter(settings.cashierPrinter);
 
-      // ESC/POS Drawer Kick Pulse Bytes: ESC p 0 25 250 (Pin 2) + ESC p 1 25 250 (Pin 5)
+      // Comprehensive ESC/POS & DLE DC4 Cash Drawer Kick Sequences (Pin 2, Pin 5, DLE real-time)
       final List<int> drawerBytes = [
+        // 1. ESC p 0 25 250 (Standard Pin 2)
         27, 112, 0, 25, 250,
+        // 2. ESC p 1 25 250 (Standard Pin 5)
         27, 112, 1, 25, 250,
+        // 3. ESC p 48 25 250 (ASCII '0' Pin 2)
+        27, 112, 48, 25, 250,
+        // 4. ESC p 49 25 250 (ASCII '1' Pin 5)
+        27, 112, 49, 25, 250,
+        // 5. DLE DC4 1 0 0 (Xprinter / Star real-time pulse)
+        16, 20, 1, 0, 0,
+        // 6. ESC p 0 60 255 (Long pulse Pin 2)
+        27, 112, 0, 60, 255,
+        // 7. ESC p 1 60 255 (Long pulse Pin 5)
+        27, 112, 1, 60, 255,
       ];
 
       // 1. macOS & Linux native raw print
