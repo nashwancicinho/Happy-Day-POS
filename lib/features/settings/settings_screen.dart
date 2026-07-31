@@ -158,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
       if (file != null) {
         final bytes = await file.readAsBytes();
-        final dbPath = await getDatabasesPath();
+        final dbPath = await DatabaseHelper.getAppDatabaseDirectory();
         final ext = p.extension(file.path).isEmpty ? '.png' : p.extension(file.path);
         final localLogoFile = File(p.join(dbPath, 'app_store_logo$ext'));
         await localLogoFile.writeAsBytes(bytes);

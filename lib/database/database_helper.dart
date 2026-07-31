@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -9,6 +10,24 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static Database? _database;
+
+  static Future<String> getAppDatabaseDirectory() async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final dir = await getApplicationSupportDirectory();
+      final appDir = Directory(join(dir.path, 'HappyDayPOS'));
+      if (!await appDir.exists()) {
+        await appDir.create(recursive: true);
+      }
+      return appDir.path;
+    } else {
+      return await getDatabasesPath();
+    }
+  }
+
+  static Future<String> getAppDatabaseFilePath() async {
+    final dbDirPath = await getAppDatabaseDirectory();
+    return join(dbDirPath, 'restaurant_pos.db');
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -23,8 +42,7 @@ class DatabaseHelper {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'restaurant_pos.db');
+    final path = await getAppDatabaseFilePath();
 
     return await openDatabase(
       path,
@@ -301,8 +319,7 @@ class DatabaseHelper {
   }
 
   Future<void> deleteDatabaseFile() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'restaurant_pos.db');
+    final path = await getAppDatabaseFilePath();
 
     await deleteDatabase(path);
     _database = null;
