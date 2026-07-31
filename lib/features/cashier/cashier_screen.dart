@@ -1027,6 +1027,14 @@ class _CashierScreenState extends State<CashierScreen> {
       return false;
     });
 
+    // 2. Open Cash Drawer automatically on Cash payment
+    if (paymentMethod == 'CASH') {
+      PrintService.openCashDrawer(settingsProvider).catchError((e) {
+        debugPrint('Auto open cash drawer error: $e');
+        return false;
+      });
+    }
+
     // 2. Direct Kitchen Print (if applicable)
     PrintService.printKitchenTicket(
       order: completedOrder,
@@ -1690,11 +1698,23 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
-  void _openCashDrawer() {
-    TopNotification.showSuccess(
-      context,
-      '🔑 تم إرسال إشارة فتح درج النقدية بنجاح! 💵',
-    );
+  Future<void> _openCashDrawer() async {
+    final settings = context.read<SettingsProvider>();
+    TopNotification.showInfo(context, '🔑 جاري فتح درج النقدية...');
+    final success = await PrintService.openCashDrawer(settings);
+    if (mounted) {
+      if (success) {
+        TopNotification.showSuccess(
+          context,
+          '🔑 تم فتح درج النقدية بنجاح! 💵',
+        );
+      } else {
+        TopNotification.showWarning(
+          context,
+          '⚠️ تم إرسال الأمر. تأكد من توصيل سلك الدرج بالطابعة وتحديد طابعة الكاشير في الإعدادات.',
+        );
+      }
+    }
   }
 
   Future<Map<String, String>?> _promptDeliveryCustomerDetails() async {
@@ -1924,8 +1944,13 @@ class _CashierScreenState extends State<CashierScreen> {
               : 'الكاشير نقطة البيع',
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.meeting_room_rounded, color: Colors.white),
+            tooltip: 'فتح درج النقدية',
+            onPressed: _openCashDrawer,
+          ),
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.white24,

@@ -641,4 +641,84 @@ class PrintService {
       return false;
     }
   }
+
+  /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS Cash Drawer Kick)
+  static Future<bool> openCashDrawer(SettingsProvider settings) async {
+    try {
+      final targetPrinter = await findTargetPrinter(settings.cashierPrinter);
+
+      // ESC/POS Drawer Kick Pulse Bytes: ESC p 0 25 250 (Pin 2) + ESC p 1 25 250 (Pin 5)
+      final List<int> drawerBytes = [
+        27, 112, 0, 25, 250,
+        27, 112, 1, 25, 250,
+      ];
+
+      // 1. macOS & Linux native raw print
+      if (Platform.isMacOS || Platform.isLinux) {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/open_drawer.bin');
+          await file.writeAsBytes(drawerBytes);
+
+          List<String> lprArgs = ['-o', 'raw'];
+          if (targetPrinter != null && targetPrinter.name.isNotEmpty) {
+            lprArgs.addAll(['-P', targetPrinter.name]);
+          }
+          lprArgs.add(file.path);
+
+          final result = await Process.run('lpr', lprArgs);
+          if (result.exitCode == 0) {
+            debugPrint('Cash drawer kick sent via lpr raw on macOS/Linux');
+            return true;
+          }
+        } catch (e) {
+          debugPrint('macOS lpr drawer kick error: $e');
+        }
+      }
+
+      // 2. Windows native raw binary copy
+      if (Platform.isWindows) {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}\\open_drawer.bin');
+          await file.writeAsBytes(drawerBytes);
+
+          final pName = targetPrinter?.name ?? '';
+          if (pName.isNotEmpty) {
+            final result = await Process.run('cmd', ['/c', 'copy', '/b', file.path, '"$pName"']);
+            if (result.exitCode == 0) {
+              debugPrint('Cash drawer kick sent via Windows raw copy');
+              return true;
+            }
+          }
+        } catch (e) {
+          debugPrint('Windows raw drawer kick error: $e');
+        }
+      }
+
+      // 3. Fallback: Print silent drawer kick trigger document
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.roll80,
+          margin: pw.EdgeInsets.zero,
+          build: (pw.Context context) {
+            return pw.Center(
+              child: pw.Text(' ', style: const pw.TextStyle(fontSize: 1)),
+            );
+          },
+        ),
+      );
+      final pdfBytes = await pdf.save();
+
+      return await sendPdfToPrinter(
+        pdfBytes: pdfBytes,
+        printerNameConfig: settings.cashierPrinter,
+        docName: 'OpenDrawer',
+      );
+    } catch (e) {
+      debugPrint('Error opening cash drawer: $e');
+      return false;
+    }
+  }
 }
