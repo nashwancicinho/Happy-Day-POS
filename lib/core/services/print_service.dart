@@ -353,8 +353,9 @@ class PrintService {
                     ),
                   ),
               ],
-            );
-          },
+            ),
+          );
+        },
         ),
       );
 
@@ -439,8 +440,9 @@ class PrintService {
                 }),
                 pw.Divider(thickness: 1),
               ],
-            );
-          },
+            ),
+          );
+        },
         ),
       );
 
@@ -582,8 +584,9 @@ class PrintService {
                   ],
                 ),
               ],
-            );
-          },
+            ),
+          );
+        },
         ),
       );
 
