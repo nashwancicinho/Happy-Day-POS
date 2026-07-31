@@ -87,6 +87,7 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'orders', 'customer_phone', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'customer_address', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'cashier_name', 'TEXT');
+    await _addColumnIfMissing(db, 'order_items', 'print_to_kitchen', 'INTEGER DEFAULT 1');
     await _addColumnIfMissing(db, 'products', 'unit', "TEXT DEFAULT 'قطعة'");
     await _addColumnIfMissing(db, 'products', 'is_weighted', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'allow_price_change', 'INTEGER DEFAULT 0');

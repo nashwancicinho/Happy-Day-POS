@@ -421,13 +421,16 @@ class OrdersRepository {
   Future<List<OrderItemModel>> getOrderItems(int orderId) async {
     final db = await _databaseHelper.database;
     final maps = await db.rawQuery('''
-      SELECT oi.*, p.name as product_name
+      SELECT oi.*, p.name as product_name, COALESCE(oi.print_to_kitchen, p.print_to_kitchen, 1) as item_print_to_kitchen
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = ?
     ''', [orderId]);
 
-    return maps.map((e) => OrderItemModel.fromMap(e, productName: e['product_name'] as String?)).toList();
+    return maps.map((e) {
+      final isPrint = (e['item_print_to_kitchen'] as int? ?? 1) == 1;
+      return OrderItemModel.fromMap(e, productName: e['product_name'] as String?, printToKitchen: isPrint);
+    }).toList();
   }
 
   Future<void> completeOrder(int orderId, int? tableId) async {

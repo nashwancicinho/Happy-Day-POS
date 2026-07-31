@@ -88,90 +88,198 @@ class PrintService {
       final arabicFont = await PdfGoogleFonts.cairoRegular();
       final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
+      // Load logo image if path exists
+      pw.MemoryImage? logoImage;
+      if (settings.storeLogoPath.isNotEmpty) {
+        try {
+          final logoFile = File(settings.storeLogoPath);
+          if (logoFile.existsSync()) {
+            final logoBytes = await logoFile.readAsBytes();
+            logoImage = pw.MemoryImage(logoBytes);
+          }
+        } catch (e) {
+          debugPrint('Error loading logo for receipt PDF: $e');
+        }
+      }
+
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(
           base: arabicFont,
           bold: arabicFontBold,
+        ).copyWith(
+          textDirection: pw.TextDirection.rtl,
         ),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.all(10),
+          textDirection: pw.TextDirection.rtl,
+          margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text(
-                  settings.storeName,
-                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                // 1. Logo (Centered)
+                if (logoImage != null)
+                  pw.Center(
+                    child: pw.Container(
+                      height: 55,
+                      margin: const pw.EdgeInsets.only(bottom: 6),
+                      child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+                    ),
+                  ),
+
+                // 2. Store Header Info (Centered)
+                pw.Center(
+                  child: pw.Text(
+                    settings.storeName,
+                    style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                    textAlign: pw.TextAlign.center,
+                  ),
                 ),
                 if (settings.storeAddress.isNotEmpty)
-                  pw.Text(settings.storeAddress, style: const pw.TextStyle(fontSize: 9)),
+                  pw.Center(
+                    child: pw.Text(
+                      settings.storeAddress,
+                      style: const pw.TextStyle(fontSize: 9),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
                 if (settings.storePhone.isNotEmpty)
-                  pw.Text('Tel: ${settings.storePhone}', style: const pw.TextStyle(fontSize: 9)),
+                  pw.Center(
+                    child: pw.Text(
+                      'هاتف: ${settings.storePhone}',
+                      style: const pw.TextStyle(fontSize: 9),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
                 if (settings.receiptHeader.isNotEmpty)
-                  pw.Text(settings.receiptHeader, style: const pw.TextStyle(fontSize: 8)),
-                pw.Divider(),
+                  pw.Center(
+                    child: pw.Text(
+                      settings.receiptHeader,
+                      style: const pw.TextStyle(fontSize: 9),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
 
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Invoice #${order.id ?? 1}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text(order.orderType, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                  ],
+                pw.SizedBox(height: 4),
+                pw.Divider(thickness: 1),
+
+                // 3. Invoice Meta (Centered)
+                pw.Center(
+                  child: pw.Text(
+                    'فاتورة رقم: #${order.id ?? 1} (${order.orderType})',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                    textAlign: pw.TextAlign.center,
+                  ),
                 ),
                 if (tableName != null)
-                  pw.Text('Table: $tableName', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                pw.Text('Date: ${order.createdAt}', style: const pw.TextStyle(fontSize: 8)),
-                pw.Divider(),
+                  pw.Center(
+                    child: pw.Text(
+                      'طاولة: $tableName',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                pw.Center(
+                  child: pw.Text(
+                    'التاريخ: ${order.createdAt}',
+                    style: const pw.TextStyle(fontSize: 8),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.Divider(thickness: 1),
 
-                // Items Table
+                // 4. Items Table Header
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                  child: pw.Row(
+                    children: [
+                      pw.Expanded(
+                        flex: 3,
+                        child: pw.Text('الصنف / المادة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                      ),
+                      pw.Expanded(
+                        flex: 1,
+                        child: pw.Text('الكمية', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.center),
+                      ),
+                      pw.Expanded(
+                        flex: 2,
+                        child: pw.Text('المجموع', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), textAlign: pw.TextAlign.left),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.Divider(thickness: 0.5),
+
+                // 5. Items Rows
                 ...items.map((item) {
                   return pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Expanded(
-                          child: pw.Text('${item.productName} x${item.formattedQuantity}', style: const pw.TextStyle(fontSize: 9)),
+                          flex: 3,
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(item.productName ?? 'صنف', style: const pw.TextStyle(fontSize: 9)),
+                              if (item.notes != null && item.notes!.isNotEmpty)
+                                pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 7)),
+                            ],
+                          ),
                         ),
-                        pw.Text('${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Expanded(
+                          flex: 1,
+                          child: pw.Text(item.formattedQuantity, style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.center),
+                        ),
+                        pw.Expanded(
+                          flex: 2,
+                          child: pw.Text('${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9), textAlign: pw.TextAlign.left),
+                        ),
                       ],
                     ),
                   );
                 }),
-                pw.Divider(),
+                pw.Divider(thickness: 1),
 
-                // Summary
+                // 6. Summary
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Total:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                    pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                    pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
                   ],
                 ),
                 if (cashPaid > 0) ...[
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Paid:', style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9)),
                       pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
                     ],
                   ),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Change:', style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9)),
                       pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
                     ],
                   ),
                 ],
-                pw.Divider(),
+                pw.Divider(thickness: 1),
 
+                // 7. Footer (Centered)
                 if (settings.receiptFooter.isNotEmpty)
-                  pw.Text(settings.receiptFooter, style: const pw.TextStyle(fontSize: 9)),
+                  pw.Center(
+                    child: pw.Text(
+                      settings.receiptFooter,
+                      style: const pw.TextStyle(fontSize: 9),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
               ],
             );
           },
@@ -206,6 +314,12 @@ class PrintService {
     String? tableName,
   }) async {
     try {
+      final kitchenItems = items.where((item) => item.printToKitchen).toList();
+      if (kitchenItems.isEmpty) {
+        debugPrint('No items in this order have printToKitchen enabled. Skipping kitchen printing.');
+        return true;
+      }
+
       final arabicFont = await PdfGoogleFonts.cairoRegular();
       final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
@@ -213,37 +327,46 @@ class PrintService {
         theme: pw.ThemeData.withFont(
           base: arabicFont,
           bold: arabicFontBold,
+        ).copyWith(
+          textDirection: pw.TextDirection.rtl,
         ),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.all(10),
+          textDirection: pw.TextDirection.rtl,
+          margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text('*** KOT KITCHEN ***', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                pw.Text('Order #${order.id ?? 1} - ${order.orderType}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Center(
+                  child: pw.Text('*** أمر مطبخ (KOT) ***', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                ),
+                pw.Center(
+                  child: pw.Text('طلب #${order.id ?? 1} - ${order.orderType}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                ),
                 if (tableName != null)
-                  pw.Text('Table: $tableName', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                pw.Divider(),
+                  pw.Center(
+                    child: pw.Text('طاولة: $tableName', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                  ),
+                pw.Divider(thickness: 1),
 
-                ...items.map((item) {
+                ...kitchenItems.map((item) {
                   return pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 4),
                     child: pw.Row(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('[ ${item.formattedQuantity} x ] ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                        pw.Text('[ ${item.formattedQuantity} × ] ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                         pw.Expanded(
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text(item.productName ?? '', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                               if (item.notes != null && item.notes!.isNotEmpty)
-                                pw.Text('Note: ${item.notes}', style: const pw.TextStyle(fontSize: 9)),
+                                pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 9)),
                             ],
                           ),
                         ),
@@ -251,7 +374,7 @@ class PrintService {
                     ),
                   );
                 }),
-                pw.Divider(),
+                pw.Divider(thickness: 1),
               ],
             );
           },
@@ -301,12 +424,15 @@ class PrintService {
         theme: pw.ThemeData.withFont(
           base: arabicFont,
           bold: arabicFontBold,
+        ).copyWith(
+          textDirection: pw.TextDirection.rtl,
         ),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
+          textDirection: pw.TextDirection.rtl,
           margin: const pw.EdgeInsets.all(24),
           build: (pw.Context context) {
             return pw.Column(
@@ -319,15 +445,17 @@ class PrintService {
                       pw.Text(
                         settings.storeName,
                         style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
                       ),
                       pw.SizedBox(height: 4),
                       pw.Text(
                         reportTitle,
                         style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
                       ),
                       pw.SizedBox(height: 4),
-                      pw.Text('الفترة الزمنيـة: $dateRangeText', style: const pw.TextStyle(fontSize: 11)),
-                      pw.Text('تاريخ الطباعة: ${DateTime.now().toString().substring(0, 16)} | المنفذ: $generatedBy', style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text('الفترة الزمنيـة: $dateRangeText', style: const pw.TextStyle(fontSize: 11), textAlign: pw.TextAlign.center),
+                      pw.Text('تاريخ الطباعة: ${DateTime.now().toString().substring(0, 16)} | المنفذ: $generatedBy', style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.center),
                     ],
                   ),
                 ),

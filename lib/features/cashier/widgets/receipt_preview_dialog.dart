@@ -368,6 +368,8 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
   }
 
   Widget _buildKitchenTicket() {
+    final kitchenItems = widget.items.where((item) => item.printToKitchen).toList();
+
     return Container(
       color: Colors.yellow.shade50,
       padding: const EdgeInsets.all(16),
@@ -390,32 +392,42 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
             Text('تاريخ الطلب: ${_formatFullDateTime(widget.order.createdAt)}', style: const TextStyle(fontSize: 12)),
             const Divider(thickness: 2, color: Colors.black),
 
-            ...widget.items.map((item) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('[ ${item.formattedQuantity} × ] ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          if (item.notes != null && item.notes!.isNotEmpty)
-                            Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(4)),
-                              child: Text('ملاحظة المطبخ: ${item.notes}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+            if (kitchenItems.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  '⚠️ لا توجد أصناف مخصصة للطباعة إلى طابعة المطبخ في هذا الطلب.',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red),
+                  textAlign: TextAlign.center,
                 ),
-              );
-            }),
+              )
+            else
+              ...kitchenItems.map((item) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('[ ${item.formattedQuantity} × ] ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            if (item.notes != null && item.notes!.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(4)),
+                                child: Text('ملاحظة المطبخ: ${item.notes}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
           ],
         ),
       ),
