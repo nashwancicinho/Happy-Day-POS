@@ -179,20 +179,19 @@ class PrintService {
         theme: pw.ThemeData.withFont(
           base: arabicFont,
           bold: arabicFontBold,
-        ).copyWith(
-          textDirection: pw.TextDirection.rtl,
         ),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          textDirection: pw.TextDirection.rtl,
           margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
+            return pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
                 // 1. Logo (Centered)
                 if (logoImage != null)
                   pw.Center(
@@ -392,20 +391,19 @@ class PrintService {
         theme: pw.ThemeData.withFont(
           base: arabicFont,
           bold: arabicFontBold,
-        ).copyWith(
-          textDirection: pw.TextDirection.rtl,
         ),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          textDirection: pw.TextDirection.rtl,
           margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
+            return pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
                 pw.Center(
                   child: pw.Text('*** أمر مطبخ (KOT) ***', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
                 ),
@@ -481,20 +479,19 @@ class PrintService {
         theme: pw.ThemeData.withFont(
           base: arabicFont,
           bold: arabicFontBold,
-        ).copyWith(
-          textDirection: pw.TextDirection.rtl,
         ),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          textDirection: pw.TextDirection.rtl,
           margin: const pw.EdgeInsets.all(24),
           build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
+            return pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
                 // Header
                 pw.Center(
                   child: pw.Column(
