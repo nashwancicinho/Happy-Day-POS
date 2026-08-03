@@ -431,7 +431,7 @@ class PrintService {
                   pw.Divider(thickness: 1),
 
                   // 7. Footer (Centered)
-                  if (settings.receiptFooter.isNotEmpty)
+                  if (settings.receiptFooter.isNotEmpty) ...[
                     pw.Center(
                       child: pw.Text(
                         settings.receiptFooter,
@@ -439,6 +439,17 @@ class PrintService {
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
+                    pw.SizedBox(height: 4),
+                  ],
+
+                  // 8. Invoice ID at the very bottom (Small font, numbers only without #)
+                  pw.Center(
+                    child: pw.Text(
+                      '${order.id ?? 1}',
+                      style: const pw.TextStyle(fontSize: 8),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
                 ],
               ),
             );

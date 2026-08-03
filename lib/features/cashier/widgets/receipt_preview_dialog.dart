@@ -345,6 +345,12 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
                 textAlign: TextAlign.center,
               ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.order.id ?? 1}',
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
