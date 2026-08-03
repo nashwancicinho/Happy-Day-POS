@@ -72,37 +72,37 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  String _getPeriodTitle() {
+  String _getPeriodTitle(bool isEng) {
     switch (_selectedPeriod) {
       case ReportPeriod.daily:
-        return 'تقرير اليوم (${_formatDate(DateTime.now())})';
+        return isEng ? 'Today\'s Report (${_formatDate(DateTime.now())})' : 'تقرير اليوم (${_formatDate(DateTime.now())})';
       case ReportPeriod.monthly:
-        return 'تقرير الشهر الحالي (${_formatDate(DateTime.now()).substring(0, 7)})';
+        return isEng ? 'Current Month Report (${_formatDate(DateTime.now()).substring(0, 7)})' : 'تقرير الشهر الحالي (${_formatDate(DateTime.now()).substring(0, 7)})';
       case ReportPeriod.yearly:
-        return 'تقرير السنة الحالية (${DateTime.now().year})';
+        return isEng ? 'Current Year Report (${DateTime.now().year})' : 'تقرير السنة الحالية (${DateTime.now().year})';
       case ReportPeriod.customRange:
-        return 'من ${_formatDate(_fromDate)} إلى ${_formatDate(_toDate)}';
+        return isEng ? 'From ${_formatDate(_fromDate)} To ${_formatDate(_toDate)}' : 'من ${_formatDate(_fromDate)} إلى ${_formatDate(_toDate)}';
       case ReportPeriod.allTime:
-        return 'كافة الفترات (تراكمي)';
+        return isEng ? 'All Periods (Cumulative)' : 'كافة الفترات (تراكمي)';
     }
   }
 
-  String _getReportTypeTitle() {
+  String _getReportTypeTitle(bool isEng) {
     switch (_selectedReportType) {
       case 'financial':
-        return 'تقرير الملخص العام والمالي الشامل';
+        return isEng ? 'Comprehensive Financial & General Summary Report' : 'تقرير الملخص العام والمالي الشامل';
       case 'products':
-        return 'تقرير مبيعات الأصناف والمنتجات';
+        return isEng ? 'Categories & Products Sales Report' : 'تقرير مبيعات الأصناف والمنتجات';
       case 'net_profit':
-        return 'تقرير الربح الصافي للمواد والمنتجات';
+        return isEng ? 'Items & Products Net Profit Report' : 'تقرير الربح الصافي للمواد والمنتجات';
       case 'treasury':
-        return 'تقرير الخزينة والمصروفات اليومية';
+        return isEng ? 'Treasury & Daily Expenses Report' : 'تقرير الخزينة والمصروفات اليومية';
       case 'invoices':
-        return 'تقرير قائمة الفواتير والعمليات اليومية';
+        return isEng ? 'Detailed Invoices List Report' : 'تقرير قائمة الفواتير والعمليات اليومية';
       case 'cashier':
-        return 'تقرير مبيعات الكاشير والمستخدمين';
+        return isEng ? 'Cashier & User Sales Report' : 'تقرير مبيعات الكاشير والمستخدمين';
       default:
-        return 'تقرير مالي وإداري';
+        return isEng ? 'Financial & Administrative Report' : 'تقرير مالي وإداري';
     }
   }
 
@@ -173,12 +173,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _selectFromDate(BuildContext context) async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final picked = await showDatePicker(
       context: context,
       initialDate: _fromDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
-      helpText: 'اختر تاريخ بداية التقرير (من)',
+      helpText: isEng ? 'Select report start date (From)' : 'اختر تاريخ بداية التقرير (من)',
     );
     if (picked != null) {
       setState(() {
@@ -189,12 +190,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _selectToDate(BuildContext context) async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final picked = await showDatePicker(
       context: context,
       initialDate: _toDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
-      helpText: 'اختر تاريخ نهاية التقرير (إلى)',
+      helpText: isEng ? 'Select report end date (To)' : 'اختر تاريخ نهاية التقرير (إلى)',
     );
     if (picked != null) {
       setState(() {
@@ -240,7 +242,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isReportGenerated ? _getReportTypeTitle() : (isEng ? 'Reports & Analytics Center' : 'مركز إعداد وطباعة التقارير الإدارية')),
+        title: Text(_isReportGenerated ? _getReportTypeTitle(isEng) : (isEng ? 'Reports & Analytics Center' : 'مركز إعداد وطباعة التقارير الإدارية')),
         centerTitle: true,
         leading: _isReportGenerated
             ? IconButton(
@@ -259,6 +261,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // ==========================================
   Widget _buildReportConfigForm(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final authProvider = context.watch<AuthProvider>();
     final categoriesProvider = context.watch<CategoriesProvider>();
     final productsProvider = context.watch<ProductsProvider>();
@@ -275,33 +278,35 @@ class _ReportsScreenState extends State<ReportsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header Banner Card (يستخدم لون الثيم المختار)
+              // Header Banner Card
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 color: primaryColor,
-                child: const Padding(
-                  padding: EdgeInsets.all(22.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(22.0),
                   child: Row(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 28,
                         backgroundColor: Colors.white24,
                         child: Icon(Icons.analytics_rounded, size: 34, color: Colors.white),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'تحديد وتخصيص إعدادات التقرير المطلوب',
-                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              isEng ? 'Configure & Select Report Settings' : 'تحديد وتخصيص إعدادات التقرير المطلوب',
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              'اختر نوع التقرير والفترة الزمنية وفلاتر الأصناف ثم اضغط زر إظهار التقرير لمعاينته وطباعته.',
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                              isEng
+                                  ? 'Select report type, time period, and item filters, then click Show Selected Report to preview and print.'
+                                  : 'اختر نوع التقرير والفترة الزمنية وفلاتر الأصناف ثم اضغط زر إظهار التقرير لمعاينته وطباعته.',
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
                             ),
                           ],
                         ),
@@ -322,12 +327,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. نوع التقرير (Report Type)
+                      // 1. Report Type Section
                       Row(
                         children: [
                           Icon(Icons.category_outlined, color: primaryColor),
                           const SizedBox(width: 8),
-                          const Text('1. اختر نوع التقرير المطلوب:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(isEng ? '1. Select Desired Report Type:' : '1. اختر نوع التقرير المطلوب:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -335,23 +340,59 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         spacing: 10,
                         runSpacing: 10,
                         children: [
-                          _buildTypeChip(context, 'cashier', '👤 تقرير مبيعات الكاشير والمستخدمين', Icons.badge_outlined, isManagerOnly: false),
-                          _buildTypeChip(context, 'net_profit', '💹 تقرير الربح الصافي للمواد والمنتجات', Icons.trending_up, isManagerOnly: true),
-                          _buildTypeChip(context, 'financial', '📊 الملخص المالي والعام الشامل', Icons.monetization_on_outlined, isManagerOnly: true),
-                          _buildTypeChip(context, 'products', '🍔 تقرير مبيعات الأصناف والمنتجات', Icons.fastfood_outlined, isManagerOnly: true),
-                          _buildTypeChip(context, 'treasury', '💰 تقرير الخزينة والمصروفات', Icons.account_balance_wallet_outlined, isManagerOnly: true),
-                          _buildTypeChip(context, 'invoices', '🧾 تقرير قائمة الفواتير التفصيلي', Icons.receipt_long_outlined, isManagerOnly: true),
+                          _buildTypeChip(
+                            context,
+                            'cashier',
+                            isEng ? '👤 Cashier & Users Sales Report' : '👤 تقرير مبيعات الكاشير والمستخدمين',
+                            Icons.badge_outlined,
+                            isManagerOnly: false,
+                          ),
+                          _buildTypeChip(
+                            context,
+                            'net_profit',
+                            isEng ? '💹 Net Profit Report for Items & Products' : '💹 تقرير الربح الصافي للمواد والمنتجات',
+                            Icons.trending_up,
+                            isManagerOnly: true,
+                          ),
+                          _buildTypeChip(
+                            context,
+                            'financial',
+                            isEng ? '📊 Comprehensive Financial & General Summary' : '📊 الملخص المالي والعام الشامل',
+                            Icons.monetization_on_outlined,
+                            isManagerOnly: true,
+                          ),
+                          _buildTypeChip(
+                            context,
+                            'products',
+                            isEng ? '🍔 Categories & Products Sales Report' : '🍔 تقرير مبيعات الأصناف والمنتجات',
+                            Icons.fastfood_outlined,
+                            isManagerOnly: true,
+                          ),
+                          _buildTypeChip(
+                            context,
+                            'treasury',
+                            isEng ? '💰 Treasury & Expenses Report' : '💰 تقرير الخزينة والمصروفات',
+                            Icons.account_balance_wallet_outlined,
+                            isManagerOnly: true,
+                          ),
+                          _buildTypeChip(
+                            context,
+                            'invoices',
+                            isEng ? '🧾 Detailed Invoices List Report' : '🧾 تقرير قائمة الفواتير التفصيلي',
+                            Icons.receipt_long_outlined,
+                            isManagerOnly: true,
+                          ),
                         ],
                       ),
 
                       const Divider(height: 32),
 
-                      // 2. الفترة الزمنية (Time Period)
+                      // 2. Time Period Section
                       Row(
                         children: [
                           Icon(Icons.date_range_outlined, color: primaryColor),
                           const SizedBox(width: 8),
-                          const Text('2. اختر الفترة الزمنية للتقرير:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(isEng ? '2. Select Report Time Period:' : '2. اختر الفترة الزمنية للتقرير:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -359,11 +400,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildPeriodChip(context, '📅 تقرير اليوم', ReportPeriod.daily),
-                          _buildPeriodChip(context, '🗓️ تقرير الشهر', ReportPeriod.monthly),
-                          _buildPeriodChip(context, '📆 تقرير السنة', ReportPeriod.yearly),
-                          _buildPeriodChip(context, '⏳ فترة مخصصة (من - إلى)', ReportPeriod.customRange),
-                          _buildPeriodChip(context, '📊 كافة الفترات', ReportPeriod.allTime),
+                          _buildPeriodChip(context, isEng ? '📅 Today\'s Report' : '📅 تقرير اليوم', ReportPeriod.daily),
+                          _buildPeriodChip(context, isEng ? '🗓️ Monthly Report' : '🗓️ تقرير الشهر', ReportPeriod.monthly),
+                          _buildPeriodChip(context, isEng ? '📆 Yearly Report' : '📆 تقرير السنة', ReportPeriod.yearly),
+                          _buildPeriodChip(context, isEng ? '⏳ Custom Period (From - To)' : '⏳ فترة مخصصة (من - إلى)', ReportPeriod.customRange),
+                          _buildPeriodChip(context, isEng ? '📊 All Periods' : '📊 كافة الفترات', ReportPeriod.allTime),
                         ],
                       ),
 
@@ -388,7 +429,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 ),
                                 onPressed: () => _selectFromDate(context),
                                 icon: Icon(Icons.calendar_today, size: 18, color: primaryColor),
-                                label: Text('من تاريخ: ${_formatDate(_fromDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                label: Text(isEng ? 'From Date: ${_formatDate(_fromDate)}' : 'من تاريخ: ${_formatDate(_fromDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                               ),
                               const Icon(Icons.arrow_forward, color: Colors.grey),
                               OutlinedButton.icon(
@@ -399,7 +440,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 ),
                                 onPressed: () => _selectToDate(context),
                                 icon: Icon(Icons.calendar_month, size: 18, color: primaryColor),
-                                label: Text('إلى تاريخ: ${_formatDate(_toDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                label: Text(isEng ? 'To Date: ${_formatDate(_toDate)}' : 'إلى تاريخ: ${_formatDate(_toDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -408,12 +449,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                       const Divider(height: 32),
 
-                      // 3. خيارات الفلترة الإضافية (Filter Options)
+                      // 3. Filter Options Section
                       Row(
                         children: [
                           Icon(Icons.filter_alt_outlined, color: primaryColor),
                           const SizedBox(width: 8),
-                          const Text('3. خيارات التصفية والفلترة الخاصة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(isEng ? '3. Custom Filtering Options:' : '3. خيارات التصفية والفلترة الخاصة:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -422,14 +463,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       DropdownButtonFormField<String?>(
                         initialValue: _selectedCashier,
                         decoration: InputDecoration(
-                          labelText: 'الكاشير / المستخدم المحدد',
+                          labelText: isEng ? 'Selected Cashier / User' : 'الكاشير / المستخدم المحدد',
                           prefixIcon: Icon(Icons.person_pin, color: primaryColor),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         items: [
-                          const DropdownMenuItem<String?>(
+                          DropdownMenuItem<String?>(
                             value: null,
-                            child: Text('كافة الكاشيرية والمستخدمين (الكل)', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(isEng ? 'All Cashiers & Users (All)' : 'كافة الكاشيرية والمستخدمين (الكل)', style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                           ...authProvider.users.map((u) {
                             return DropdownMenuItem<String?>(
@@ -454,14 +495,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             child: DropdownButtonFormField<int?>(
                               initialValue: _selectedCatId,
                               decoration: InputDecoration(
-                                labelText: 'التصنيف المحدد',
+                                labelText: isEng ? 'Selected Category' : 'التصنيف المحدد',
                                 prefixIcon: Icon(Icons.category, color: primaryColor),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               items: [
-                                const DropdownMenuItem<int?>(
+                                DropdownMenuItem<int?>(
                                   value: null,
-                                  child: Text('كافة التصنيفات (الكل)', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  child: Text(isEng ? 'All Categories (All)' : 'كافة التصنيفات (الكل)', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                                 ...categoriesProvider.categories.map((cat) {
                                   return DropdownMenuItem<int?>(
@@ -485,14 +526,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             child: DropdownButtonFormField<int?>(
                               initialValue: _selectedProdId,
                               decoration: InputDecoration(
-                                labelText: 'الصنف / المنتج المحدد',
+                                labelText: isEng ? 'Selected Item / Product' : 'الصنف / المنتج المحدد',
                                 prefixIcon: const Icon(Icons.fastfood, color: Colors.orange),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               items: [
-                                const DropdownMenuItem<int?>(
+                                DropdownMenuItem<int?>(
                                   value: null,
-                                  child: Text('كافة الأصناف والمنتجات', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  child: Text(isEng ? 'All Items & Products' : 'كافة الأصناف والمنتجات', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                                 ...availableProducts.map((prod) {
                                   return DropdownMenuItem<int?>(
@@ -517,15 +558,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       DropdownButtonFormField<String>(
                         initialValue: _selectedOrderTypeFilter,
                         decoration: InputDecoration(
-                          labelText: 'نوع الطلبات والفواتير',
+                          labelText: isEng ? 'Order & Invoice Type' : 'نوع الطلبات والفواتير',
                           prefixIcon: const Icon(Icons.alt_route, color: Colors.blue),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'ALL', child: Text('كافة أنواع الطلبات (صالة، سفري، توصيل)', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DropdownMenuItem(value: 'TAKEAWAY', child: Text('طلبات السفري (الكاشير السريع)')),
-                          DropdownMenuItem(value: 'DINE_IN', child: Text('طلبات صالة المطعم (الطاولات)')),
-                          DropdownMenuItem(value: 'DELIVERY', child: Text('طلبات التوصيل الخارجي')),
+                        items: [
+                          DropdownMenuItem(value: 'ALL', child: Text(isEng ? 'All Order Types (Dine-in, Takeaway, Delivery)' : 'كافة أنواع الطلبات (صالة، سفري، توصيل)', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DropdownMenuItem(value: 'TAKEAWAY', child: Text(isEng ? 'Takeaway Orders (Quick Cashier)' : 'طلبات السفري (الكاشير السريع)')),
+                          DropdownMenuItem(value: 'DINE_IN', child: Text(isEng ? 'Dine-in Orders (Tables)' : 'طلبات صالة المطعم (الطاولات)')),
+                          DropdownMenuItem(value: 'DELIVERY', child: Text(isEng ? 'External Delivery Orders' : 'طلبات التوصيل الخارجي')),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -538,7 +579,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                       const SizedBox(height: 32),
 
-                      // 4. MAIN ACTION BUTTON: إظهار التقرير المختار (يتبع لون الثيم)
+                      // 4. MAIN ACTION BUTTON: Show Selected Report
                       SizedBox(
                         width: double.infinity,
                         height: 54,
@@ -550,9 +591,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ),
                           onPressed: _generateAndLoadReport,
                           icon: const Icon(Icons.bar_chart_rounded, size: 26, color: Colors.white),
-                          label: const Text(
-                            'إظهار التقرير المختار',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          label: Text(
+                            isEng ? 'Show Selected Report' : 'إظهار التقرير المختار',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                         ),
                       ),
@@ -569,6 +610,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildTypeChip(BuildContext context, String typeKey, String label, IconData icon, {bool isManagerOnly = false}) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final isSelected = _selectedReportType == typeKey;
     final isManager = context.watch<AuthProvider>().isManager;
     final isDisabled = isManagerOnly && !isManager;
@@ -580,7 +622,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         color: isDisabled ? Colors.grey : (isSelected ? Colors.white : primaryColor),
       ),
       label: Text(
-        isDisabled ? '$label (للمدير)' : label,
+        isDisabled ? (isEng ? '$label (Manager Only)' : '$label (للمدير)') : label,
       ),
       selected: isSelected,
       selectedColor: primaryColor,
@@ -591,7 +633,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       onSelected: (_) {
         if (isDisabled) {
-          TopNotification.showWarning(context, '🔒 هذا التقرير مخصص لصلاحيات مدير النظام فقط.');
+          TopNotification.showWarning(context, isEng ? '🔒 This report is restricted to System Manager privileges.' : '🔒 هذا التقرير مخصص لصلاحيات مدير النظام فقط.');
           return;
         }
         setState(() {
@@ -626,6 +668,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // ==========================================
   Widget _buildGeneratedReportView(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final ordersProvider = context.watch<OrdersProvider>();
     final treasuryProvider = context.watch<TreasuryProvider>();
     final settingsProvider = context.watch<SettingsProvider>();
@@ -642,7 +685,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     // Cashier Summary Calculations
     final totalCashierSales = _cashierReportData.fold(0.0, (sum, c) => sum + c.totalSales);
     final totalCashierOrders = _cashierReportData.fold(0, (sum, c) => sum + c.totalOrders);
-    final topCashier = _cashierReportData.isNotEmpty ? _cashierReportData.first.cashierName : 'لا يوجد';
+    final topCashier = _cashierReportData.isNotEmpty ? _cashierReportData.first.cashierName : (isEng ? 'None' : 'لا يوجد');
 
     // Net Profit Summary Calculations
     final totalNetProfit = _netProfitReportData.fold(0.0, (sum, p) => sum + p.netProfit);
@@ -685,7 +728,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 onPressed: () => setState(() => _isReportGenerated = false),
                 icon: Icon(Icons.edit_note, color: primaryColor),
-                label: const Text('تعديل خيارات التقرير', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                label: Text(isEng ? 'Edit Report Options' : 'تعديل خيارات التقرير', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               ),
             ),
             const SizedBox(width: 16),
@@ -700,16 +743,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 onPressed: () async {
                   if (_selectedReportType == 'net_profit') {
-                    final customHeaders = [
-                      'اسم الصنف / المنتج',
-                      'سعر الكلفة',
-                      'سعر البيع',
-                      'الكمية المباعة',
-                      'إجمالي الإيراد',
-                      'إجمالي الكلفة',
-                      'صافي الربح',
-                      'نسبة الربح',
-                    ];
+                    final customHeaders = isEng
+                        ? ['Product / Item Name', 'Cost Price', 'Selling Price', 'Qty Sold', 'Total Revenue', 'Total Cost', 'Net Profit', 'Profit Margin %']
+                        : ['اسم الصنف / المنتج', 'سعر الكلفة', 'سعر البيع', 'الكمية المباعة', 'إجمالي الإيراد', 'إجمالي الكلفة', 'صافي الربح', 'نسبة الربح'];
                     final customDataRows = _netProfitReportData.map((p) => [
                       p.productName,
                       '${p.buyPrice.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
@@ -721,17 +757,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       '${p.profitPercentage.toStringAsFixed(1)}%',
                     ]).toList();
 
-                    TopNotification.showInfo(context, 'جاري إرسال تقرير الربح الصافي للمواد لـ [${settingsProvider.reportsPrinter}] وطباعته...');
+                    TopNotification.showInfo(context, isEng ? 'Sending Net Profit Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير الربح الصافي للمواد لـ [${settingsProvider.reportsPrinter}] وطباعته...');
 
                     final success = await PrintService.printReport(
-                      reportTitle: _getReportTypeTitle(),
-                      dateRangeText: _getPeriodTitle(),
+                      reportTitle: _getReportTypeTitle(isEng),
+                      dateRangeText: _getPeriodTitle(isEng),
                       generatedBy: context.read<AuthProvider>().currentUserName,
                       totalSales: totalNetRevenue,
                       totalExpenses: totalNetCost,
                       totalOrders: _netProfitReportData.length,
                       netProfit: totalNetProfit,
-                      tableTitle: 'تفاصيل الربح الصافي للمواد والمنتجات المباعة:',
+                      tableTitle: isEng ? 'Net Profit Details for Items Sold:' : 'تفاصيل الربح الصافي للمواد والمنتجات المباعة:',
                       customHeaders: customHeaders,
                       customDataRows: customDataRows,
                       settings: settingsProvider,
@@ -739,27 +775,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                     if (context.mounted) {
                       if (success) {
-                        TopNotification.showSuccess(context, '🖨️ تم طباعة تقرير الربح الصافي للمواد بنجاح!');
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Net Profit Report printed successfully!' : '🖨️ تم طباعة تقرير الربح الصافي للمواد بنجاح!');
                       } else {
-                        TopNotification.showSuccess(context, '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Report sent to direct printing system!' : '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
                       }
                     }
                     return;
                   }
 
                   if (_selectedReportType == 'cashier') {
-                    final customHeaders = [
-                      'اسم الكاشير / المستخدم',
-                      'عدد الفواتير',
-                      'مبيعات الكاش',
-                      'مبيعات الشبكة',
-                      'مبيعات الآجل',
-                      'معدل الفاتورة',
-                      'إجمالي المبيعات',
-                    ];
+                    final customHeaders = isEng
+                        ? ['Cashier Name', 'Invoices Count', 'Cash Sales', 'Card Sales', 'Credit Sales', 'Average Order Value', 'Total Sales']
+                        : ['اسم الكاشير / المستخدم', 'عدد الفواتير', 'مبيعات الكاش', 'مبيعات الشبكة', 'مبيعات الآجل', 'معدل الفاتورة', 'إجمالي المبيعات'];
                     final customDataRows = _cashierReportData.map((c) => [
                       c.cashierName,
-                      '${c.totalOrders} فاتورة',
+                      isEng ? '${c.totalOrders} Invoices' : '${c.totalOrders} فاتورة',
                       '${c.cashSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
                       '${c.cardSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
                       '${c.creditSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
@@ -767,17 +797,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       '${c.totalSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
                     ]).toList();
 
-                    TopNotification.showInfo(context, 'جاري إرسال تقرير الكاشيرية لـ [${settingsProvider.reportsPrinter}] وطباعته...');
+                    TopNotification.showInfo(context, isEng ? 'Sending Cashier Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير الكاشيرية لـ [${settingsProvider.reportsPrinter}] وطباعته...');
 
                     final success = await PrintService.printReport(
-                      reportTitle: _getReportTypeTitle(),
-                      dateRangeText: _getPeriodTitle(),
+                      reportTitle: _getReportTypeTitle(isEng),
+                      dateRangeText: _getPeriodTitle(isEng),
                       generatedBy: context.read<AuthProvider>().currentUserName,
                       totalSales: totalCashierSales,
                       totalExpenses: 0.0,
                       totalOrders: totalCashierOrders,
                       netProfit: totalCashierSales,
-                      tableTitle: 'تفاصيل مبيعات الكاشيرية والمستخدمين:',
+                      tableTitle: isEng ? 'Cashier & User Sales Breakdown:' : 'تفاصيل مبيعات الكاشيرية والمستخدمين:',
                       customHeaders: customHeaders,
                       customDataRows: customDataRows,
                       settings: settingsProvider,
@@ -785,9 +815,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                     if (context.mounted) {
                       if (success) {
-                        TopNotification.showSuccess(context, '🖨️ تم طباعة تقرير الكاشيرية بنجاح!');
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Cashier Report printed successfully!' : '🖨️ تم طباعة تقرير الكاشيرية بنجاح!');
                       } else {
-                        TopNotification.showSuccess(context, '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Report sent to direct printing system!' : '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
                       }
                     }
                     return;
@@ -799,11 +829,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     'total': p.totalRevenue,
                   }).toList();
 
-                  TopNotification.showInfo(context, 'جاري إرسال التقرير لـ [${settingsProvider.reportsPrinter}] وطباعته...');
+                  TopNotification.showInfo(context, isEng ? 'Sending Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال التقرير لـ [${settingsProvider.reportsPrinter}] وطباعته...');
 
                   final success = await PrintService.printReport(
-                    reportTitle: _getReportTypeTitle(),
-                    dateRangeText: _getPeriodTitle(),
+                    reportTitle: _getReportTypeTitle(isEng),
+                    dateRangeText: _getPeriodTitle(isEng),
                     generatedBy: context.read<AuthProvider>().currentUserName,
                     totalSales: totalSales,
                     totalExpenses: totalExpenses,
@@ -815,16 +845,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                   if (context.mounted) {
                     if (success) {
-                      TopNotification.showSuccess(context, '🖨️ تم طباعة التقرير بنجاح!');
+                      TopNotification.showSuccess(context, isEng ? '🖨️ Report printed successfully!' : '🖨️ تم طباعة التقرير بنجاح!');
                     } else {
-                      TopNotification.showSuccess(context, '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
+                      TopNotification.showSuccess(context, isEng ? '🖨️ Report sent to direct printing system!' : '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
                     }
                   }
                 },
                 icon: const Icon(Icons.print_rounded, color: Colors.white, size: 22),
-                label: const Text(
-                  'طباعة التقرير (Print Report)',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                label: Text(
+                  isEng ? 'Print Report' : 'طباعة التقرير (Print Report)',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
             ),
@@ -855,16 +885,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(_getReportTypeTitle(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                Text(_getReportTypeTitle(isEng), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 2),
-                                Text('النطاق الزمني: ${_getPeriodTitle()}', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                                Text('${isEng ? "Time Range:" : "النطاق الزمني:"} ${_getPeriodTitle(isEng)}', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
                               ],
                             ),
                           ),
                           OutlinedButton.icon(
                             onPressed: () => setState(() => _isReportGenerated = false),
                             icon: const Icon(Icons.tune, size: 16),
-                            label: const Text('تغيير الفلاتر'),
+                            label: Text(isEng ? 'Change Filters' : 'تغيير الفلاتر'),
                           ),
                         ],
                       ),
@@ -891,12 +921,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Expanded(
                               child: _metricCard(
                                 title: isNetProfitReport
-                                    ? 'إجمالي صافي أرباح المواد'
-                                    : (isCashierReport ? 'إجمالي مبيعات الكاشيرية' : 'إجمالي المبيعات (الوارد)'),
+                                    ? (isEng ? 'Total Item Net Profit' : 'إجمالي صافي أرباح المواد')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Total Cashier Sales' : 'إجمالي مبيعات الكاشيرية')
+                                        : (isEng ? 'Total Sales (Revenue)' : 'إجمالي المبيعات (الوارد)')),
                                 value: '${displayTotalSales.toStringAsFixed(0)} $currencySym',
                                 subtitle: isNetProfitReport
-                                    ? 'صافي ربح المواد المباعة'
-                                    : (isCashierReport ? 'مجموع مبيعات الكاشيرية' : 'المجموع الإجمالي للمبيعات'),
+                                    ? (isEng ? 'Net profit of sold items' : 'صافي ربح المواد المباعة')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Total cashier sales sum' : 'مجموع مبيعات الكاشيرية')
+                                        : (isEng ? 'Total gross sales' : 'المجموع الإجمالي للمبيعات')),
                                 icon: isNetProfitReport ? Icons.trending_up : Icons.monetization_on,
                                 color: Colors.green.shade700,
                               ),
@@ -905,14 +939,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Expanded(
                               child: _metricCard(
                                 title: isNetProfitReport
-                                    ? 'إجمالي إيرادات المبيعات'
-                                    : (isCashierReport ? 'الكاشير الأعلى مبيعات' : 'إجمالي المصروفات'),
+                                    ? (isEng ? 'Total Sales Revenue' : 'إجمالي إيرادات المبيعات')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Top Selling Cashier' : 'الكاشير الأعلى مبيعات')
+                                        : (isEng ? 'Total Expenses' : 'إجمالي المصروفات')),
                                 value: isNetProfitReport
                                     ? '${totalNetRevenue.toStringAsFixed(0)} $currencySym'
                                     : (isCashierReport ? topCashier : '${totalExpenses.toStringAsFixed(0)} $currencySym'),
                                 subtitle: isNetProfitReport
-                                    ? 'إجمالي قيمة المبيعات المباشرة'
-                                    : (isCashierReport ? 'الأعلى أداءً بالفترة' : 'مجموع المصاريف والنفقات'),
+                                    ? (isEng ? 'Direct sales value' : 'إجمالي قيمة المبيعات المباشرة')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Highest performing cashier' : 'الأعلى أداءً بالفترة')
+                                        : (isEng ? 'Total expenses sum' : 'مجموع المصاريف والنفقات')),
                                 icon: isNetProfitReport ? Icons.attach_money : (isCashierReport ? Icons.star_rounded : Icons.shopping_cart_checkout),
                                 color: isNetProfitReport ? Colors.blue.shade700 : (isCashierReport ? Colors.amber.shade800 : Colors.red.shade700),
                               ),
@@ -921,14 +959,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Expanded(
                               child: _metricCard(
                                 title: isNetProfitReport
-                                    ? 'إجمالي كلفة المواد (COGS)'
-                                    : (isCashierReport ? 'عدد الكاشيرية النشطين' : 'صافي الربح المحسوب'),
+                                    ? (isEng ? 'Total Cost of Goods (COGS)' : 'إجمالي كلفة المواد (COGS)')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Active Cashiers Count' : 'عدد الكاشيرية النشطين')
+                                        : (isEng ? 'Calculated Net Profit' : 'صافي الربح المحسوب')),
                                 value: isNetProfitReport
                                     ? '${totalNetCost.toStringAsFixed(0)} $currencySym'
-                                    : (isCashierReport ? '${_cashierReportData.length} كاشير' : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym'),
+                                    : (isCashierReport
+                                        ? (isEng ? '${_cashierReportData.length} Cashiers' : '${_cashierReportData.length} كاشير')
+                                        : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym'),
                                 subtitle: isNetProfitReport
-                                    ? 'مجموع سعر شراء المواد'
-                                    : (isCashierReport ? 'المستخدمين المتواجدين' : 'الوارد الكلي - المصروفات'),
+                                    ? (isEng ? 'Total item purchase cost' : 'مجموع سعر شراء المواد')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Present users' : 'المستخدمين المتواجدين')
+                                        : (isEng ? 'Total Revenue - Expenses' : 'الوارد الكلي - المصروفات')),
                                 icon: isNetProfitReport ? Icons.shopping_bag_outlined : (isCashierReport ? Icons.people_alt : Icons.savings),
                                 color: isNetProfitReport ? Colors.deepOrange.shade700 : (isCashierReport ? Colors.teal.shade700 : (calculatedNetProfit >= 0 ? primaryColor : Colors.red.shade900)),
                               ),
@@ -936,9 +980,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _metricCard(
-                                title: isNetProfitReport ? 'نسبة هامش الربح للصنف' : 'عدد الفواتير المكتملة',
-                                value: isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : '$totalOrdersCount فاتورة',
-                                subtitle: isNetProfitReport ? 'معدل الربحية من المبيعات' : 'إجمالي عدد الطلبات',
+                                title: isNetProfitReport ? (isEng ? 'Item Profit Margin %' : 'نسبة هامش الربح للصنف') : (isEng ? 'Completed Invoices Count' : 'عدد الفواتير المكتملة'),
+                                value: isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : (isEng ? '$totalOrdersCount Invoices' : '$totalOrdersCount فاتورة'),
+                                subtitle: isNetProfitReport ? (isEng ? 'Average profitability margin' : 'معدل الربحية من المبيعات') : (isEng ? 'Total orders count' : 'إجمالي عدد الطلبات'),
                                 icon: isNetProfitReport ? Icons.pie_chart : Icons.receipt_long,
                                 color: isNetProfitReport ? Colors.purple.shade700 : Colors.blue.shade700,
                               ),
@@ -955,12 +999,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               width: cardWidth,
                               child: _metricCard(
                                 title: isNetProfitReport
-                                    ? 'إجمالي صافي أرباح المواد'
-                                    : (isCashierReport ? 'إجمالي مبيعات الكاشيرية' : 'إجمالي المبيعات (الوارد)'),
+                                    ? (isEng ? 'Total Item Net Profit' : 'إجمالي صافي أرباح المواد')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Total Cashier Sales' : 'إجمالي مبيعات الكاشيرية')
+                                        : (isEng ? 'Total Sales (Revenue)' : 'إجمالي المبيعات (الوارد)')),
                                 value: '${displayTotalSales.toStringAsFixed(0)} $currencySym',
                                 subtitle: isNetProfitReport
-                                    ? 'صافي ربح المواد المباعة'
-                                    : (isCashierReport ? 'مجموع مبيعات الكاشيرية' : 'المجموع الإجمالي للمبيعات'),
+                                    ? (isEng ? 'Net profit of sold items' : 'صافي ربح المواد المباعة')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Total cashier sales sum' : 'مجموع مبيعات الكاشيرية')
+                                        : (isEng ? 'Total gross sales' : 'المجموع الإجمالي للمبيعات')),
                                 icon: isNetProfitReport ? Icons.trending_up : Icons.monetization_on,
                                 color: Colors.green.shade700,
                               ),
@@ -969,14 +1017,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               width: cardWidth,
                               child: _metricCard(
                                 title: isNetProfitReport
-                                    ? 'إجمالي إيرادات المبيعات'
-                                    : (isCashierReport ? 'الكاشير الأعلى مبيعات' : 'إجمالي المصروفات'),
+                                    ? (isEng ? 'Total Sales Revenue' : 'إجمالي إيرادات المبيعات')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Top Selling Cashier' : 'الكاشير الأعلى مبيعات')
+                                        : (isEng ? 'Total Expenses' : 'إجمالي المصروفات')),
                                 value: isNetProfitReport
                                     ? '${totalNetRevenue.toStringAsFixed(0)} $currencySym'
                                     : (isCashierReport ? topCashier : '${totalExpenses.toStringAsFixed(0)} $currencySym'),
                                 subtitle: isNetProfitReport
-                                    ? 'إجمالي قيمة المبيعات المباشرة'
-                                    : (isCashierReport ? 'الأعلى أداءً بالفترة' : 'مجموع المصاريف والنفقات'),
+                                    ? (isEng ? 'Direct sales value' : 'إجمالي قيمة المبيعات المباشرة')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Highest performing cashier' : 'الأعلى أداءً بالفترة')
+                                        : (isEng ? 'Total expenses sum' : 'مجموع المصاريف والنفقات')),
                                 icon: isNetProfitReport ? Icons.attach_money : (isCashierReport ? Icons.star_rounded : Icons.shopping_cart_checkout),
                                 color: isNetProfitReport ? Colors.blue.shade700 : (isCashierReport ? Colors.amber.shade800 : Colors.red.shade700),
                               ),
@@ -985,14 +1037,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               width: cardWidth,
                               child: _metricCard(
                                 title: isNetProfitReport
-                                    ? 'إجمالي كلفة المواد (COGS)'
-                                    : (isCashierReport ? 'عدد الكاشيرية النشطين' : 'صافي الربح المحسوب'),
+                                    ? (isEng ? 'Total Cost of Goods (COGS)' : 'إجمالي كلفة المواد (COGS)')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Active Cashiers Count' : 'عدد الكاشيرية النشطين')
+                                        : (isEng ? 'Calculated Net Profit' : 'صافي الربح المحسوب')),
                                 value: isNetProfitReport
                                     ? '${totalNetCost.toStringAsFixed(0)} $currencySym'
-                                    : (isCashierReport ? '${_cashierReportData.length} كاشير' : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym'),
+                                    : (isCashierReport
+                                        ? (isEng ? '${_cashierReportData.length} Cashiers' : '${_cashierReportData.length} كاشير')
+                                        : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym'),
                                 subtitle: isNetProfitReport
-                                    ? 'مجموع سعر شراء المواد'
-                                    : (isCashierReport ? 'المستخدمين المتواجدين' : 'الوارد الكلي - المصروفات'),
+                                    ? (isEng ? 'Total item purchase cost' : 'مجموع سعر شراء المواد')
+                                    : (isCashierReport
+                                        ? (isEng ? 'Present users' : 'المستخدمين المتواجدين')
+                                        : (isEng ? 'Total Revenue - Expenses' : 'الوارد الكلي - المصروفات')),
                                 icon: isNetProfitReport ? Icons.shopping_bag_outlined : (isCashierReport ? Icons.people_alt : Icons.savings),
                                 color: isNetProfitReport ? Colors.deepOrange.shade700 : (isCashierReport ? Colors.teal.shade700 : (calculatedNetProfit >= 0 ? primaryColor : Colors.red.shade900)),
                               ),
@@ -1000,9 +1058,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             SizedBox(
                               width: cardWidth,
                               child: _metricCard(
-                                title: isNetProfitReport ? 'نسبة هامش الربح للصنف' : 'عدد الفواتير المكتملة',
-                                value: isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : '$totalOrdersCount فاتورة',
-                                subtitle: isNetProfitReport ? 'معدل الربحية من المبيعات' : 'إجمالي عدد الطلبات',
+                                title: isNetProfitReport ? (isEng ? 'Item Profit Margin %' : 'نسبة هامش الربح للصنف') : (isEng ? 'Completed Invoices Count' : 'عدد الفواتير المكتملة'),
+                                value: isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : (isEng ? '$totalOrdersCount Invoices' : '$totalOrdersCount فاتورة'),
+                                subtitle: isNetProfitReport ? (isEng ? 'Average profitability margin' : 'معدل الربحية من المبيعات') : (isEng ? 'Total orders count' : 'إجمالي عدد الطلبات'),
                                 icon: isNetProfitReport ? Icons.pie_chart : Icons.receipt_long,
                                 color: isNetProfitReport ? Colors.purple.shade700 : Colors.blue.shade700,
                               ),
@@ -1037,15 +1095,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildNetProfitReportView(BuildContext context, List<ProductNetProfitSummary> products) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     if (products.isEmpty) {
       return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Padding(
-          padding: EdgeInsets.all(32.0),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Center(
-            child: Text('لا توجد مبيعات مواد أو أرباح مسجلة للفترة والمحددات المختارة.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            child: Text(
+              isEng ? 'No item sales or profits recorded for selected period and filters.' : 'لا توجد مبيعات مواد أو أرباح مسجلة للفترة والمحددات المختارة.',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
           ),
         ),
       );
@@ -1068,10 +1130,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('تفاصيل الربح الصافي وكلفة البضاعة المباعة لكل صنف:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  isEng ? 'Net Profit & Cost Breakdown per Item:' : 'تفاصيل الربح الصافي وكلفة البضاعة المباعة لكل صنف:',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
                 Chip(
                   avatar: const Icon(Icons.inventory_2, size: 18, color: Colors.white),
-                  label: Text('عدد الأصناف المباعة: ${products.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text(isEng ? 'Items Sold: ${products.length}' : 'عدد الأصناف المباعة: ${products.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   backgroundColor: primaryColor,
                 ),
               ],
@@ -1085,16 +1150,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 children: [
                   TableRow(
                     decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1)),
-                    children: const [
-                      Padding(padding: EdgeInsets.all(10), child: Text('#', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('اسم الصنف / المنتج', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('سعر الكلفة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('سعر البيع', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('الكمية المباعة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('إجمالي الإيراد', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('إجمالي الكلفة (COGS)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('صافي الربح للمادة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('نسبة الربح (%)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    children: [
+                      const Padding(padding: EdgeInsets.all(10), child: Text('#', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Item Name' : 'اسم الصنف / المنتج', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Cost Price' : 'سعر الكلفة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Sell Price' : 'سعر البيع', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Qty Sold' : 'الكمية المباعة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Revenue' : 'إجمالي الإيراد', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Cost (COGS)' : 'إجمالي الكلفة (COGS)', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Item Net Profit' : 'صافي الربح للمادة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Profit %' : 'نسبة الربح (%)', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                     ],
                   ),
                   ...products.asMap().entries.map((entry) {
@@ -1118,7 +1183,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     decoration: BoxDecoration(color: Colors.grey.shade200),
                     children: [
                       const Padding(padding: EdgeInsets.all(10), child: Text('Σ', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                      const Padding(padding: EdgeInsets.all(10), child: Text('المجموع الإجمالي', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Grand Total' : 'المجموع الإجمالي', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
                       const Padding(padding: EdgeInsets.all(10), child: Text('-', textAlign: TextAlign.center)),
                       const Padding(padding: EdgeInsets.all(10), child: Text('-', textAlign: TextAlign.center)),
                       Padding(padding: const EdgeInsets.all(10), child: Text(totalQty.toStringAsFixed(1), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
@@ -1139,15 +1204,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildCashierReportView(BuildContext context, List<CashierSalesSummary> cashiers) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     if (cashiers.isEmpty) {
       return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Padding(
-          padding: EdgeInsets.all(32.0),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Center(
-            child: Text('لا توجد مبيعات كاشيرية مسجلة للفترة والمحددات المختارة.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            child: Text(
+              isEng ? 'No cashier sales recorded for selected period and filters.' : 'لا توجد مبيعات كاشيرية مسجلة للفترة والمحددات المختارة.',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
           ),
         ),
       );
@@ -1170,10 +1239,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('تفاصيل مبيعات الكاشيرية والمستخدمين:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(isEng ? 'Cashier & User Sales Breakdown:' : 'تفاصيل مبيعات الكاشيرية والمستخدمين:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Chip(
                   avatar: const Icon(Icons.people, size: 18, color: Colors.white),
-                  label: Text('عدد الكاشيرية: ${cashiers.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text(isEng ? 'Cashiers Count: ${cashiers.length}' : 'عدد الكاشيرية: ${cashiers.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   backgroundColor: primaryColor,
                 ),
               ],
@@ -1187,15 +1256,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 children: [
                   TableRow(
                     decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1)),
-                    children: const [
-                      Padding(padding: EdgeInsets.all(10), child: Text('#', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('اسم الكاشير / المستخدم', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('عدد الفواتير', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('مبيعات الكاش', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('مبيعات الشبكة (كارت)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('مبيعات الآجل (دين)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('معدل الفاتورة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('إجمالي المبيعات', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    children: [
+                      const Padding(padding: EdgeInsets.all(10), child: Text('#', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Cashier / User Name' : 'اسم الكاشير / المستخدم', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Invoices Count' : 'عدد الفواتير', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Cash Sales' : 'مبيعات الكاش', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Card / Bank Sales' : 'مبيعات الشبكة (كارت)', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Credit / Debt Sales' : 'مبيعات الآجل (دين)', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Avg Order Value' : 'معدل الفاتورة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Sales' : 'إجمالي المبيعات', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                     ],
                   ),
                   ...cashiers.asMap().entries.map((entry) {
@@ -1205,7 +1274,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       children: [
                         Padding(padding: const EdgeInsets.all(10), child: Text('${idx + 1}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
                         Padding(padding: const EdgeInsets.all(10), child: Text(c.cashierName, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                        Padding(padding: const EdgeInsets.all(10), child: Text('${c.totalOrders} فاتورة', textAlign: TextAlign.center)),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? '${c.totalOrders} Invoices' : '${c.totalOrders} فاتورة', textAlign: TextAlign.center)),
                         Padding(padding: const EdgeInsets.all(10), child: Text('${c.cashSales.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
                         Padding(padding: const EdgeInsets.all(10), child: Text('${c.cardSales.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
                         Padding(padding: const EdgeInsets.all(10), child: Text('${c.creditSales.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))),
@@ -1218,8 +1287,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     decoration: BoxDecoration(color: Colors.grey.shade200),
                     children: [
                       const Padding(padding: EdgeInsets.all(10), child: Text('Σ', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                      const Padding(padding: EdgeInsets.all(10), child: Text('المجموع الإجمالي', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text('$totalCashierOrders فاتورة', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Grand Total' : 'المجموع الإجمالي', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? '$totalCashierOrders Invoices' : '$totalCashierOrders فاتورة', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
                       Padding(padding: const EdgeInsets.all(10), child: Text('${totalCashSales.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green))),
                       Padding(padding: const EdgeInsets.all(10), child: Text('${totalCardSales.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
                       Padding(padding: const EdgeInsets.all(10), child: Text('${totalCreditSales.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange))),
@@ -1238,15 +1307,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildProductsReportView(BuildContext context, List<TopSellingProduct> products) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     if (products.isEmpty) {
       return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Padding(
-          padding: EdgeInsets.all(32.0),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Center(
-            child: Text('لا توجد مبيعات أصناف مسجلة للفترة والمحددات المختارة.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            child: Text(
+              isEng ? 'No item sales recorded for selected period and filters.' : 'لا توجد مبيعات أصناف مسجلة للفترة والمحددات المختارة.',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
           ),
         ),
       );
@@ -1260,7 +1333,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('تفاصيل مبيعات الأصناف والمنتجات:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(isEng ? 'Categories & Products Sales Details:' : 'تفاصيل مبيعات الأصناف والمنتجات:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
             Table(
               border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
@@ -1273,11 +1346,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
                 TableRow(
                   decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1)),
-                  children: const [
-                    Padding(padding: EdgeInsets.all(10), child: Text('#', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('اسم الصنف / المنتج', style: TextStyle(fontWeight: FontWeight.bold))),
-                    Padding(padding: EdgeInsets.all(10), child: Text('الكمية المباعة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('إجمالي المبلغ', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                  children: [
+                    const Padding(padding: EdgeInsets.all(10), child: Text('#', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Item Name' : 'اسم الصنف / المنتج', style: const TextStyle(fontWeight: FontWeight.bold))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Quantity Sold' : 'الكمية المباعة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Amount' : 'إجمالي المبلغ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                   ],
                 ),
                 ...products.asMap().entries.map((entry) {
@@ -1287,7 +1360,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     children: [
                       Padding(padding: const EdgeInsets.all(10), child: Text('${idx + 1}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
                       Padding(padding: const EdgeInsets.all(10), child: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text('${item.quantitySold} قطعة', textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? '${item.quantitySold} Pcs' : '${item.quantitySold} قطعة', textAlign: TextAlign.center)),
                       Padding(padding: const EdgeInsets.all(10), child: Text('${item.totalRevenue.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor))),
                     ],
                   );
@@ -1302,15 +1375,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildTreasuryReportView(BuildContext context, TreasuryProvider treasuryProvider) {
     final records = treasuryProvider.treasuryRecords;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     if (records.isEmpty) {
       return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Padding(
-          padding: EdgeInsets.all(32.0),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Center(
-            child: Text('لا توجد سجلات خزينة مسجلة للفترة المختارة.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            child: Text(
+              isEng ? 'No treasury records found for selected period.' : 'لا توجد سجلات خزينة مسجلة للفترة المختارة.',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
           ),
         ),
       );
@@ -1324,19 +1401,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('سجلات حركة الخزينة والمصروفات:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(isEng ? 'Treasury & Expenses Log:' : 'سجلات حركة الخزينة والمصروفات:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
             Table(
               border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
               children: [
                 TableRow(
                   decoration: BoxDecoration(color: Colors.teal.shade50),
-                  children: const [
-                    Padding(padding: EdgeInsets.all(10), child: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('الوارد الكلي', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('المصروف اليومي', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('الوارد الصافي', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('المنفذ', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                  children: [
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date' : 'التاريخ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Income' : 'الوارد الكلي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Daily Expense' : 'المصروف اليومي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Net Income' : 'الوارد الصافي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Closed By' : 'المنفذ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                   ],
                 ),
                 ...records.map((r) {
@@ -1346,7 +1423,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       Padding(padding: const EdgeInsets.all(10), child: Text('${r.dailyIncome.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
                       Padding(padding: const EdgeInsets.all(10), child: Text('${r.dailyExpense.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
                       Padding(padding: const EdgeInsets.all(10), child: Text('${r.netIncome.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text(r.closedBy ?? 'المدير', textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(r.closedBy ?? (isEng ? 'Manager' : 'المدير'), textAlign: TextAlign.center)),
                     ],
                   );
                 }),
@@ -1360,15 +1437,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildInvoicesReportView(BuildContext context, List<OrderModel> orders) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     if (orders.isEmpty) {
       return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Padding(
-          padding: EdgeInsets.all(32.0),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
           child: Center(
-            child: Text('لا توجد فواتير مسجلة للفترة المختارة.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            child: Text(
+              isEng ? 'No invoices found for selected period.' : 'لا توجد فواتير مسجلة للفترة المختارة.',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
           ),
         ),
       );
@@ -1381,7 +1462,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final formattedId = '#${o.id}';
       final cashier = (o.cashierName ?? '').toLowerCase();
       final payment = o.paymentMethod.toLowerCase();
-      final orderType = _orderTypeLabel(o.orderType).toLowerCase();
+      final orderType = _orderTypeLabel(o.orderType, isEng).toLowerCase();
       final totalStr = o.total.toStringAsFixed(0);
 
       return idStr.contains(query) ||
@@ -1405,8 +1486,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 Expanded(
                   child: Text(
                     query.isEmpty
-                        ? 'قائمة الفواتير المكتملة (${orders.length} فاتورة):'
-                        : 'نتيجة البحث (${filteredOrders.length} من أصل ${orders.length} فاتورة):',
+                        ? (isEng ? 'Completed Invoices List (${orders.length} Invoices):' : 'قائمة الفواتير المكتملة (${orders.length} فاتورة):')
+                        : (isEng ? 'Search Result (${filteredOrders.length} of ${orders.length} Invoices):' : 'نتيجة البحث (${filteredOrders.length} من أصل ${orders.length} فاتورة):'),
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1419,8 +1500,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       setState(() {});
                     },
                     decoration: InputDecoration(
-                      labelText: 'البحث برقم الفاتورة...',
-                      hintText: 'اكتب رقم الفاتورة (مثال: 55)',
+                      labelText: isEng ? 'Search invoice number...' : 'البحث برقم الفاتورة...',
+                      hintText: isEng ? 'Type invoice number (e.g. 55)' : 'اكتب رقم الفاتورة (مثال: 55)',
                       prefixIcon: const Icon(Icons.search, color: Colors.purple),
                       suffixIcon: _invoiceSearchController.text.isNotEmpty
                           ? IconButton(
@@ -1456,7 +1537,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
                       const SizedBox(height: 10),
                       Text(
-                        'لم يتم العثور على أي فاتورة تطابق رقم الفاتورة أو البحث "$query"',
+                        isEng ? 'No invoice matching search query "$query"' : 'لم يتم العثور على أي فاتورة تطابق رقم الفاتورة أو البحث "$query"',
                         style: const TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     ],
@@ -1469,19 +1550,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 children: [
                   TableRow(
                     decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1)),
-                    children: const [
-                      Padding(padding: EdgeInsets.all(10), child: Text('رقم الفاتورة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('نوع الطلب', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('طريقة الدفع', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('المبلغ الإجمالي', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                      Padding(padding: EdgeInsets.all(10), child: Text('التاريخ والوقت', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    children: [
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Invoice No' : 'رقم الفاتورة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Order Type' : 'نوع الطلب', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Payment Method' : 'طريقة الدفع', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Amount' : 'المبلغ الإجمالي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date & Time' : 'التاريخ والوقت', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                     ],
                   ),
                   ...filteredOrders.map((o) {
                     return TableRow(
                       children: [
                         Padding(padding: const EdgeInsets.all(10), child: Text('#${o.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                        Padding(padding: const EdgeInsets.all(10), child: Text(_orderTypeLabel(o.orderType), textAlign: TextAlign.center)),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(_orderTypeLabel(o.orderType, isEng), textAlign: TextAlign.center)),
                         Padding(padding: const EdgeInsets.all(10), child: Text(o.paymentMethod, textAlign: TextAlign.center)),
                         Padding(padding: const EdgeInsets.all(10), child: Text('${o.total.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor))),
                         Padding(padding: const EdgeInsets.all(10), child: Text(o.createdAt.substring(0, 16), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
@@ -1496,14 +1577,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  String _orderTypeLabel(String type) {
+  String _orderTypeLabel(String type, bool isEng) {
     switch (type) {
       case 'DINE_IN':
-        return 'طاولة صالة';
+        return isEng ? 'Dine-In Table' : 'طاولة صالة';
       case 'TAKEAWAY':
-        return 'سفري';
+        return isEng ? 'Takeaway' : 'سفري';
       case 'DELIVERY':
-        return 'توصيل خارجي';
+        return isEng ? 'Delivery' : 'توصيل خارجي';
       default:
         return type;
     }
@@ -1554,9 +1635,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildAccessDeniedScreen(BuildContext context) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('مركز التقارير والمبيعات'),
+        title: Text(isEng ? 'Reports & Analytics Center' : 'مركز التقارير والمبيعات'),
         centerTitle: true,
       ),
       body: Center(
@@ -1567,32 +1649,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Card(
               elevation: 4,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              child: const Padding(
-                padding: EdgeInsets.all(32.0),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 38,
                       backgroundColor: Colors.redAccent,
                       child: Icon(Icons.block, size: 42, color: Colors.white),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Text(
-                      'قسم غير متاح للكاشير',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                      isEng ? 'Section Restricted for Cashiers' : 'قسم غير متاح للكاشير',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
-                      'عذراً، قسم التقارير والبيانات المالية مخصص لصلاحيات مدير النظام فقط ولا يتاح لحسابات الكاشيرية.',
-                      style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+                      isEng
+                          ? 'Sorry, reports and financial analytics section is restricted to System Manager privileges only.'
+                          : 'عذراً، قسم التقارير والبيانات المالية مخصص لصلاحيات مدير النظام فقط ولا يتاح لحسابات الكاشيرية.',
+                      style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'يرجى تسجيل الدخول بحساب المدير للوصول واطلاع التقارير.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      isEng ? 'Please log in with Manager account to access reports.' : 'يرجى تسجيل الدخول بحساب المدير للوصول واطلاع التقارير.',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
                   ],
