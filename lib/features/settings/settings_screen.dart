@@ -835,6 +835,125 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildLanguageSection(BuildContext context, SettingsProvider settingsProvider) {
+    final currentLang = settingsProvider.appLanguage;
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.blue.shade700,
+                  child: const Icon(Icons.language_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'لغة واجهة البرنامج (App Language) 🌐',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            const Text(
+              'اختر لغة العرض والواجهة المناسبة لك ليتم تطبيقه فورياً على كافة الواجهات والعمليات:',
+              style: TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      await settingsProvider.updateSetting('app_language', 'ar');
+                      if (context.mounted) {
+                        TopNotification.showSuccess(context, '🇸🇦 تم تغيير لغة الواجهة إلى العربية بنجاح!');
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: currentLang == 'ar' ? Colors.blue.shade50 : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: currentLang == 'ar' ? Colors.blue.shade700 : Colors.grey.shade300,
+                          width: currentLang == 'ar' ? 2.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('🇸🇦', style: TextStyle(fontSize: 24)),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('العربية (Arabic)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                SizedBox(height: 2),
+                                Text('الواجهة باللغة العربية (RTL)', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                              ],
+                            ),
+                          ),
+                          if (currentLang == 'ar') const Icon(Icons.check_circle_rounded, color: Colors.blue, size: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      await settingsProvider.updateSetting('app_language', 'en');
+                      if (context.mounted) {
+                        TopNotification.showSuccess(context, '🇺🇸 App Language updated to English successfully!');
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: currentLang == 'en' ? Colors.blue.shade50 : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: currentLang == 'en' ? Colors.blue.shade700 : Colors.grey.shade300,
+                          width: currentLang == 'en' ? 2.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('🇺🇸', style: TextStyle(fontSize: 24)),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('English (الإنجليزية)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                SizedBox(height: 2),
+                                Text('English interface (LTR)', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                              ],
+                            ),
+                          ),
+                          if (currentLang == 'en') const Icon(Icons.check_circle_rounded, color: Colors.blue, size: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
@@ -853,6 +972,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Section -2: Language Control Card
+                _buildLanguageSection(context, settings),
+
+                const SizedBox(height: 20),
+
                 // Section -1: Database Backup & Restore Card
                 _buildBackupRestoreSection(context, settings),
 

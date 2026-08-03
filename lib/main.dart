@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -73,7 +74,20 @@ class HappyDayPOS extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             title: isMobile ? 'تطبيق النادل - Happy Day POS' : 'Happy Day POS (Aronium Edition)',
             theme: AppTheme.getTheme(settings.primaryColor),
-            home: isMobile ? const WaiterConnectScreen() : const DashboardLayout(),
+            locale: settings.locale,
+            supportedLocales: const [
+              Locale('ar'),
+              Locale('en'),
+            ],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Directionality(
+              textDirection: settings.textDirection,
+              child: isMobile ? const WaiterConnectScreen() : const DashboardLayout(),
+            ),
           );
         },
       ),

@@ -30,6 +30,10 @@ class SettingsProvider extends ChangeNotifier {
   String get backupFolderPath => _settings['backup_folder_path'] ?? '';
   String get autoBackupFrequency => _settings['auto_backup_frequency'] ?? 'DAILY';
   String get lastAutoBackupDate => _settings['last_auto_backup_date'] ?? '';
+  String get appLanguage => _settings['app_language'] ?? 'ar';
+  bool get isEnglish => appLanguage == 'en';
+  TextDirection get textDirection => isEnglish ? TextDirection.ltr : TextDirection.rtl;
+  Locale get locale => Locale(appLanguage);
 
   Color get primaryColor {
     final hex = themeColorHex.replaceAll('#', '');
