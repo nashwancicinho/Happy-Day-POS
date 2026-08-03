@@ -257,7 +257,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                       );
                     },
                     icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
-                    label: const Text('ربط النادل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    label: Text(context.watch<SettingsProvider>().isEnglish ? 'Sync Waiter 📱' : 'ربط النادل', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -19,18 +19,20 @@ class ProductsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final productsProvider = context.watch<ProductsProvider>();
     final categoriesProvider = context.watch<CategoriesProvider>();
-    final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final settingsProvider = context.watch<SettingsProvider>();
+    final currencySym = settingsProvider.currencySymbol;
+    final isEng = settingsProvider.isEnglish;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة الأصناف والمواد الشاملة'),
+        title: Text(isEng ? 'Products & Items Management' : 'إدارة الأصناف والمواد الشاملة'),
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showProductDialog(context),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_business),
-        label: const Text('إضافة مادة / صنف جديد'),
+        label: Text(isEng ? 'Add New Product ➕' : 'إضافة مادة / صنف جديد'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -42,7 +44,7 @@ class ProductsScreen extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'بحث باسم الصنف أو الباركود...',
+                      hintText: isEng ? 'Search product or barcode...' : 'بحث باسم الصنف أو الباركود...',
                       prefixIcon: const Icon(Icons.search),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

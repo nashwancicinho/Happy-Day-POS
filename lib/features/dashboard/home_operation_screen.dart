@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../cashier/cashier_screen.dart';
+import '../settings/settings_provider.dart';
 import '../tables/tables_screen.dart';
 
 class HomeOperationScreen extends StatelessWidget {
@@ -8,18 +10,20 @@ class HomeOperationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "مرحباً بك في نظام HAPPY DAY POS 👋",
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          Text(
+            isEng ? "Welcome to HAPPY DAY POS 👋" : "مرحباً بك في نظام HAPPY DAY POS 👋",
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            "اختر نوع العملية للبدء بإدخال الطلبات أومتابعة الصالة والتقرير اليومي",
+            isEng ? "Select operation mode to start taking orders or view tables" : "اختر نوع العملية للبدء بإدخال الطلبات أو متابعة الصالة والتقرير اليومي",
             style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
           ),
           const SizedBox(height: 30),
@@ -30,8 +34,8 @@ class HomeOperationScreen extends StatelessWidget {
               Expanded(
                 child: _operationCard(
                   context,
-                  title: "صالة المطعم (الطاولات)",
-                  subtitle: "متابعة وإدارة طلبات الطاولات والطلبات المحلية",
+                  title: isEng ? "Dine-In Hall (Tables)" : "صالة المطعم (الطاولات)",
+                  subtitle: isEng ? "Manage table orders and local hall billing" : "متابعة وإدارة طلبات الطاولات والطلبات المحلية",
                   icon: Icons.table_restaurant,
                   color: Colors.blue,
                   page: const TablesScreen(),
@@ -41,8 +45,8 @@ class HomeOperationScreen extends StatelessWidget {
               Expanded(
                 child: _operationCard(
                   context,
-                  title: "طلب سفري / كاشير سريع",
-                  subtitle: "إنشاء طلب سفري أو توصيل مباشر وبدء البيع",
+                  title: isEng ? "Takeaway / Quick POS" : "طلب سفري / كاشير سريع",
+                  subtitle: isEng ? "Create direct takeaway or delivery order" : "إنشاء طلب سفري أو توصيل مباشر وبدء البيع",
                   icon: Icons.shopping_bag,
                   color: Colors.green,
                   page: const CashierScreen(initialOrderType: 'TAKEAWAY'),

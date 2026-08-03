@@ -231,6 +231,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
 
     // If logged in as Cashier, show clean Access Denied screen:
     if (!authProvider.isManager) {
@@ -239,12 +240,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isReportGenerated ? _getReportTypeTitle() : 'مركز إعداد وطباعة التقارير الإدارية'),
+        title: Text(_isReportGenerated ? _getReportTypeTitle() : (isEng ? 'Reports & Analytics Center' : 'مركز إعداد وطباعة التقارير الإدارية')),
         centerTitle: true,
         leading: _isReportGenerated
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                tooltip: 'تعديل خيارات التقرير',
+                tooltip: isEng ? 'Edit report options' : 'تعديل خيارات التقرير',
                 onPressed: () => setState(() => _isReportGenerated = false),
               )
             : null,

@@ -6,6 +6,7 @@ import '../../core/widgets/top_notification.dart';
 import '../../models/restaurant_table.dart';
 import '../cashier/cashier_screen.dart';
 import '../orders/orders_provider.dart';
+import '../settings/settings_provider.dart';
 import '../settings/sync_qr_widget.dart';
 import 'floor_plan_canvas.dart';
 import 'tables_provider.dart';
@@ -215,11 +216,12 @@ class _TablesScreenState extends State<TablesScreen> {
   @override
   Widget build(BuildContext context) {
     final tablesProvider = context.watch<TablesProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final tables = tablesProvider.tables;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("إدارة الطاولات ومبيعات الصالة"),
+        title: Text(isEng ? "Table Management & Hall Sales" : "إدارة الطاولات ومبيعات الصالة"),
         centerTitle: true,
         actions: [
           Padding(
@@ -232,7 +234,7 @@ class _TablesScreenState extends State<TablesScreen> {
                 );
               },
               icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
-              label: const Text('ربط النادل 📱', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              label: Text(isEng ? 'Sync Waiter 📱' : 'ربط النادل 📱', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
