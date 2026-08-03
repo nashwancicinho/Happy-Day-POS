@@ -200,12 +200,12 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
+          margin: const pw.EdgeInsets.only(left: 10, right: 30, top: 8, bottom: 8),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                padding: const pw.EdgeInsets.only(right: 6, left: 2),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
@@ -273,19 +273,15 @@ class PrintService {
                         ),
                       ),
 
-                    pw.SizedBox(height: 2),
-                    pw.Center(
-                      child: pw.Text(
-                        'التاريخ: $formattedDate',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
-                    pw.Center(
-                      child: pw.Text(
-                        'الوقت: $formattedTime',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
-                        textAlign: pw.TextAlign.center,
+                    pw.SizedBox(height: 4),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 4),
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('التاريخ: $formattedDate', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                          pw.Text('الوقت: $formattedTime', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                        ],
                       ),
                     ),
 
@@ -324,7 +320,7 @@ class PrintService {
                       child: pw.Row(
                         children: [
                           pw.Expanded(
-                            flex: 12,
+                            flex: 9,
                             child: pw.Text(
                               'الصنف / المادة',
                               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
@@ -340,7 +336,7 @@ class PrintService {
                             ),
                           ),
                           pw.Expanded(
-                            flex: 4,
+                            flex: 8,
                             child: pw.Text(
                               'المجموع',
                               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
@@ -364,7 +360,7 @@ class PrintService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Expanded(
-                              flex: 12,
+                              flex: 9,
                               child: pw.Column(
                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                                 children: [
@@ -393,11 +389,12 @@ class PrintService {
                               ),
                             ),
                             pw.Expanded(
-                              flex: 4,
+                              flex: 8,
                               child: pw.Text(
                                 '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
-                                style: const pw.TextStyle(fontSize: 10),
+                                style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold),
                                 textAlign: pw.TextAlign.left,
+                                maxLines: 1,
                               ),
                             ),
                           ],
