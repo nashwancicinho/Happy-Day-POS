@@ -49,15 +49,16 @@ class _DebtsScreenState extends State<DebtsScreen> {
   @override
   Widget build(BuildContext context) {
     final ordersProvider = context.watch<OrdersProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
 
     // 1. Filter Unpaid Credit Orders
     final creditOrders = ordersProvider.orders.where((o) => o.status == 'CREDIT').toList();
 
-    // 2. Group Unpaid Credit Orders by Debtor Name (No duplicate customer cards!)
+    // 2. Group Unpaid Credit Orders by Debtor Name
     final Map<String, List<OrderModel>> groupedMap = {};
     for (final order in creditOrders) {
-      final rawTitle = (order.notes ?? order.customerName ?? 'زبون غير مسمى').trim();
+      final rawTitle = (order.notes ?? order.customerName ?? (isEng ? 'Unnamed Customer' : 'زبون غير مسمى')).trim();
       groupedMap.putIfAbsent(rawTitle, () => []).add(order);
     }
 
@@ -86,7 +87,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة الديون والآجل (سداد ومتابعة الديون)'),
+        title: Text(isEng ? 'Customer Debts & Credit Management' : 'إدارة الديون والآجل (سداد ومتابعة الديون)'),
         centerTitle: true,
       ),
       body: Padding(
@@ -99,9 +100,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
               children: [
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'إجمالي الديون القائمة',
+                    title: isEng ? 'Total Outstanding Debts' : 'إجمالي الديون القائمة',
                     value: '${totalUnpaidDebt.toStringAsFixed(0)} $currencySym',
-                    subtitle: 'مبالغ غير مضافة للوارد اليومي بعد',
+                    subtitle: isEng ? 'Uncollected revenue amounts' : 'مبالغ غير مضافة للوارد اليومي بعد',
                     icon: Icons.request_quote_rounded,
                     color: Colors.red.shade700,
                   ),
@@ -109,9 +110,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'عدد الأشخاص المطلوبة',
-                    value: '$totalDebtorsCount مدينين',
-                    subtitle: 'عملاء بدون تكرار في القائمة',
+                    title: isEng ? 'Total Debtors Count' : 'عدد الأشخاص المطلوبة',
+                    value: isEng ? '$totalDebtorsCount Debtors' : '$totalDebtorsCount مدينين',
+                    subtitle: isEng ? 'Unique customer debtors' : 'عملاء بدون تكرار في القائمة',
                     icon: Icons.people_outline_rounded,
                     color: Colors.indigo.shade700,
                   ),
@@ -126,7 +127,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
               controller: _searchController,
               onChanged: (val) => setState(() => _searchQuery = val),
               decoration: InputDecoration(
-                hintText: 'ابحث باسم المطلوب أو رقم الهاتف...',
+                hintText: isEng ? 'Search debtor name or phone...' : 'ابحث باسم المطلوب أو رقم الهاتف...',
                 prefixIcon: const Icon(Icons.search, color: Colors.indigo),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -164,8 +165,8 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? 'لا توجد نتائج بحث لمطابقة "$_searchQuery"'
-                                : 'ممتاز! لا توجد أي ديون غير مسددة حالياً 🎉',
+                                ? (isEng ? 'No search results matching "$_searchQuery"' : 'لا توجد نتائج بحث لمطابقة "$_searchQuery"')
+                                : (isEng ? 'Great! No outstanding customer debts currently 🎉' : 'ممتاز! لا توجد أي ديون غير مسددة حالياً 🎉'),
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
                           ),
                         ],
@@ -214,7 +215,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                                         padding: EdgeInsets.zero,
                                                         constraints: const BoxConstraints(),
                                                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                                        tooltip: 'حذف هذا الزبون (للمدير فقط)',
+                                                        tooltip: isEng ? 'Delete Customer (Manager Only)' : 'حذف هذا الزبون (للمدير فقط)',
                                                         onPressed: () => _confirmDeleteCustomer(context, debtor),
                                                       ),
                                                     ],
@@ -223,8 +224,12 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                                 const SizedBox(height: 2),
                                                 Text(
                                                   debtor.phone != null && debtor.phone!.isNotEmpty
-                                                      ? 'رقم الهاتف: ${debtor.phone} | عدد الفواتير: ${debtor.orders.length}'
-                                                      : 'عدد الفواتير الآجلة: ${debtor.orders.length} فاتورة',
+                                                      ? (isEng
+                                                          ? 'Phone: ${debtor.phone} | Invoices: ${debtor.orders.length}'
+                                                          : 'رقم الهاتف: ${debtor.phone} | عدد الفواتير: ${debtor.orders.length}')
+                                                      : (isEng
+                                                          ? 'Credit Invoices: ${debtor.orders.length}'
+                                                          : 'عدد الفواتير الآجلة: ${debtor.orders.length} فاتورة'),
                                                   style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                                                 ),
                                               ],
@@ -243,9 +248,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
-                                          const Text(
-                                            'إجمالي المطلوب:',
-                                            style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w600),
+                                          Text(
+                                            isEng ? 'Total Due:' : 'إجمالي المطلوب:',
+                                            style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w600),
                                           ),
                                           Text(
                                             '${debtor.totalDebt.toStringAsFixed(0)} $currencySym',
@@ -258,7 +263,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                 ),
                                 const Divider(height: 24),
 
-                                // Settle All Button (Opens Payment Amount Modal)
+                                // Settle All Button
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
@@ -267,7 +272,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                         const Icon(Icons.info_outline, size: 16, color: Colors.grey),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'حالة المبلغ: غير مضاف للوارد اليومي حتى التسديد',
+                                          isEng ? 'Status: Excluded from daily revenue until settled' : 'حالة المبلغ: غير مضاف للوارد اليومي حتى التسديد',
                                           style: TextStyle(fontSize: 12, color: Colors.red.shade800, fontWeight: FontWeight.w600),
                                         ),
                                       ],
@@ -282,7 +287,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                       onPressed: () => _showDebtPaymentModal(context, debtor),
                                       icon: const Icon(Icons.payments_rounded, size: 18),
                                       label: Text(
-                                        '💵 سداد إجمالي الدين (${debtor.totalDebt.toStringAsFixed(0)} $currencySym)',
+                                        isEng
+                                            ? '💵 Settle Full Debt (${debtor.totalDebt.toStringAsFixed(0)} $currencySym)'
+                                            : '💵 سداد إجمالي الدين (${debtor.totalDebt.toStringAsFixed(0)} $currencySym)',
                                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                       ),
                                     ),
@@ -297,7 +304,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                     tilePadding: EdgeInsets.zero,
                                     dense: true,
                                     title: Text(
-                                      'عرض الفواتير التفصيلية لهذه الذمة (${debtor.orders.length} فواتير)',
+                                      isEng
+                                          ? 'View detailed invoices for this debt (${debtor.orders.length} Invoices)'
+                                          : 'عرض الفواتير التفصيلية لهذه الذمة (${debtor.orders.length} فواتير)',
                                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
                                     ),
                                     children: debtor.orders.map((order) {
@@ -315,11 +324,11 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  'فاتورة #${order.id} | ${_formatDate(order.createdAt)}',
+                                                  isEng ? 'Invoice #${order.id} | ${_formatDate(order.createdAt)}' : 'فاتورة #${order.id} | ${_formatDate(order.createdAt)}',
                                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                                                 ),
                                                 Text(
-                                                  'نوع الطلب: ${order.orderType} | المنفذ: ${order.cashierName}',
+                                                  isEng ? 'Type: ${order.orderType} | Staff: ${order.cashierName}' : 'نوع الطلب: ${order.orderType} | المنفذ: ${order.cashierName}',
                                                   style: const TextStyle(fontSize: 11, color: Colors.black54),
                                                 ),
                                               ],
@@ -340,7 +349,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                   ),
                                                   onPressed: () => _showDebtPaymentModal(context, debtor, specificOrder: order),
-                                                  child: const Text('سداد الفاتورة', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                  child: Text(isEng ? 'Settle Invoice' : 'سداد الفاتورة', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                                 ),
                                               ],
                                             ),
@@ -402,6 +411,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
   }
 
   void _showDebtPaymentModal(BuildContext parentContext, _GroupedDebtor debtor, {OrderModel? specificOrder}) {
+    final isEng = parentContext.read<SettingsProvider>().isEnglish;
     final currencySym = parentContext.read<SettingsProvider>().currencySymbol;
     final double targetTotal = specificOrder != null ? specificOrder.total : debtor.totalDebt;
 
@@ -432,8 +442,8 @@ class _DebtsScreenState extends State<DebtsScreen> {
                         Expanded(
                           child: Text(
                             specificOrder != null
-                                ? 'سداد فاتورة #${specificOrder.id} (${debtor.name})'
-                                : 'سداد وتسديد ديون (${debtor.name})',
+                                ? (isEng ? 'Settle Invoice #${specificOrder.id} (${debtor.name})' : 'سداد فاتورة #${specificOrder.id} (${debtor.name})')
+                                : (isEng ? 'Settle Debt (${debtor.name})' : 'سداد وتسديد ديون (${debtor.name})'),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -468,7 +478,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('إجمالي الدين المسجل:', style: TextStyle(fontSize: 11, color: Colors.red)),
+                                  Text(isEng ? 'Total Recorded Debt:' : 'إجمالي الدين المسجل:', style: const TextStyle(fontSize: 11, color: Colors.red)),
                                   const SizedBox(height: 2),
                                   Text(
                                     '${targetTotal.toStringAsFixed(0)} $currencySym',
@@ -491,7 +501,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    remainingDebt > 0 ? 'المتبقي كدين:' : 'تم السداد بالكامل:',
+                                    remainingDebt > 0
+                                        ? (isEng ? 'Remaining as Debt:' : 'المتبقي كدين:')
+                                        : (isEng ? 'Fully Settled:' : 'تم السداد بالكامل:'),
                                     style: TextStyle(fontSize: 11, color: remainingDebt > 0 ? Colors.amber.shade900 : Colors.green.shade900),
                                   ),
                                   const SizedBox(height: 2),
@@ -512,9 +524,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                       const SizedBox(height: 16),
 
                       // 2. Amount Input Field
-                      const Text(
-                        'أدخل المبلغ المراد تحصيله وتدفعه الآن:',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      Text(
+                        isEng ? 'Enter amount to collect and pay now:' : 'أدخل المبلغ المراد تحصيله وتدفعه الآن:',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       TextField(
@@ -523,7 +535,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                         autofocus: true,
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
                         decoration: InputDecoration(
-                          hintText: 'أدخل المبلغ...',
+                          hintText: isEng ? 'Enter amount...' : 'أدخل المبلغ...',
                           suffixText: currencySym,
                           suffixStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
                           prefixIcon: (currencySym == '\$' || currencySym.contains('\$'))
@@ -552,14 +564,14 @@ class _DebtsScreenState extends State<DebtsScreen> {
                       const SizedBox(height: 12),
 
                       // 3. Quick Payment Shortcuts
-                      const Text('خيارات سريعة للمبلغ:', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text(isEng ? 'Quick Amount Options:' : 'خيارات سريعة للمبلغ:', style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           ChoiceChip(
-                            label: Text('سداد كامل الدين (${targetTotal.toStringAsFixed(0)} $currencySym)'),
+                            label: Text(isEng ? 'Full Debt (${targetTotal.toStringAsFixed(0)} $currencySym)' : 'سداد كامل الدين (${targetTotal.toStringAsFixed(0)} $currencySym)'),
                             selected: enteredAmount == targetTotal,
                             selectedColor: Colors.green.shade100,
                             onSelected: (_) {
@@ -570,7 +582,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           ),
                           if (targetTotal > 1000)
                             ChoiceChip(
-                              label: Text('نصف المبلغ (${(targetTotal / 2).toStringAsFixed(0)} $currencySym)'),
+                              label: Text(isEng ? 'Half Amount (${(targetTotal / 2).toStringAsFixed(0)} $currencySym)' : 'نصف المبلغ (${(targetTotal / 2).toStringAsFixed(0)} $currencySym)'),
                               selected: enteredAmount == (targetTotal / 2),
                               selectedColor: Colors.green.shade100,
                               onSelected: (_) {
@@ -619,14 +631,16 @@ class _DebtsScreenState extends State<DebtsScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: Colors.red.shade300),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
-                              SizedBox(width: 8),
+                              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'المبلغ المدخل أكبر من الدين المسجل! يرجى إدخال مبلغ يساوي أو أقل من الدين المطلوب.',
-                                  style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
+                                  isEng
+                                      ? 'Entered amount is greater than recorded debt!'
+                                      : 'المبلغ المدخل أكبر من الدين المسجل! يرجى إدخال مبلغ يساوي أو أقل من الدين المطلوب.',
+                                  style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],
@@ -646,7 +660,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'سداد جزئي: سيتم سداد ${enteredAmount.toStringAsFixed(0)} $currencySym وتمريرها للوارد، ويبقى ${remainingDebt.toStringAsFixed(0)} $currencySym كذمة قائمة على الزبون.',
+                                  isEng
+                                      ? 'Partial payment: ${enteredAmount.toStringAsFixed(0)} $currencySym will be credited to daily revenue, leaving ${remainingDebt.toStringAsFixed(0)} $currencySym due.'
+                                      : 'سداد جزئي: سيتم سداد ${enteredAmount.toStringAsFixed(0)} $currencySym وتمريرها للوارد، ويبقى ${remainingDebt.toStringAsFixed(0)} $currencySym كذمة قائمة على الزبون.',
                                   style: TextStyle(fontSize: 11, color: Colors.amber.shade900, fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -660,7 +676,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
               actions: [
                 OutlinedButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('إلغاء'),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -696,13 +712,17 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           if (parentContext.mounted) {
                             TopNotification.showSuccess(
                               parentContext,
-                              '🎉 تم تحصيل وتسديد مبلغ (${enteredAmount.toStringAsFixed(0)} $currencySym) بنجاح وإضافته للوارد والخزينة!',
+                              isEng
+                                  ? '🎉 Collected (${enteredAmount.toStringAsFixed(0)} $currencySym) successfully and added to daily revenue!'
+                                  : '🎉 تم تحصيل وتسديد مبلغ (${enteredAmount.toStringAsFixed(0)} $currencySym) بنجاح وإضافته للوارد والخزينة!',
                             );
                           }
                         },
                   icon: const Icon(Icons.check_circle_rounded, size: 20, color: Colors.white),
                   label: Text(
-                    'تأكيد الدفع وتحصيل (${enteredAmount.toStringAsFixed(0)} $currencySym)',
+                    isEng
+                        ? 'Confirm & Collect (${enteredAmount.toStringAsFixed(0)} $currencySym)'
+                        : 'تأكيد الدفع وتحصيل (${enteredAmount.toStringAsFixed(0)} $currencySym)',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
                   ),
                 ),
@@ -715,6 +735,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
   }
 
   void _confirmDeleteCustomer(BuildContext parentContext, _GroupedDebtor debtor) {
+    final isEng = parentContext.read<SettingsProvider>().isEnglish;
     final currencySym = parentContext.read<SettingsProvider>().currencySymbol;
 
     if (debtor.totalDebt > 0) {
@@ -722,11 +743,14 @@ class _DebtsScreenState extends State<DebtsScreen> {
         context: parentContext,
         builder: (blockContext) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.block_rounded, color: Colors.red, size: 28),
-              SizedBox(width: 10),
-              Text('تنبيه: لا يمكن حذف الزبون', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              const Icon(Icons.block_rounded, color: Colors.red, size: 28),
+              const SizedBox(width: 10),
+              Text(
+                isEng ? 'Warning: Cannot Delete Customer' : 'تنبيه: لا يمكن حذف الزبون',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              ),
             ],
           ),
           content: Column(
@@ -734,7 +758,9 @@ class _DebtsScreenState extends State<DebtsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'لا يمكن حذف الزبون (${debtor.name}) لأن لديه ديون سابقة غير مسددة (${debtor.totalDebt.toStringAsFixed(0)} $currencySym).',
+                isEng
+                    ? 'Cannot delete customer (${debtor.name}) because they have outstanding unpaid debts (${debtor.totalDebt.toStringAsFixed(0)} $currencySym).'
+                    : 'لا يمكن حذف الزبون (${debtor.name}) لأن لديه ديون سابقة غير مسددة (${debtor.totalDebt.toStringAsFixed(0)} $currencySym).',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
@@ -745,14 +771,16 @@ class _DebtsScreenState extends State<DebtsScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.red.shade200),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.red, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.info_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'يرجى تحصيل وتسديد الديون وإتاحة تصفير الحساب أولاً قبل حذف الزبون من النظام.',
-                        style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold),
+                        isEng
+                            ? 'Please collect and settle debts first before deleting customer.'
+                            : 'يرجى تحصيل وتسديد الديون وإتاحة تصفير الحساب أولاً قبل حذف الزبون من النظام.',
+                        style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -764,7 +792,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
               onPressed: () => Navigator.pop(blockContext),
-              child: const Text('حسناً، فهمت', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(isEng ? 'Got it' : 'حسناً، فهمت', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -776,18 +804,22 @@ class _DebtsScreenState extends State<DebtsScreen> {
       context: parentContext,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 10),
-            Text('تأكيد حذف الزبون وسجلاته', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            const SizedBox(width: 10),
+            Text(isEng ? 'Confirm Delete Customer & Records' : 'تأكيد حذف الزبون وسجلاته', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('هل أنت متأكد من حذف الزبون (${debtor.name}) وإلغاء حسابه نهائياً من القائمة بالنظام؟'),
+            Text(
+              isEng
+                  ? 'Are you sure you want to delete customer (${debtor.name}) and remove their account?'
+                  : 'هل أنت متأكد من حذف الزبون (${debtor.name}) وإلغاء حسابه نهائياً من القائمة بالنظام؟',
+            ),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(10),
@@ -796,14 +828,14 @@ class _DebtsScreenState extends State<DebtsScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.red.shade200),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.security_rounded, color: Colors.red, size: 18),
-                  SizedBox(width: 6),
+                  const Icon(Icons.security_rounded, color: Colors.red, size: 18),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'صلاحية المدير فقط: سيتم إزالة الزبون وتصفية ذمته من قائمة أصحاب الديون.',
-                      style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
+                      isEng ? 'Manager privileges only.' : 'صلاحية المدير فقط: سيتم إزالة الزبون وتصفية ذمته من قائمة أصحاب الديون.',
+                      style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -814,7 +846,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
+            child: Text(isEng ? 'Cancel' : 'إلغاء'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -838,10 +870,13 @@ class _DebtsScreenState extends State<DebtsScreen> {
               }
 
               if (parentContext.mounted) {
-                TopNotification.showSuccess(parentContext, '🎉 تم حذف الزبون (${debtor.name}) وإلغاء حسابه بنجاح!');
+                TopNotification.showSuccess(
+                  parentContext,
+                  isEng ? '🎉 Customer (${debtor.name}) deleted successfully!' : '🎉 تم حذف الزبون (${debtor.name}) وإلغاء حسابه بنجاح!',
+                );
               }
             },
-            child: const Text('نعم، حذف الزبون نهائياً', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(isEng ? 'Delete Customer' : 'نعم، حذف الزبون نهائياً', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
