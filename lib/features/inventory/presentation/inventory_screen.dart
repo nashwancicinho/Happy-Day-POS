@@ -27,7 +27,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     final productsProvider = context.watch<ProductsProvider>();
     final categoriesProvider = context.watch<CategoriesProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
+
+    String formatUnit(String rawUnit) {
+      if (!isEng) return rawUnit;
+      switch (rawUnit) {
+        case 'قطعة':
+          return 'Piece';
+        case 'كيلوغرام':
+          return 'kg';
+        case 'غرام':
+          return 'g';
+        case 'لتر':
+          return 'L';
+        case 'علبة':
+          return 'Box/Can';
+        case 'طقم':
+          return 'Set';
+        case 'متر':
+          return 'Meter';
+        case 'كارتون':
+          return 'Carton';
+        default:
+          return rawUnit;
+      }
+    }
 
     // Filter products based on search, category, and stock status
     final filteredProducts = productsProvider.allProducts.where((p) {
@@ -51,22 +76,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2, size: 26),
-            SizedBox(width: 10),
-            Text('إدارة المخزن والمواد (الكميات والتوريد)', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.inventory_2, size: 26),
+            const SizedBox(width: 10),
+            Text(
+              isEng ? 'Inventory & Stock Management' : 'إدارة المخزن والمواد (الكميات والتوريد)',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'تحديث بيانات المخزن',
+            tooltip: isEng ? 'Refresh Inventory Data' : 'تحديث بيانات المخزن',
             onPressed: () {
               productsProvider.loadProducts();
-              TopNotification.showSuccess(context, 'تم تحديث بيانات المخزن بنجاح.');
+              TopNotification.showSuccess(
+                context,
+                isEng ? 'Inventory data refreshed successfully.' : 'تم تحديث بيانات المخزن بنجاح.',
+              );
             },
           ),
           const SizedBox(width: 8),
@@ -76,7 +107,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         onPressed: () => _showQuickSupplyDialog(context, productsProvider.allProducts),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_business_rounded),
-        label: const Text('توريد شحنة / زيادة مخزون', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: Text(
+          isEng ? 'Supply Stock Shipment 🏪' : 'توريد شحنة / زيادة مخزون 🏪',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -105,7 +139,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       constraints: const BoxConstraints(maxWidth: 300),
                       child: TextField(
                         decoration: InputDecoration(
-                          hintText: 'بحث باسم المادة أو الباركود...',
+                          hintText: isEng ? 'Search product or barcode...' : 'بحث باسم المادة أو الباركود...',
                           prefixIcon: const Icon(Icons.search),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -134,18 +168,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<int?>(
                             value: _selectedCatId,
-                            hint: const Text('جميع التصنيفات', style: TextStyle(fontSize: 13)),
+                            hint: Text(isEng ? 'All Categories' : 'جميع التصنيفات', style: const TextStyle(fontSize: 13)),
                             isDense: true,
                             isExpanded: true,
                             items: [
-                              const DropdownMenuItem<int?>(
+                              DropdownMenuItem<int?>(
                                 value: null,
-                                child: Text('جميع التصنيفات', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                child: Text(isEng ? 'All Categories' : 'جميع التصنيفات', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
                               ...categoriesProvider.categories.map((cat) {
+                                final cName = (cat.name == 'عام' && isEng) ? 'General' : cat.name;
                                 return DropdownMenuItem<int?>(
                                   value: cat.id,
-                                  child: Text(cat.name, style: const TextStyle(fontSize: 13)),
+                                  child: Text(cName, style: const TextStyle(fontSize: 13)),
                                 );
                               }),
                             ],
@@ -163,10 +198,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     Wrap(
                       spacing: 6,
                       children: [
-                        _buildFilterChip('الكل (${productsProvider.allProducts.length})', StockFilterType.all, Colors.blue),
-                        _buildFilterChip('متوفر جيدا', StockFilterType.normal, Colors.green),
-                        _buildFilterChip('كمية منخفضة (${productsProvider.lowStockProductsCount})', StockFilterType.low, Colors.orange),
-                        _buildFilterChip('نافد من المخزن (${productsProvider.outOfStockProductsCount})', StockFilterType.outOfStock, Colors.red),
+                        _buildFilterChip(
+                          isEng ? 'All (${productsProvider.allProducts.length})' : 'الكل (${productsProvider.allProducts.length})',
+                          StockFilterType.all,
+                          Colors.blue,
+                        ),
+                        _buildFilterChip(
+                          isEng ? 'Good Stock' : 'متوفر جيدا',
+                          StockFilterType.normal,
+                          Colors.green,
+                        ),
+                        _buildFilterChip(
+                          isEng ? 'Low Stock (${productsProvider.lowStockProductsCount})' : 'كمية منخفضة (${productsProvider.lowStockProductsCount})',
+                          StockFilterType.low,
+                          Colors.orange,
+                        ),
+                        _buildFilterChip(
+                          isEng ? 'Out of Stock (${productsProvider.outOfStockProductsCount})' : 'نافد من المخزن (${productsProvider.outOfStockProductsCount})',
+                          StockFilterType.outOfStock,
+                          Colors.red,
+                        ),
                       ],
                     ),
                   ],
@@ -186,7 +237,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           Icon(Icons.inventory_sharp, size: 64, color: Colors.grey.shade400),
                           const SizedBox(height: 12),
                           Text(
-                            'لا توجد مواد في المخزن مطابقة لشروط البحث والتصفية',
+                            isEng ? 'No inventory products matching filter criteria' : 'لا توجد مواد في المخزن مطابقة لشروط البحث والتصفية',
                             style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                           ),
                         ],
@@ -203,25 +254,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             constraints: const BoxConstraints(minWidth: 1050),
                             child: DataTable(
                               headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
-                              columns: const [
-                                DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('اسم المادة / الباركود', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('التصنيف', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('سعر الكلفة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('سعر البيع', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('الكمية المتوفرة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('حد التنبيه', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('حالة المخزون', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('إجراءات التوريد والتعديل', style: TextStyle(fontWeight: FontWeight.bold))),
+                              columns: [
+                                const DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Item Name / Barcode' : 'اسم المادة / الباركود', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Category' : 'التصنيف', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Unit' : 'الوحدة', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Cost Price' : 'سعر الكلفة', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Sale Price' : 'سعر البيع', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Available Qty' : 'الكمية المتوفرة', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Alert Limit' : 'حد التنبيه', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Stock Status' : 'حالة المخزون', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Actions & Stock Supply' : 'إجراءات التوريد والتعديل', style: const TextStyle(fontWeight: FontWeight.bold))),
                               ],
                               rows: filteredProducts.map((product) {
-                                final catName = categoriesProvider.categories
+                                final rawCat = categoriesProvider.categories
                                     .firstWhere(
                                       (c) => c.id == product.categoryId,
                                       orElse: () => const CategoryModel(name: 'عام'),
                                     )
                                     .name;
+                                final catName = (rawCat == 'عام' && isEng) ? 'General' : rawCat;
 
                                 return DataRow(
                                   cells: [
@@ -233,7 +285,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                         children: [
                                           Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                                           if (product.barcode != null && product.barcode!.isNotEmpty)
-                                            Text('باركود: ${product.barcode}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                            Text(
+                                              isEng ? 'Barcode: ${product.barcode}' : 'باركود: ${product.barcode}',
+                                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                            ),
                                         ],
                                       ),
                                     ),
@@ -241,14 +296,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                       label: Text(catName, style: const TextStyle(fontSize: 12)),
                                       backgroundColor: Colors.blue.shade50,
                                     )),
-                                    DataCell(Text(product.unit)),
+                                    DataCell(Text(formatUnit(product.unit))),
                                     DataCell(Text('${product.buyPrice.toStringAsFixed(0)} $currencySym')),
                                     DataCell(Text('${product.price.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold))),
                                     DataCell(
-                                      _buildStockQuantityBadge(product),
+                                      _buildStockQuantityBadge(product, isEng, formatUnit),
                                     ),
-                                    DataCell(Text('${product.minStock.toStringAsFixed(0)} ${product.unit}')),
-                                    DataCell(_buildStockStatusChip(product)),
+                                    DataCell(Text('${product.minStock.toStringAsFixed(0)} ${formatUnit(product.unit)}')),
+                                    DataCell(_buildStockStatusChip(product, isEng)),
                                     DataCell(
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -261,7 +316,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                             ),
                                             icon: const Icon(Icons.add, size: 16),
-                                            label: const Text('تعديل / زيادة المخزون', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                            label: Text(
+                                              isEng ? 'Adjust / Add Stock +' : 'تعديل / زيادة المخزون +',
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                            ),
                                             onPressed: () => _showAddStockDialog(context, product),
                                           ),
                                         ],
@@ -307,7 +365,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildInventorySummaryCards(BuildContext context, ProductsProvider provider) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 800;
@@ -316,33 +376,37 @@ class _InventoryScreenState extends State<InventoryScreen> {
           runSpacing: 12,
           children: [
             _buildStatCard(
-              title: 'إجمالي مواد المخزن',
-              value: '${provider.totalProductsCount} أصناف',
-              subtitle: 'المواد المسجلة في النظام',
+              title: isEng ? 'Total Inventory Items' : 'إجمالي مواد المخزن',
+              value: isEng ? '${provider.totalProductsCount} Items' : '${provider.totalProductsCount} أصناف',
+              subtitle: isEng ? 'Registered items in system' : 'المواد المسجلة في النظام',
               icon: Icons.inventory_2_outlined,
               color: Colors.blue.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
             ),
             _buildStatCard(
-              title: 'إجمالي الكميات المتوفرة',
+              title: isEng ? 'Total Available Stock Qty' : 'إجمالي الكميات المتوفرة',
               value: provider.totalStockUnits.toStringAsFixed(0),
-              subtitle: 'مجموع الوحدات في الرفوف',
+              subtitle: isEng ? 'Total units on shelves' : 'مجموع الوحدات في الرفوف',
               icon: Icons.format_list_numbered,
               color: Colors.purple.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
             ),
             _buildStatCard(
-              title: 'أصناف خفيضة / نافدة',
-              value: '${provider.lowStockProductsCount + provider.outOfStockProductsCount} مادة',
-              subtitle: 'تتطلب توريد ومتابعة',
+              title: isEng ? 'Low / Out of Stock' : 'أصناف خفيضة / نافدة',
+              value: isEng
+                  ? '${provider.lowStockProductsCount + provider.outOfStockProductsCount} Items'
+                  : '${provider.lowStockProductsCount + provider.outOfStockProductsCount} مادة',
+              subtitle: isEng ? 'Requires reorder & tracking' : 'تتطلب توريد ومتابعة',
               icon: Icons.warning_amber_rounded,
               color: (provider.lowStockProductsCount + provider.outOfStockProductsCount) > 0 ? Colors.red.shade700 : Colors.green.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
             ),
             _buildStatCard(
-              title: 'قيمة المخزون (بالتكلفة والبيع)',
+              title: isEng ? 'Inventory Value (Cost & Retail)' : 'قيمة المخزون (بالتكلفة والبيع)',
               value: '${provider.totalCostValue.toStringAsFixed(0)} $currencySym',
-              subtitle: 'البيع المتوقع: ${provider.totalRetailValue.toStringAsFixed(0)} $currencySym',
+              subtitle: isEng
+                  ? 'Expected Sales: ${provider.totalRetailValue.toStringAsFixed(0)} $currencySym'
+                  : 'البيع المتوقع: ${provider.totalRetailValue.toStringAsFixed(0)} $currencySym',
               icon: Icons.account_balance_wallet_outlined,
               color: Colors.teal.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
@@ -398,12 +462,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildStockQuantityBadge(ProductModel product) {
+  Widget _buildStockQuantityBadge(ProductModel product, bool isEng, String Function(String) formatUnit) {
     if (!product.trackStock) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-        child: const Text('غير متتبع', style: TextStyle(fontSize: 12, color: Colors.black54)),
+        child: Text(isEng ? 'Untracked' : 'غير متتبع', style: const TextStyle(fontSize: 12, color: Colors.black54)),
       );
     }
 
@@ -429,42 +493,67 @@ class _InventoryScreenState extends State<InventoryScreen> {
         border: Border.all(color: borderColor),
       ),
       child: Text(
-        '${product.stockQuantity.toStringAsFixed(0)} ${product.unit}',
+        '${product.stockQuantity.toStringAsFixed(0)} ${formatUnit(product.unit)}',
         style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontSize: 13),
       ),
     );
   }
 
-  Widget _buildStockStatusChip(ProductModel product) {
+  Widget _buildStockStatusChip(ProductModel product, bool isEng) {
     if (!product.trackStock) {
-      return const Chip(label: Text('مفتوح', style: TextStyle(fontSize: 11)), backgroundColor: Colors.grey);
+      return Chip(label: Text(isEng ? 'Open' : 'مفتوح', style: const TextStyle(fontSize: 11)), backgroundColor: Colors.grey);
     }
 
     if (product.stockQuantity <= 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(6)),
-        child: const Text('نافد من المخزن', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        child: Text(isEng ? 'Out of Stock' : 'نافد من المخزن', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     } else if (product.stockQuantity <= product.minStock) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(color: Colors.orange.shade800, borderRadius: BorderRadius.circular(6)),
-        child: const Text('كمية خفيضة جداً', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        child: Text(isEng ? 'Low Stock' : 'كمية خفيضة جداً', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     } else {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(color: Colors.green.shade700, borderRadius: BorderRadius.circular(6)),
-        child: const Text('مخزون جيد', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        child: Text(isEng ? 'Good Stock' : 'مخزون جيد', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     }
   }
 
   void _showAddStockDialog(BuildContext context, ProductModel product) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final qtyController = TextEditingController(text: '10');
     final minStockController = TextEditingController(text: product.minStock.toStringAsFixed(0));
     bool isDirectSetMode = false;
+
+    String formatUnit(String rawUnit) {
+      if (!isEng) return rawUnit;
+      switch (rawUnit) {
+        case 'قطعة':
+          return 'Piece';
+        case 'كيلوغرام':
+          return 'kg';
+        case 'غرام':
+          return 'g';
+        case 'لتر':
+          return 'L';
+        case 'علبة':
+          return 'Box/Can';
+        case 'طقم':
+          return 'Set';
+        case 'متر':
+          return 'Meter';
+        case 'كارتون':
+          return 'Carton';
+        default:
+          return rawUnit;
+      }
+    }
 
     showDialog(
       context: context,
@@ -488,7 +577,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('تعديل و توريد مخزون المادة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          isEng ? 'Adjust & Add Product Stock' : 'تعديل و توريد مخزون المادة',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                         Text(product.name, style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -513,9 +605,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('الكمية الحالية في المخزن:', style: TextStyle(fontWeight: FontWeight.bold)),
                             Text(
-                              '${currentQty.toStringAsFixed(0)} ${product.unit}',
+                              isEng ? 'Current Inventory Quantity:' : 'الكمية الحالية في المخزن:',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              '${currentQty.toStringAsFixed(0)} ${formatUnit(product.unit)}',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
                             ),
                           ],
@@ -526,9 +621,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
                       // Mode Switcher
                       SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment<bool>(value: false, label: Text('إضافة كمية شحنة (+)')),
-                          ButtonSegment<bool>(value: true, label: Text('تعديل الكمية المباشرة (=)')),
+                        segments: [
+                          ButtonSegment<bool>(
+                            value: false,
+                            label: Text(isEng ? 'Add Qty (+)' : 'إضافة كمية شحنة (+)'),
+                          ),
+                          ButtonSegment<bool>(
+                            value: true,
+                            label: Text(isEng ? 'Direct Set (=)' : 'تعديل الكمية المباشرة (=)'),
+                          ),
                         ],
                         selected: {isDirectSetMode},
                         onSelectionChanged: (Set<bool> selection) {
@@ -547,7 +648,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
                       // Quick Add buttons (only in add mode)
                       if (!isDirectSetMode) ...[
-                        const Text('إضافة سريعة بالكمية:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        Text(
+                          isEng ? 'Quick Add Quantity:' : 'إضافة سريعة بالكمية:',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -563,7 +667,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   qtyController.text = (currentVal + addAmount).toStringAsFixed(0);
                                 });
                               },
-                              child: Text('+$addAmount ${product.unit}'),
+                              child: Text('+$addAmount ${formatUnit(product.unit)}'),
                             );
                           }).toList(),
                         ),
@@ -575,10 +679,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         controller: qtyController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: isDirectSetMode ? 'الكمية الجديدة للمخزون *' : 'الكمية المضافة للشحنة *',
+                          labelText: isDirectSetMode
+                              ? (isEng ? 'New Inventory Quantity *' : 'الكمية الجديدة للمخزون *')
+                              : (isEng ? 'Shipment Added Quantity *' : 'الكمية المضافة للشحنة *'),
                           prefixIcon: Icon(isDirectSetMode ? Icons.edit_note : Icons.add_circle_outline),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          suffixText: product.unit,
+                          suffixText: formatUnit(product.unit),
                         ),
                         onChanged: (_) => setDialogState(() {}),
                       ),
@@ -590,10 +696,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         controller: minStockController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: 'حد التنبيه الأدنى للمخزون',
+                          labelText: isEng ? 'Low Stock Warning Limit' : 'حد التنبيه الأدنى للمخزون',
                           prefixIcon: const Icon(Icons.warning_amber_outlined),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          suffixText: product.unit,
+                          suffixText: formatUnit(product.unit),
                         ),
                       ),
 
@@ -609,9 +715,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('الكمية الجديدة المتوقعة:', style: TextStyle(fontWeight: FontWeight.bold)),
                             Text(
-                              '${newCalculatedQty.toStringAsFixed(0)} ${product.unit}',
+                              isEng ? 'New Expected Quantity:' : 'الكمية الجديدة المتوقعة:',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              '${newCalculatedQty.toStringAsFixed(0)} ${formatUnit(product.unit)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -628,7 +737,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               actions: [
                 OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -659,11 +768,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     if (!mounted) return;
                     TopNotification.showSuccess(
                       context,
-                      'تم تحديث مخزون المادة "${product.name}" بنجاح ليصبح ${newCalculatedQty.toStringAsFixed(0)} ${product.unit}.',
+                      isEng
+                          ? 'Stock for "${product.name}" updated successfully to ${newCalculatedQty.toStringAsFixed(0)} ${formatUnit(product.unit)}.'
+                          : 'تم تحديث مخزون المادة "${product.name}" بنجاح ليصبح ${newCalculatedQty.toStringAsFixed(0)} ${product.unit}.',
                     );
                   },
                   icon: const Icon(Icons.check_circle, color: Colors.white),
-                  label: const Text('حفظ التوريد والتحديث', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    isEng ? 'Save & Update Stock' : 'حفظ التوريد والتحديث',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             );
@@ -674,13 +788,41 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _showQuickSupplyDialog(BuildContext context, List<ProductModel> products) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     if (products.isEmpty) {
-      TopNotification.showWarning(context, 'لا توجد مواد مسجلة حالياً لإضافة توريد لها.');
+      TopNotification.showWarning(
+        context,
+        isEng ? 'No products registered to supply stock.' : 'لا توجد مواد مسجلة حالياً لإضافة توريد لها.',
+      );
       return;
     }
 
     ProductModel selectedProduct = products.first;
     final qtyController = TextEditingController(text: '50');
+
+    String formatUnit(String rawUnit) {
+      if (!isEng) return rawUnit;
+      switch (rawUnit) {
+        case 'قطعة':
+          return 'Piece';
+        case 'كيلوغرام':
+          return 'kg';
+        case 'غرام':
+          return 'g';
+        case 'لتر':
+          return 'L';
+        case 'علبة':
+          return 'Box/Can';
+        case 'طقم':
+          return 'Set';
+        case 'متر':
+          return 'Meter';
+        case 'كارتون':
+          return 'Carton';
+        default:
+          return rawUnit;
+      }
+    }
 
     showDialog(
       context: context,
@@ -693,7 +835,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 children: [
                   Icon(Icons.unarchive, color: AppColors.primary, size: 28),
                   const SizedBox(width: 10),
-                  const Text('توريد شحنة كميات جديدة للمخزن', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    isEng ? 'Supply New Stock Shipment' : 'توريد شحنة كميات جديدة للمخزن',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               content: ConstrainedBox(
@@ -703,14 +848,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   children: [
                     DropdownButtonFormField<ProductModel>(
                       initialValue: selectedProduct,
+                      isExpanded: true,
                       decoration: InputDecoration(
-                        labelText: 'اختر المادة / الصنف المطلوب توريده',
+                        labelText: isEng ? 'Select Product to Supply' : 'اختر المادة / الصنف المطلوب توريده',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       items: products.map((p) {
                         return DropdownMenuItem<ProductModel>(
                           value: p,
-                          child: Text('${p.name} (المخزون الحالي: ${p.stockQuantity.toStringAsFixed(0)} ${p.unit})'),
+                          child: Text(
+                            isEng
+                                ? '${p.name} (Current Stock: ${p.stockQuantity.toStringAsFixed(0)} ${formatUnit(p.unit)})'
+                                : '${p.name} (المخزون الحالي: ${p.stockQuantity.toStringAsFixed(0)} ${p.unit})',
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -728,10 +879,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       controller: qtyController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'كمية الشحنة الموردة *',
+                        labelText: isEng ? 'Supplied Shipment Qty *' : 'كمية الشحنة الموردة *',
                         prefixIcon: const Icon(Icons.add_circle_outline),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        suffixText: selectedProduct.unit,
+                        suffixText: formatUnit(selectedProduct.unit),
                       ),
                     ),
                   ],
@@ -740,7 +891,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               actions: [
                 OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -751,7 +902,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   onPressed: () async {
                     final qtyVal = double.tryParse(qtyController.text.trim()) ?? 0.0;
                     if (qtyVal <= 0) {
-                      TopNotification.showWarning(context, 'يرجى إدخال كمية توريد صحيحة أكبر من صفر.');
+                      TopNotification.showWarning(
+                        context,
+                        isEng ? 'Please enter valid supply quantity greater than 0.' : 'يرجى إدخال كمية توريد صحيحة أكبر من صفر.',
+                      );
                       return;
                     }
 
@@ -763,11 +917,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     if (!mounted) return;
                     TopNotification.showSuccess(
                       context,
-                      'تمت إضافة $qtyVal ${selectedProduct.unit} لمخزون "${selectedProduct.name}" بنجاح.',
+                      isEng
+                          ? 'Added $qtyVal ${formatUnit(selectedProduct.unit)} to "${selectedProduct.name}" stock.'
+                          : 'تمت إضافة $qtyVal ${selectedProduct.unit} لمخزون "${selectedProduct.name}" بنجاح.',
                     );
                   },
                   icon: const Icon(Icons.check, color: Colors.white),
-                  label: const Text('تأكيد التوريد', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    isEng ? 'Confirm Supply' : 'تأكيد التوريد',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             );
