@@ -573,6 +573,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildBackupRestoreSection(BuildContext context, SettingsProvider settingsProvider) {
+    final isEng = settingsProvider.isEnglish;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -588,16 +590,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: const Icon(Icons.sd_storage_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'النسخ الاحتياطي واستعادة البيانات 💾',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  isEng ? 'Database Backup & Restore 💾' : 'النسخ الاحتياطي واستعادة البيانات 💾',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const Divider(height: 28),
-            const Text(
-              'قم بإنشاء نسخة احتياطية لقاعدة البيانات لحفظ جميع المنتجات والمبيعات والحسابات في مكان آمن، أو استرجع نسخة سابقة عند الحاجة:',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
+            Text(
+              isEng
+                  ? 'Create database backups of all products, sales, and accounts in a safe location, or restore previous backups:'
+                  : 'قم بإنشاء نسخة احتياطية لقاعدة البيانات لحفظ جميع المنتجات والمبيعات والحسابات في مكان آمن، أو استرجع نسخة سابقة عند الحاجة:',
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
             const SizedBox(height: 16),
             Container(
@@ -610,13 +614,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.autorenew_rounded, color: Colors.teal),
-                      SizedBox(width: 8),
+                      const Icon(Icons.autorenew_rounded, color: Colors.teal),
+                      const SizedBox(width: 8),
                       Text(
-                        'جدولة النسخ الاحتياطي الأوتوماتيكي:',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        isEng ? 'Automatic Backup Schedule:' : 'جدولة النسخ الاحتياطي الأوتوماتيكي:',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                     ],
                   ),
@@ -626,28 +630,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? settingsProvider.autoBackupFrequency
                         : 'DAILY',
                     decoration: InputDecoration(
-                      labelText: 'مدة / تكرار خزن النسخ الاحتياطية تلقائياً',
+                      labelText: isEng ? 'Auto-Backup Frequency' : 'مدة / تكرار خزن النسخ الاحتياطية تلقائياً',
                       prefixIcon: const Icon(Icons.timer_outlined, color: Colors.teal),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                     ),
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'DAILY',
-                        child: Text('📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)'),
+                        child: Text(isEng ? '📅 Daily Automatically (On Shift / EOD Closing)' : '📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)'),
                       ),
                       DropdownMenuItem(
                         value: 'WEEKLY',
-                        child: Text('🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)'),
+                        child: Text(isEng ? '🗓️ Weekly Automatically (Every Week)' : '🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)'),
                       ),
                       DropdownMenuItem(
                         value: 'MONTHLY',
-                        child: Text('📆 شهرياً أوتوماتيكياً (كل شهر)'),
+                        child: Text(isEng ? '📆 Monthly Automatically (Every Month)' : '📆 شهرياً أوتوماتيكياً (كل شهر)'),
                       ),
                       DropdownMenuItem(
                         value: 'OFF',
-                        child: Text('🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)'),
+                        child: Text(isEng ? '🚫 Manual Only (Disable Auto-Backup)' : '🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)'),
                       ),
                     ],
                     onChanged: (val) {
@@ -655,7 +659,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         settingsProvider.updateSetting('auto_backup_frequency', val);
                         TopNotification.showSuccess(
                           context,
-                          'تم حفظ مدة النسخ الاحتياطي التلقائي نجاح!',
+                          isEng ? 'Auto backup frequency saved successfully!' : 'تم حفظ مدة النسخ الاحتياطي التلقائي نجاح!',
                         );
                       }
                     },
@@ -663,8 +667,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 6),
                   Text(
                     settingsProvider.autoBackupFrequency == 'OFF'
-                        ? 'النسخ الأوتوماتيكي معطل حالياً. يمكنك إنشاء نسخة احتياطية يدوياً في أي وقت.'
-                        : 'سيتم حفظ ملف النسخة الاحتياطية أوتوماتيكياً بالمجلد المختار عند إغلاق اليوم.',
+                        ? (isEng ? 'Auto-backup is currently disabled. You can create manual backups anytime.' : 'النسخ الأوتوماتيكي معطل حالياً. يمكنك إنشاء نسخة احتياطية يدوياً في أي وقت.')
+                        : (isEng ? 'Backup files will be saved automatically to target folder on EOD day closing.' : 'سيتم حفظ ملف النسخة الاحتياطية أوتوماتيكياً بالمجلد المختار عند إغلاق اليوم.'),
                     style: TextStyle(fontSize: 12, color: Colors.teal.shade900, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -677,11 +681,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: TextField(
                     controller: _backupFolderController,
                     decoration: InputDecoration(
-                      labelText: 'مجلد حفظ النسخ الاحتياطية (Default Backup Folder)',
-                      hintText: '/Users/.../Backups أو C:\\Backups',
+                      labelText: isEng ? 'Default Backup Folder Path' : 'مجلد حفظ النسخ الاحتياطية (Default Backup Folder)',
+                      hintText: '/Users/.../Backups or C:\\Backups',
                       prefixIcon: const Icon(Icons.folder_special, color: Colors.teal),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      helperText: 'يمكنك اختيار مجلد حفظ مخصص على جهازك ليتم حفظ النسخ فيه تلقائياً',
+                      helperText: isEng ? 'Choose custom storage directory on your PC for automatic database backups' : 'يمكنك اختيار مجلد حفظ مخصص على جهازك ليتم حفظ النسخ فيه تلقائياً',
                     ),
                   ),
                 ),
@@ -698,7 +702,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.folder_open_rounded),
-                    label: const Text('تغيير المجلد', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(isEng ? 'Change Folder' : 'تغيير المجلد', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -716,9 +720,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.cloud_upload_rounded, size: 22),
-                    label: const Text(
-                      '📦 إنشاء نسخة احتياطية الآن',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    label: Text(
+                      isEng ? '📦 Create Backup Now' : '📦 إنشاء نسخة احتياطية الآن',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -733,9 +737,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.restore_page_rounded, size: 22),
-                    label: const Text(
-                      '🔄 استعادة نسخة احتياطية من ملف...',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    label: Text(
+                      isEng ? '🔄 Restore Backup from File...' : '🔄 استعادة نسخة احتياطية من ملف...',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -749,6 +753,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildThemeColorSection(BuildContext context, SettingsProvider settingsProvider) {
     final currentHex = settingsProvider.themeColorHex.toUpperCase();
+    final isEng = settingsProvider.isEnglish;
 
     return Card(
       elevation: 4,
@@ -765,16 +770,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: const Icon(Icons.palette_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'مظهر وألوان البرنامج (App Color Palette) 🎨',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  isEng ? 'App Color Palette & Theme 🎨' : 'مظهر وألوان البرنامج (App Color Palette) 🎨',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const Divider(height: 28),
-            const Text(
-              'اختر اللون الرئيسي المفضل لديك ليتم تطبيقه فورياً على كافة واجهات وشاشات وأزرار البرنامج:',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
+            Text(
+              isEng ? 'Select your preferred primary theme color to apply instantly across all app screens:' : 'اختر اللون الرئيسي المفضل لديك ليتم تطبيقه فورياً على كافة واجهات وشاشات وأزرار البرنامج:',
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -791,7 +796,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (context.mounted) {
                       TopNotification.showSuccess(
                         context,
-                        '🎨 تم تطبيق مظهر [${theme['name']}] على الواجهة وتثبيته بنجاح!',
+                        isEng ? '🎨 Theme color updated successfully!' : '🎨 تم تطبيق مظهر [${theme['name']}] على الواجهة وتثبيته بنجاح!',
                       );
                     }
                   },
@@ -837,6 +842,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildLanguageSection(BuildContext context, SettingsProvider settingsProvider) {
     final currentLang = settingsProvider.appLanguage;
+    final isEng = settingsProvider.isEnglish;
 
     return Card(
       elevation: 4,
@@ -853,16 +859,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: const Icon(Icons.language_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'لغة واجهة البرنامج (App Language) 🌐',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  isEng ? 'Application Language 🌐' : 'لغة واجهة البرنامج (App Language) 🌐',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const Divider(height: 28),
-            const Text(
-              'اختر لغة العرض والواجهة المناسبة لك ليتم تطبيقه فورياً على كافة الواجهات والعمليات:',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
+            Text(
+              isEng ? 'Choose interface display language for instant application across screens:' : 'اختر لغة العرض والواجهة المناسبة لك ليتم تطبيقه فورياً على كافة الواجهات والعمليات:',
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
             const SizedBox(height: 16),
             Row(
@@ -957,11 +963,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
     _syncControllers(settings);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إعدادات المطعم والطابعات والشعار وإعادة التعيين'),
+        title: Text(isEng ? 'Restaurant, Printer & System Settings' : 'إعدادات المطعم والطابعات والشعار وإعادة التعيين'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
