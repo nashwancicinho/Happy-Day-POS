@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../database/database_helper.dart';
 import 'settings_repository.dart';
 
 class SettingsProvider extends ChangeNotifier {
@@ -25,7 +28,8 @@ class SettingsProvider extends ChangeNotifier {
   String get storeLogoPath => _settings['store_logo_path'] ?? '';
   String get themeColorHex => _settings['primary_color'] ?? '#FF9800';
   String get backupFolderPath => _settings['backup_folder_path'] ?? '';
-
+  String get autoBackupFrequency => _settings['auto_backup_frequency'] ?? 'DAILY';
+  String get lastAutoBackupDate => _settings['last_auto_backup_date'] ?? '';
 
   Color get primaryColor {
     final hex = themeColorHex.replaceAll('#', '');
@@ -58,5 +62,27 @@ class SettingsProvider extends ChangeNotifier {
     _settings.addAll(newSettings);
     await _repository.saveAllSettings(newSettings);
     notifyListeners();
+  }
+
+  Future<bool> performAutoBackup({bool isClosingDay = false}) async {
+    try {
+      final freq = autoBackupFrequency;
+      if (freq == 'OFF') return false;
+
+      String targetPath = backupFolderPath.trim();
+
+      if (targetPath.isEmpty) {
+        final appDocDir = await getApplicationDocumentsDirectory();
+        targetPath = join(appDocDir.path, 'HappyDayPOS_Backups');
+      }
+
+      final backupFile = await DatabaseHelper.instance.backupDatabase(targetPath);
+      await updateSetting('last_auto_backup_date', DateTime.now().toIso8601String());
+      debugPrint('Auto backup executed successfully to: ${backupFile.path}');
+      return true;
+    } catch (e) {
+      debugPrint('Auto backup failed: $e');
+      return false;
+    }
   }
 }

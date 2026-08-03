@@ -600,6 +600,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontSize: 13, color: Colors.black87),
             ),
             const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.teal.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.autorenew_rounded, color: Colors.teal),
+                      SizedBox(width: 8),
+                      Text(
+                        'جدولة النسخ الاحتياطي الأوتوماتيكي:',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: ['DAILY', 'WEEKLY', 'MONTHLY', 'OFF'].contains(settingsProvider.autoBackupFrequency)
+                        ? settingsProvider.autoBackupFrequency
+                        : 'DAILY',
+                    decoration: InputDecoration(
+                      labelText: 'مدة / تكرار خزن النسخ الاحتياطية تلقائياً',
+                      prefixIcon: const Icon(Icons.timer_outlined, color: Colors.teal),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'DAILY',
+                        child: Text('📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'WEEKLY',
+                        child: Text('🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'MONTHLY',
+                        child: Text('📆 شهرياً أوتوماتيكياً (كل شهر)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'OFF',
+                        child: Text('🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        settingsProvider.updateSetting('auto_backup_frequency', val);
+                        TopNotification.showSuccess(
+                          context,
+                          'تم حفظ مدة النسخ الاحتياطي التلقائي نجاح!',
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    settingsProvider.autoBackupFrequency == 'OFF'
+                        ? 'النسخ الأوتوماتيكي معطل حالياً. يمكنك إنشاء نسخة احتياطية يدوياً في أي وقت.'
+                        : 'سيتم حفظ ملف النسخة الاحتياطية أوتوماتيكياً بالمجلد المختار عند إغلاق اليوم.',
+                    style: TextStyle(fontSize: 12, color: Colors.teal.shade900, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(

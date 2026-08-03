@@ -488,13 +488,19 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     // 3. Reset today session counters to 0 for active session
                     ordersProvider.resetTodaySession(nowIso);
 
+                    // 4. Perform Automatic Backup to selected folder on Day Closing
+                    final settingsProvider = context.read<SettingsProvider>();
+                    final autoBackupSuccess = await settingsProvider.performAutoBackup(isClosingDay: true);
+
                     if (!ctx.mounted) return;
                     Navigator.of(ctx).pop();
                     if (!mounted) return;
 
                     TopNotification.showSuccess(
                       context,
-                      '🔒 تم حفظ الخزينة وإغلاق اليوم وتصفية الشيفت بنجاح! (صافي الربح: ${netIncomeVal.toStringAsFixed(0)} $currencySym)',
+                      autoBackupSuccess
+                          ? '🔒 تم إغلاق اليوم وقفل الخزينة وإنشاء نسخة احتياطية أوتوماتيكياً بالمجلد المختار! 🎉'
+                          : '🔒 تم حفظ الخزينة وإغلاق اليوم وتصفية الشيفت بنجاح! (صافي الربح: ${netIncomeVal.toStringAsFixed(0)} $currencySym)',
                     );
                   },
                   icon: const Icon(Icons.lock, color: Colors.white),
