@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/network_service.dart';
+import '../settings/settings_repository.dart';
 import '../../services/waiter_api_client.dart';
 import 'waiter_user_login_screen.dart';
 
@@ -12,57 +12,36 @@ class WaiterConnectScreen extends StatefulWidget {
 
 class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _ipController = TextEditingController(text: '192.168.120.128');
-  final _portController = TextEditingController(text: '8080');
+  final _serverController = TextEditingController();
+  final SettingsRepository _settingsRepository = SettingsRepository();
   bool _isLoading = false;
-  bool _isSearching = false;
   String? _errorMessage;
-  String? _myIp;
 
   @override
   void initState() {
     super.initState();
-    _fetchMyIp();
+    _loadSavedServer();
   }
 
-  Future<void> _fetchMyIp() async {
-    final ip = await NetworkService.getLocalIpAddress();
-    if (mounted && ip != null) {
-      setState(() {
-        _myIp = ip;
-        final parts = ip.split('.');
-        if (parts.length == 4) {
-          _ipController.text = '${parts[0]}.${parts[1]}.${parts[2]}.128';
-        }
-      });
-    }
-  }
-
-  Future<void> _autoSearchCashier() async {
-    setState(() {
-      _isSearching = true;
-      _errorMessage = null;
-    });
-
-    final discoveredIp = await WaiterApiClient.autoDiscoverCashierServer();
-
-    if (!mounted) return;
-
-    setState(() => _isSearching = false);
-
-    if (discoveredIp != null) {
-      _ipController.text = discoveredIp;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('تم العثور تلقائياً على سيرفر الكاشير ($discoveredIp) 🎉'),
-          backgroundColor: const Color(0xFF10B981),
-        ),
-      );
-      _connect();
-    } else {
-      setState(() {
-        _errorMessage = 'لم يتم العثور تلقائياً. تأكد أن الموبايل والكمبيوتر متصلان بنفس شبكة الـ Wi-Fi مع إيقاف بيانات الهاتف (4G/5G).';
-      });
+  Future<void> _loadSavedServer() async {
+    try {
+      final settings = await _settingsRepository.getAllSettings();
+      final savedIp = settings['waiter_server_ip'];
+      if (mounted && savedIp != null && savedIp.trim().isNotEmpty) {
+        setState(() {
+          _serverController.text = savedIp.trim();
+        });
+      } else if (mounted) {
+        setState(() {
+          _serverController.text = '192.168.120.128';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _serverController.text = '192.168.120.128';
+        });
+      }
     }
   }
 
@@ -74,10 +53,9 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
       _errorMessage = null;
     });
 
-    final ip = _ipController.text.trim();
-    final port = _portController.text.trim();
+    final serverInput = _serverController.text.trim();
 
-    final baseUrl = WaiterApiClient.formatBaseUrl(ip, port);
+    final baseUrl = WaiterApiClient.formatBaseUrl(serverInput, '8080');
     final client = WaiterApiClient(baseUrl: baseUrl);
 
     final connResult = await client.checkConnectionDetailed();
@@ -89,6 +67,9 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
     });
 
     if (connResult.isSuccess) {
+      await _settingsRepository.saveSetting('waiter_server_ip', serverInput);
+
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -99,12 +80,16 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
       final detail = connResult.errorMessage ?? 'تعذر الوصول';
       setState(() {
         _errorMessage = 'تعذر الاتصال بسيرفر الكاشير ($baseUrl).\n'
-            'تفاصيل الخطأ: $detail\n\n'
-            '📌 خطوتان سريعتان لحل المشكلة:\n'
-            '1. قم بإيقاف "بيانات الهاتف (4G/5G)" في الموبايل وترك الـ Wi-Fi فقط.\n'
-            '2. تأكد من إيقاف جدار الحماية (Firewall/VPN) في جهاز الكمبيوتر.';
+            'التفاصيل: $detail\n\n'
+            'تأكد من أن الموبايل وجهاز الكاشير متصلان بنفس شبكة الـ Wi-Fi.';
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _serverController.dispose();
+    super.dispose();
   }
 
   @override
@@ -112,7 +97,10 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF111827),
       appBar: AppBar(
-        title: const Text('تطبيق الموبايل - الربط بالسيرفر', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          'تطبيق الموبايل - عنوان السيرفر',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF1F2937),
         elevation: 0,
         centerTitle: true,
@@ -121,19 +109,19 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 440),
+            constraints: const BoxConstraints(maxWidth: 420),
             padding: const EdgeInsets.all(28.0),
             decoration: BoxDecoration(
               color: const Color(0xFF1F2937),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 )
               ],
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Form(
               key: _formKey,
@@ -141,136 +129,70 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.15),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.wifi_tethering_rounded,
-                      size: 48,
+                      Icons.dns_rounded,
+                      size: 52,
                       color: Color(0xFF10B981),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
-                    'الربط بسيرفر الكاشير',
+                    'كتابة عنوان السيرفر',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
-                    'أدخل عنوان IP جهاز الكاشير للاتصال بقاعدة البيانات',
+                    'أدخل عنوان IP السيرفر للربط بالنظام (يتم حفظه تلقائياً)',
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
                     textAlign: TextAlign.center,
                   ),
-                  if (_myIp != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'عنوان IP الموبايل الحالي: $_myIp',
-                        style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 24),
+
+                  TextFormField(
+                    controller: _serverController,
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    keyboardType: TextInputType.text,
+                    textDirection: TextDirection.ltr,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      labelText: 'عنوان IP السيرفر (Server IP)',
+                      hintText: '192.168.120.128',
+                      labelStyle: TextStyle(color: Colors.grey.shade400),
+                      prefixIcon: const Icon(Icons.wifi_tethering_rounded, color: Color(0xFF10B981)),
+                      filled: true,
+                      fillColor: const Color(0xFF374151),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 20),
-
-                  // Auto search button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      onPressed: _isSearching ? null : _autoSearchCashier,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF10B981),
-                        side: const BorderSide(color: Color(0xFF10B981)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: _isSearching
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)))
-                          : const Icon(Icons.search, size: 18),
-                      label: Text(_isSearching ? 'جاري فحص الـ Wi-Fi...' : '🔍 البحث التلقائي عن سيرفر الكاشير'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: TextFormField(
-                          controller: _ipController,
-                          style: const TextStyle(color: Colors.white),
-                          keyboardType: TextInputType.text,
-                          decoration: InputDecoration(
-                            labelText: 'عنوان IP الكاشير',
-                            labelStyle: TextStyle(color: Colors.grey.shade400),
-                            prefixIcon: const Icon(Icons.dns, color: Color(0xFF10B981)),
-                            filled: true,
-                            fillColor: const Color(0xFF374151),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                          ),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'مطلوب' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: TextFormField(
-                          controller: _portController,
-                          style: const TextStyle(color: Colors.white),
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'المنفذ (Port)',
-                            labelStyle: TextStyle(color: Colors.grey.shade400),
-                            filled: true,
-                            fillColor: const Color(0xFF374151),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                          ),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'مطلوب' : null,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Quick IP fill chips
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    children: [
-                      ActionChip(
-                        label: const Text('192.168.120.128', style: TextStyle(fontSize: 11, color: Colors.white)),
-                        backgroundColor: const Color(0xFF374151),
-                        onPressed: () {
-                          setState(() {
-                            _ipController.text = '192.168.120.128';
-                          });
-                        },
-                      ),
-                    ],
+                    validator: (v) => v == null || v.trim().isEmpty ? 'يرجى كتابة عنوان السيرفر' : null,
                   ),
 
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        color: Colors.red.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                          const SizedBox(width: 8),
+                          const Icon(Icons.error_outline, color: Colors.red, size: 22),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _errorMessage!,
@@ -281,16 +203,18 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
                       ),
                     ),
                   ],
+
                   const SizedBox(height: 24),
+
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _connect,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 4,
                       ),
                       child: _isLoading
@@ -298,10 +222,10 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
                           : const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.link),
-                                SizedBox(width: 8),
+                                Icon(Icons.login_rounded),
+                                SizedBox(width: 10),
                                 Text(
-                                  'الربط بسيرفر الكاشير',
+                                  'دخول والاتصال بالسيرفر',
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                               ],
