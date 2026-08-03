@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../core/services/print_service.dart';
 import '../database/database_helper.dart';
 import '../features/orders/orders_repository.dart';
+import '../features/settings/settings_provider.dart';
+import '../features/settings/settings_repository.dart';
+import '../models/order.dart';
 import '../models/order_item.dart';
 import 'network_service.dart';
 
@@ -252,12 +256,23 @@ class LocalServerService extends ChangeNotifier {
       return;
     }
 
+    final db = await DatabaseHelper.instance.database;
+    final productsList = await db.query('products');
+    final productsMap = {for (var p in productsList) p['id'] as int: p};
+
     final items = rawItems.map((item) {
+      final pId = item['product_id'] as int;
+      final prod = productsMap[pId];
+      final pName = prod != null ? prod['name'] as String : null;
+      final printToKit = prod != null ? ((prod['print_to_kitchen'] as int? ?? 1) == 1) : true;
+
       return OrderItemModel(
-        productId: item['product_id'] as int,
+        productId: pId,
+        productName: pName,
         quantity: (item['quantity'] as num).toDouble(),
         price: (item['price'] as num).toDouble(),
         notes: item['notes'] as String?,
+        printToKitchen: printToKit,
       );
     }).toList();
 
@@ -273,6 +288,41 @@ class LocalServerService extends ChangeNotifier {
       cashierName: waiterName,
     );
 
+    // Automatic Kitchen Order Ticket Print
+    try {
+      final tableMaps = await db.query('restaurant_tables', where: 'id = ?', whereArgs: [tableId]);
+      final tableName = tableMaps.isNotEmpty ? tableMaps.first['name'] as String : 'طاولة $tableId';
+
+      final heldOrder = OrderModel(
+        id: orderId,
+        tableId: tableId,
+        orderType: 'DINE_IN',
+        total: total,
+        status: 'OPEN',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      final settingsRepo = SettingsRepository();
+      final allSettingsMap = await settingsRepo.getAllSettings();
+      final settingsProvider = SettingsProvider();
+      await settingsProvider.updateAllSettings(allSettingsMap);
+
+      final kitchenItems = items.where((i) => i.printToKitchen).toList();
+      if (kitchenItems.isNotEmpty) {
+        PrintService.printKitchenTicket(
+          order: heldOrder,
+          items: items,
+          settings: settingsProvider,
+          tableName: tableName,
+        ).catchError((e) {
+          debugPrint('Kitchen print error on server order save: $e');
+          return false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Auto kitchen print error in server: $e');
+    }
+
     // Notify WebSocket clients
     _broadcastEvent({'type': 'TABLE_UPDATED', 'table_id': tableId, 'order_id': orderId});
 
@@ -282,7 +332,7 @@ class LocalServerService extends ChangeNotifier {
     await _jsonResponse(request.response, {
       'success': true,
       'order_id': orderId,
-      'message': 'تم إرسال الطلب بنجاح إلى الكاشير',
+      'message': 'تم إرسال الطلب بنجاح إلى الكاشير والمطبخ',
     });
   }
 

@@ -639,7 +639,7 @@ class ProductsScreen extends StatelessWidget {
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text('🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ'),
-                              subtitle: const Text('إرسال هذا الصنف لطابعة المطبخ عند إضافة المواد والطلب دون طباعة فاتورة الكاشير'),
+                              subtitle: const Text('إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير'),
                               activeThumbColor: Colors.orange,
                               value: printToKitchen,
                               onChanged: (val) {
@@ -648,6 +648,62 @@ class ProductsScreen extends StatelessWidget {
                                 });
                               },
                             ),
+                            if (printToKitchen) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.orange.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.print_rounded, color: Colors.orange),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'طابعة المطبخ المحددة لإرسال الطلب إليها:',
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            context.watch<SettingsProvider>().kitchenPrinter.isNotEmpty
+                                                ? context.watch<SettingsProvider>().kitchenPrinter
+                                                : 'طابعة المطبخ الحرارية (KOT-Kitchen)',
+                                            style: TextStyle(color: Colors.orange.shade900, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.print_disabled, color: Colors.grey, size: 20),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'طباعة المطبخ غير مفعلة لهذا الصنف ولن تظهر أو تطبع في المطبخ.',
+                                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       );

@@ -807,8 +807,9 @@ class _CashierScreenState extends State<CashierScreen> {
 
     final tableId = widget.selectedTable?.id ?? 1;
     final ordersProvider = context.read<OrdersProvider>();
+    final settingsProvider = context.read<SettingsProvider>();
 
-    await ordersProvider.holdTableOrder(
+    final orderId = await ordersProvider.holdTableOrder(
       existingOrderId: _existingOrderId,
       tableId: tableId,
       items: _cart,
@@ -816,14 +817,39 @@ class _CashierScreenState extends State<CashierScreen> {
       status: 'OPEN',
     );
 
+    final heldOrder = OrderModel(
+      id: orderId,
+      tableId: tableId,
+      orderType: widget.selectedTable != null ? 'DINE_IN' : 'TAKEAWAY',
+      subtotal: _subtotalAmount,
+      total: _totalAmount,
+      status: 'OPEN',
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    // Trigger actual Kitchen Order Ticket print for items with printToKitchen == true
+    final kitchenItems = _cart.where((item) => item.printToKitchen).toList();
+    if (kitchenItems.isNotEmpty) {
+      PrintService.printKitchenTicket(
+        order: heldOrder,
+        items: _cart,
+        settings: settingsProvider,
+        tableName: widget.selectedTable?.name ?? 'طاولة $tableId',
+      ).catchError((e) {
+        debugPrint('Kitchen print error on hold order: $e');
+        return false;
+      });
+    }
+
     if (!mounted) return;
 
-    final settingsProvider = context.read<SettingsProvider>();
     final kitchenPrinter = settingsProvider.kitchenPrinter;
 
     TopNotification.showSuccess(
       context,
-      '🍳 تم إرسال أصناف الطلب أوتوماتيكياً إلى طابعة المطبخ [$kitchenPrinter] بدون طباعة فاتورة الكاشير!',
+      kitchenItems.isNotEmpty
+          ? '🍳 تم تعليق الفاتورة وإرسال وطباعة ${kitchenItems.length} صنف على طابعة المطبخ [$kitchenPrinter] بنجاح!'
+          : '📌 تم تعليق الفاتورة وحفظها للطاولة بنجاح!',
     );
 
     _finishOrderFlowNavigation();
