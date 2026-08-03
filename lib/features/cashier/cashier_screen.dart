@@ -1076,17 +1076,6 @@ class _CashierScreenState extends State<CashierScreen> {
       });
     }
 
-    // 2. Direct Kitchen Print (if applicable)
-    PrintService.printKitchenTicket(
-      order: completedOrder,
-      items: completedCartCopy,
-      settings: settingsProvider,
-      tableName: widget.selectedTable?.name,
-    ).catchError((e) {
-      debugPrint('Kitchen print error: $e');
-      return false;
-    });
-
     if (!mounted) return;
     TopNotification.showSuccess(
       context,
