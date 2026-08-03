@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
 import '../../models/user.dart';
 import '../auth/auth_provider.dart';
+import '../settings/settings_provider.dart';
 
 class UsersScreen extends StatelessWidget {
   const UsersScreen({super.key});
@@ -12,18 +13,26 @@ class UsersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final users = authProvider.users;
+
+    String formatRole(String role) {
+      if (!isEng) return role;
+      if (role == 'مدير') return 'Manager';
+      if (role == 'كاشير') return 'Cashier';
+      return role;
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة المستخدمين والموظفين والصلاحيات'),
+        title: Text(isEng ? 'Users & Permissions Management' : 'إدارة المستخدمين والموظفين والصلاحيات'),
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _handleAddUser(context, authProvider),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.person_add),
-        label: const Text('إضافة اسم مستخدم جديد'),
+        label: Text(isEng ? 'Add New User 👤+' : 'إضافة اسم مستخدم جديد'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -54,8 +63,8 @@ class UsersScreen extends StatelessWidget {
                       children: [
                         Text(
                           authProvider.isManager
-                              ? 'أنت مسجل الدخول بصلاحية مدير النظام'
-                              : 'أنت مسجل الدخول بصلاحية كاشير',
+                              ? (isEng ? 'You are logged in with System Manager privileges' : 'أنت مسجل الدخول بصلاحية مدير النظام')
+                              : (isEng ? 'You are logged in with Cashier privileges' : 'أنت مسجل الدخول بصلاحية كاشير'),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -65,8 +74,8 @@ class UsersScreen extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           authProvider.isManager
-                              ? 'يمكنك إضافة أسماء مستخدمين جدد أو مسح مستخدمين حاليين وتعديل الصلاحيات.'
-                              : 'ملاحظة: إضافة اسم جديد أو مسح اسم مستخدم محصورة لصلاحيات المدير فقط.',
+                              ? (isEng ? 'You can add new users, delete existing users, or edit permissions.' : 'يمكنك إضافة أسماء مستخدمين جدد أو مسح مستخدمين حاليين وتعديل الصلاحيات.')
+                              : (isEng ? 'Note: Adding or deleting users is restricted to Manager privileges.' : 'ملاحظة: إضافة اسم جديد أو مسح اسم مستخدم محصورة لصلاحيات المدير فقط.'),
                           style: TextStyle(
                             fontSize: 13,
                             color: authProvider.isManager ? Colors.green.shade800 : Colors.orange.shade800,
@@ -82,9 +91,9 @@ class UsersScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             // Registered Users List
-            const Text(
-              'قائمة المستخدمين المسجلين في النظام:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              isEng ? 'Registered System Users List:' : 'قائمة المستخدمين المسجلين في النظام:',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
@@ -126,7 +135,7 @@ class UsersScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
-                                      'حسابك الحالي',
+                                      isEng ? 'Current Account' : 'حسابك الحالي',
                                       style: TextStyle(fontSize: 11, color: Colors.green.shade900, fontWeight: FontWeight.bold),
                                     ),
                                   ),
@@ -135,13 +144,17 @@ class UsersScreen extends StatelessWidget {
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text('الرمز السري: ••••••  |  الدور: ${user.role}'),
+                              child: Text(
+                                isEng
+                                    ? 'PIN Code: ••••••  |  Role: ${formatRole(user.role)}'
+                                    : 'الرمز السري: ••••••  |  الدور: ${user.role}',
+                              ),
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Chip(
-                                  label: Text(user.role),
+                                  label: Text(formatRole(user.role)),
                                   backgroundColor: user.isManager ? Colors.purple.shade50 : Colors.blue.shade50,
                                   labelStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -151,7 +164,7 @@ class UsersScreen extends StatelessWidget {
                                 const SizedBox(width: 12),
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  tooltip: 'مسح اسم المستخدم',
+                                  tooltip: isEng ? 'Delete User' : 'مسح اسم المستخدم',
                                   onPressed: () => _handleDeleteUser(context, authProvider, user),
                                 ),
                               ],
@@ -168,10 +181,13 @@ class UsersScreen extends StatelessWidget {
   }
 
   void _handleAddUser(BuildContext context, AuthProvider authProvider) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     if (!authProvider.isManager) {
       TopNotification.showError(
         context,
-        '🛑 عذراً! إضافة اسم المستخدم محصورة لصلاحيات المدير فقط.',
+        isEng
+            ? '🛑 Sorry! Adding new users is restricted to Manager privileges only.'
+            : '🛑 عذراً! إضافة اسم المستخدم محصورة لصلاحيات المدير فقط.',
       );
       return;
     }
@@ -187,15 +203,15 @@ class UsersScreen extends StatelessWidget {
           builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              title: const Text('إضافة مستخدم جديد'),
+              title: Text(isEng ? 'Add New User' : 'إضافة مستخدم جديد'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'اسم المستخدم *',
-                      prefixIcon: Icon(Icons.person),
+                    decoration: InputDecoration(
+                      labelText: isEng ? 'Username *' : 'اسم المستخدم *',
+                      prefixIcon: const Icon(Icons.person),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -203,18 +219,18 @@ class UsersScreen extends StatelessWidget {
                     controller: passwordController,
                     obscureText: true,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'الرقم السري *',
-                      prefixIcon: Icon(Icons.lock),
+                    decoration: InputDecoration(
+                      labelText: isEng ? 'PIN Code / Password *' : 'الرقم السري *',
+                      prefixIcon: const Icon(Icons.lock),
                     ),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: selectedRole,
-                    decoration: const InputDecoration(labelText: 'نوع الصلاحية'),
-                    items: const [
-                      DropdownMenuItem(value: 'كاشير', child: Text('كاشير (مستخدم عادي)')),
-                      DropdownMenuItem(value: 'مدير', child: Text('مدير (صلاحية كاملة)')),
+                    decoration: InputDecoration(labelText: isEng ? 'Permission Role' : 'نوع الصلاحية'),
+                    items: [
+                      DropdownMenuItem(value: 'كاشير', child: Text(isEng ? 'Cashier (Regular Staff)' : 'كاشير (مستخدم عادي)')),
+                      DropdownMenuItem(value: 'مدير', child: Text(isEng ? 'Manager (Full Access)' : 'مدير (صلاحية كاملة)')),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => selectedRole = val);
@@ -225,7 +241,7 @@ class UsersScreen extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -233,7 +249,10 @@ class UsersScreen extends StatelessWidget {
                     final password = passwordController.text.trim();
 
                     if (username.isEmpty || password.isEmpty) {
-                      TopNotification.showWarning(ctx, 'يرجى كتابة اسم المستخدم والرقم السري');
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? 'Please enter username and PIN code' : 'يرجى كتابة اسم المستخدم والرقم السري',
+                      );
                       return;
                     }
 
@@ -247,16 +266,16 @@ class UsersScreen extends StatelessWidget {
                         Navigator.pop(ctx);
                         TopNotification.showSuccess(
                           context,
-                          'تمت إضافة المستخدم بنجاح 🎉',
+                          isEng ? 'User added successfully! 🎉' : 'تمت إضافة المستخدم بنجاح 🎉',
                         );
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        TopNotification.showError(ctx, 'حدث خطأ أثناء إضافة المستخدم: $e');
+                        TopNotification.showError(ctx, 'خطأ: $e');
                       }
                     }
                   },
-                  child: const Text('حفظ المستخدم'),
+                  child: Text(isEng ? 'Add User' : 'إضافة'),
                 ),
               ],
             );
@@ -267,10 +286,11 @@ class UsersScreen extends StatelessWidget {
   }
 
   void _handleDeleteUser(BuildContext context, AuthProvider authProvider, UserModel user) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     if (!authProvider.isManager) {
       TopNotification.showError(
         context,
-        '🛑 عذراً! مسح اسم المستخدم محصور لصلاحيات المدير فقط.',
+        isEng ? '🛑 Delete restricted to Manager privileges only.' : '🛑 عذراً! مسح المستخدم محصور لصلاحيات المدير فقط.',
       );
       return;
     }
@@ -278,50 +298,50 @@ class UsersScreen extends StatelessWidget {
     if (authProvider.currentUser?.id == user.id) {
       TopNotification.showWarning(
         context,
-        '⚠️ لا يمكنك مسح الحساب الذي تستخدمه حالياً لتسجيل الدخول!',
+        isEng ? '⚠️ Cannot delete currently active logged in account.' : '⚠️ لا يمكنك مسح الحساب الذي تستخدمه حالياً لتدوين الدخول!',
       );
       return;
     }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 8),
-            Text('تأكيد مسح اسم المستخدم'),
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(isEng ? 'Confirm Delete User' : 'تأكيد مسح المستخدم'),
+          content: Text(
+            isEng
+                ? 'Are you sure you want to delete user (${user.username})?'
+                : 'هل أنت متأكد من مسح المستخدم (${user.username})؟',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(isEng ? 'Cancel' : 'إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () async {
+                try {
+                  await authProvider.deleteUser(user.id!);
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    TopNotification.showSuccess(
+                      context,
+                      isEng ? 'User deleted successfully 🗑️' : 'تم مسح المستخدم بنجاح 🗑️',
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    TopNotification.showError(ctx, 'خطأ: $e');
+                  }
+                }
+              },
+              child: Text(isEng ? 'Delete User' : 'مسح', style: const TextStyle(color: Colors.white)),
+            ),
           ],
-        ),
-        content: Text('هل أنت أتقيد برغبتك في مسح المستخدم "${user.username}" نهائياً من النظام؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              try {
-                await authProvider.deleteUser(user.id!);
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                  TopNotification.showSuccess(
-                    context,
-                    'تم مسح اسم المستخدم بنجاح',
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  TopNotification.showError(ctx, 'حدث خطأ: $e');
-                }
-              }
-            },
-            child: const Text('نعم، مسح'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
