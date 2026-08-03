@@ -47,12 +47,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingPrinters = false;
 
   final List<Map<String, dynamic>> _logoPresets = [
-    {'name': 'storefront', 'label': 'محل / متجر', 'icon': Icons.storefront_rounded},
-    {'name': 'restaurant', 'label': 'مطعم شائعات', 'icon': Icons.restaurant},
-    {'name': 'fastfood', 'label': 'وجبات سريعة', 'icon': Icons.fastfood},
-    {'name': 'local_cafe', 'label': 'كافيه / قهوة', 'icon': Icons.local_cafe},
-    {'name': 'cake', 'label': 'حلويات / كيك', 'icon': Icons.cake},
-    {'name': 'dinner_dining', 'label': 'عشاء فاخر', 'icon': Icons.dinner_dining},
+    {'name': 'storefront', 'label': 'محل / متجر', 'labelEn': 'Store / Shop', 'icon': Icons.storefront_rounded},
+    {'name': 'restaurant', 'label': 'مطعم شائعات', 'labelEn': 'Restaurant', 'icon': Icons.restaurant},
+    {'name': 'fastfood', 'label': 'وجبات سريعة', 'labelEn': 'Fast Food', 'icon': Icons.fastfood},
+    {'name': 'local_cafe', 'label': 'كافيه / قهوة', 'labelEn': 'Cafe / Coffee', 'icon': Icons.local_cafe},
+    {'name': 'cake', 'label': 'حلويات / كيك', 'labelEn': 'Sweets & Bakery', 'icon': Icons.cake},
+    {'name': 'dinner_dining', 'label': 'عشاء فاخر', 'labelEn': 'Fine Dining', 'icon': Icons.dinner_dining},
   ];
 
   @override
@@ -318,6 +318,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showPrinterSelectionDialog(TextEditingController controller, String title) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+
     showDialog(
       context: context,
       builder: (ctx) {
@@ -330,7 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
               IconButton(
                 icon: const Icon(Icons.refresh_rounded, color: Colors.teal),
-                tooltip: 'تحديث الطابعات',
+                tooltip: isEng ? 'Refresh printers' : 'تحديث الطابعات',
                 onPressed: () async {
                   await _loadSystemPrinters();
                   if (ctx.mounted) Navigator.pop(ctx);
@@ -347,23 +349,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.star_rounded, color: Colors.amber),
-                    title: const Text('طابعة النظام الافتراضية (Default Printer)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      isEng ? 'System Default Printer' : 'طابعة النظام الافتراضية (Default Printer)',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     onTap: () {
-                      controller.text = 'طابعة النظام الافتراضية (Default Printer)';
+                      controller.text = isEng ? 'System Default Printer' : 'طابعة النظام الافتراضية (Default Printer)';
                       Navigator.pop(ctx);
                     },
                   ),
                   const Divider(),
                   if (_systemPrinters.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('لم يتم الكشف عن طابعات معرفة حالياً في الكمبيوتر. يمكنك كتابة الاسم المباشر للحقل.', textAlign: TextAlign.center),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        isEng ? 'No mapped printers detected. You can type the printer name directly.' : 'لم يتم الكشف عن طابعات معرفة حالياً في الكمبيوتر. يمكنك كتابة الاسم المباشر للحقل.',
+                        textAlign: TextAlign.center,
+                      ),
                     )
                   else
                     ..._systemPrinters.map((p) {
                       return ListTile(
                         leading: Icon(p.isDefault ? Icons.star_rounded : Icons.print_rounded, color: p.isDefault ? Colors.amber : Colors.teal),
-                        title: Text(p.name + (p.isDefault ? ' (الافتراضية ⭐)' : '')),
+                        title: Text(p.name + (p.isDefault ? (isEng ? ' (Default ⭐)' : ' (الافتراضية ⭐)') : '')),
                         subtitle: p.url != p.name ? Text(p.url, style: const TextStyle(fontSize: 11)) : null,
                         onTap: () {
                           controller.text = p.name;
@@ -378,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('إغلاق'),
+              child: Text(isEng ? 'Close' : 'إغلاق'),
             ),
           ],
         );
@@ -387,18 +395,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   bool _isLoadedFromProvider = false;
+  String? _lastLang;
 
   void _syncControllers(SettingsProvider settings) {
-    if (!_isLoadedFromProvider && settings.settings.isNotEmpty) {
+    final isEng = settings.isEnglish;
+
+    String formatPrinterName(String val) {
+      if (val == 'طابعة النظام الافتراضية (Default Printer)' || val == 'System Default Printer' || val.trim().isEmpty) {
+        return isEng ? 'System Default Printer' : 'طابعة النظام الافتراضية (Default Printer)';
+      }
+      if (val == 'طابعة ملصقات الباركود (Barcode Printer)' || val == 'Barcode Label Printer') {
+        return isEng ? 'Barcode Label Printer' : 'طابعة ملصقات الباركود (Barcode Printer)';
+      }
+      return val;
+    }
+
+    if ((!_isLoadedFromProvider || _lastLang != settings.appLanguage) && settings.settings.isNotEmpty) {
+      _lastLang = settings.appLanguage;
       _nameController.text = settings.storeName;
       _addressController.text = settings.storeAddress;
       _phoneController.text = settings.storePhone;
       _headerController.text = settings.receiptHeader;
       _footerController.text = settings.receiptFooter;
-      _cashierPrinterController.text = settings.cashierPrinter;
-      _kitchenPrinterController.text = settings.kitchenPrinter;
-      _reportsPrinterController.text = settings.reportsPrinter;
-      _barcodePrinterController.text = settings.barcodePrinter;
+      _cashierPrinterController.text = formatPrinterName(settings.cashierPrinter);
+      _kitchenPrinterController.text = formatPrinterName(settings.kitchenPrinter);
+      _reportsPrinterController.text = formatPrinterName(settings.reportsPrinter);
+      _barcodePrinterController.text = formatPrinterName(settings.barcodePrinter);
       _logoPathController.text = settings.storeLogoPath;
       _backupFolderController.text = settings.backupFolderPath;
       _selectedLogoIcon = settings.settings['store_logo_icon'] ?? 'storefront';
@@ -408,14 +430,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   final List<Map<String, dynamic>> _colorThemes = [
-    {'name': 'البرتقالي الدافئ', 'hex': '#FF9800', 'color': const Color(0xFFFF9800)},
-    {'name': 'الأزرق الملكي', 'hex': '#1E88E5', 'color': const Color(0xFF1E88E5)},
-    {'name': 'الأخضر الزمردي', 'hex': '#2E7D32', 'color': const Color(0xFF2E7D32)},
-    {'name': 'البنفسجي الفاخر', 'hex': '#8E24AA', 'color': const Color(0xFF8E24AA)},
-    {'name': 'الأحمر الياقوتي', 'hex': '#D32F2F', 'color': const Color(0xFFD32F2F)},
-    {'name': 'الرمادي الداكن الساطع', 'hex': '#37474F', 'color': const Color(0xFF37474F)},
-    {'name': 'الوردي الفاخر (Magenta)', 'hex': '#C2185B', 'color': const Color(0xFFC2185B)},
-    {'name': 'الكحلي العميق (Navy)', 'hex': '#0D47A1', 'color': const Color(0xFF0D47A1)},
+    {'name': 'البرتقالي الدافئ', 'nameEn': 'Warm Orange 🍊', 'hex': '#FF9800', 'color': const Color(0xFFFF9800)},
+    {'name': 'الأزرق الملكي', 'nameEn': 'Royal Blue 💙', 'hex': '#1E88E5', 'color': const Color(0xFF1E88E5)},
+    {'name': 'الأخضر الزمردي', 'nameEn': 'Emerald Green 💚', 'hex': '#2E7D32', 'color': const Color(0xFF2E7D32)},
+    {'name': 'البنفسجي الفاخر', 'nameEn': 'Luxury Purple 💜', 'hex': '#8E24AA', 'color': const Color(0xFF8E24AA)},
+    {'name': 'الأحمر الياقوتي', 'nameEn': 'Ruby Red ❤️', 'hex': '#D32F2F', 'color': const Color(0xFFD32F2F)},
+    {'name': 'الرمادي الداكن الساطع', 'nameEn': 'Dark Charcoal 🖤', 'hex': '#37474F', 'color': const Color(0xFF37474F)},
+    {'name': 'الوردي الفاخر (Magenta)', 'nameEn': 'Luxury Magenta 💖', 'hex': '#C2185B', 'color': const Color(0xFFC2185B)},
+    {'name': 'الكحلي العميق (Navy)', 'nameEn': 'Deep Navy 💙', 'hex': '#0D47A1', 'color': const Color(0xFF0D47A1)},
   ];
 
   Future<void> _pickBackupFolder() async {
@@ -821,7 +843,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          theme['name'] as String,
+                          isEng ? (theme['nameEn'] ?? theme['name']) as String : theme['name'] as String,
                           style: TextStyle(
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? color : Colors.black87,
