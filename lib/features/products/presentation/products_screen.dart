@@ -759,6 +759,7 @@ class ProductsScreen extends StatelessWidget {
                                     const SizedBox(height: 10),
                                     DropdownButtonFormField<String?>(
                                       initialValue: selectedKitchenPrinter,
+                                      isExpanded: true,
                                       decoration: InputDecoration(
                                         labelText: isEng ? 'Target Kitchen Printer' : 'طابعة المطبخ المستهدفة',
                                         prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.deepOrange),
