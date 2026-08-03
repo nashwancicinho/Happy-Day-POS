@@ -23,6 +23,30 @@ class ProductsScreen extends StatelessWidget {
     final currencySym = settingsProvider.currencySymbol;
     final isEng = settingsProvider.isEnglish;
 
+    String formatUnit(String rawUnit) {
+      if (!isEng) return rawUnit;
+      switch (rawUnit) {
+        case 'قطعة':
+          return 'Piece';
+        case 'كيلوغرام':
+          return 'kg';
+        case 'غرام':
+          return 'g';
+        case 'لتر':
+          return 'L';
+        case 'علبة':
+          return 'Box/Can';
+        case 'طقم':
+          return 'Set';
+        case 'متر':
+          return 'Meter';
+        case 'كارتون':
+          return 'Carton';
+        default:
+          return rawUnit;
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isEng ? 'Products & Items Management' : 'إدارة الأصناف والمواد الشاملة'),
@@ -70,18 +94,19 @@ class ProductsScreen extends StatelessWidget {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
                         value: productsProvider.selectedCategoryId,
-                        hint: const Text('كل التصنيفات', style: TextStyle(fontSize: 13)),
+                        hint: Text(isEng ? 'All Categories' : 'كل التصنيفات', style: const TextStyle(fontSize: 13)),
                         isDense: true,
                         isExpanded: true,
                         items: [
-                          const DropdownMenuItem<int?>(
+                          DropdownMenuItem<int?>(
                             value: null,
-                            child: Text('جميع التصنيفات', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            child: Text(isEng ? 'All Categories' : 'جميع التصنيفات', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                           ),
                           ...categoriesProvider.categories.map((cat) {
+                            final cName = (cat.name == 'عام' && isEng) ? 'General' : cat.name;
                             return DropdownMenuItem<int?>(
                               value: cat.id,
-                              child: Text(cat.name, style: const TextStyle(fontSize: 13)),
+                              child: Text(cName, style: const TextStyle(fontSize: 13)),
                             );
                           }),
                         ],
@@ -98,13 +123,16 @@ class ProductsScreen extends StatelessWidget {
             // Products Table View
             Expanded(
               child: productsProvider.products.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off, size: 60, color: Colors.grey),
-                          SizedBox(height: 12),
-                          Text('لا توجد مواد مطابقة للبحث', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                          const Icon(Icons.search_off, size: 60, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          Text(
+                            isEng ? 'No products matching search criteria' : 'لا توجد مواد مطابقة للبحث',
+                            style: const TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
                         ],
                       ),
                     )
@@ -119,25 +147,26 @@ class ProductsScreen extends StatelessWidget {
                             constraints: const BoxConstraints(minWidth: 950),
                             child: DataTable(
                               headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
-                              columns: const [
-                                DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('اسم الصنف / الباركود', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('التصنيف', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('الكلُفة (الشراء)', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('سعر البيع', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('الربح', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('الوحدة والوزن', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('المخزون', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('العمليات', style: TextStyle(fontWeight: FontWeight.bold))),
+                              columns: [
+                                const DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Item Name / Barcode' : 'اسم الصنف / الباركود', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Category' : 'التصنيف', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Cost (Buy)' : 'الكلُفة (الشراء)', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Sale Price' : 'سعر البيع', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Profit' : 'الربح', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Unit & Weight' : 'الوحدة والوزن', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Stock' : 'المخزون', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Status' : 'الحالة', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text(isEng ? 'Actions' : 'العمليات', style: const TextStyle(fontWeight: FontWeight.bold))),
                               ],
                               rows: productsProvider.products.map((product) {
-                                final catName = categoriesProvider.categories
+                                final rawCat = categoriesProvider.categories
                                     .firstWhere(
                                       (c) => c.id == product.categoryId,
                                       orElse: () => const CategoryModel(name: 'عام'),
                                     )
                                     .name;
+                                final catName = (rawCat == 'عام' && isEng) ? 'General' : rawCat;
 
                                 return DataRow(
                                   cells: [
@@ -149,12 +178,15 @@ class ProductsScreen extends StatelessWidget {
                                         children: [
                                           Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                                           if (product.barcode != null && product.barcode!.isNotEmpty)
-                                            Text('باركود: ${product.barcode}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                            Text(
+                                              isEng ? 'Barcode: ${product.barcode}' : 'باركود: ${product.barcode}',
+                                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                            ),
                                         ],
                                       ),
                                     ),
                                     DataCell(Chip(
-                                      label: Text(catName, style: TextStyle(fontSize: 12)),
+                                      label: Text(catName, style: const TextStyle(fontSize: 12)),
                                       backgroundColor: Colors.blue.shade50,
                                     )),
                                     DataCell(Text('${product.buyPrice.toStringAsFixed(0)} $currencySym')),
@@ -172,7 +204,7 @@ class ProductsScreen extends StatelessWidget {
                                     DataCell(
                                       Row(
                                         children: [
-                                          Text(product.unit),
+                                          Text(formatUnit(product.unit)),
                                           if (product.isWeighted) ...[
                                             const SizedBox(width: 6),
                                             Container(
@@ -181,7 +213,10 @@ class ProductsScreen extends StatelessWidget {
                                                 color: Colors.purple.shade50,
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
-                                              child: const Text('موزونة', style: TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold)),
+                                              child: Text(
+                                                isEng ? 'Weighted' : 'موزونة',
+                                                style: const TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
+                                              ),
                                             ),
                                           ],
                                         ],
@@ -199,14 +234,14 @@ class ProductsScreen extends StatelessWidget {
                                                 ),
                                               ),
                                               child: Text(
-                                                '${product.stockQuantity.toStringAsFixed(0)} ${product.unit}',
+                                                '${product.stockQuantity.toStringAsFixed(0)} ${formatUnit(product.unit)}',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color: product.isLowStock ? Colors.red.shade900 : Colors.green.shade900,
                                                 ),
                                               ),
                                             )
-                                          : const Text('غير متتبع'),
+                                          : Text(isEng ? 'Untracked' : 'غير متتبع'),
                                     ),
                                     DataCell(
                                       Switch(
@@ -223,17 +258,17 @@ class ProductsScreen extends StatelessWidget {
                                         children: [
                                           IconButton(
                                             icon: const Icon(Icons.qr_code_scanner, color: Colors.purple),
-                                            tooltip: 'طباعة ملصق الباركود',
+                                            tooltip: isEng ? 'Print Barcode Label' : 'طباعة ملصق الباركود',
                                             onPressed: () => _showPrintBarcodeQuantityDialog(context, product),
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.edit, color: Colors.blue),
-                                            tooltip: 'تعديل البيانات',
+                                            tooltip: isEng ? 'Edit Product' : 'تعديل البيانات',
                                             onPressed: () => _showProductDialog(context, product: product),
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.delete, color: Colors.red),
-                                            tooltip: 'حذف المادة',
+                                            tooltip: isEng ? 'Delete Product' : 'حذف المادة',
                                             onPressed: () => productsProvider.deleteProduct(product.id!),
                                           ),
                                         ],
@@ -255,6 +290,7 @@ class ProductsScreen extends StatelessWidget {
   }
 
   void _showProductDialog(BuildContext context, {ProductModel? product}) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final nameController = TextEditingController(text: product?.name ?? '');
     final barcodeController = TextEditingController(text: product?.barcode ?? '');
     final buyPriceController = TextEditingController(text: product != null ? product.buyPrice.toStringAsFixed(0) : '0');
@@ -281,6 +317,30 @@ class ProductsScreen extends StatelessWidget {
     }
 
     final availableUnits = ['قطعة', 'كيلوغرام', 'غرام', 'لتر', 'علبة', 'طقم', 'متر', 'كارتون'];
+
+    String formatUnitName(String raw) {
+      if (!isEng) return raw;
+      switch (raw) {
+        case 'قطعة':
+          return 'Piece (قطعة)';
+        case 'كيلوغرام':
+          return 'Kilogram (kg)';
+        case 'غرام':
+          return 'Gram (g)';
+        case 'لتر':
+          return 'Liter (L)';
+        case 'علبة':
+          return 'Box / Can (علبة)';
+        case 'طقم':
+          return 'Set (طقم)';
+        case 'متر':
+          return 'Meter (متر)';
+        case 'كارتون':
+          return 'Carton (كارتون)';
+        default:
+          return raw;
+      }
+    }
 
     String generateRandomBarcode() {
       final random = Random();
@@ -321,7 +381,9 @@ class ProductsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    product == null ? 'إضافة مادة / صنف جديد' : 'تعديل بيانات المادة',
+                    product == null
+                        ? (isEng ? 'Add New Product / Item' : 'إضافة مادة / صنف جديد')
+                        : (isEng ? 'Edit Product Details' : 'تعديل بيانات المادة'),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
@@ -346,12 +408,12 @@ class ProductsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _sectionTitle('1. البيانات الأساسية للصنف'),
+                            _sectionTitle(isEng ? '1. Product Basic Info' : '1. البيانات الأساسية للصنف'),
                             const SizedBox(height: 12),
                             TextField(
                               controller: nameController,
                               decoration: InputDecoration(
-                                labelText: 'اسم المادة / الصنف *',
+                                labelText: isEng ? 'Product Name *' : 'اسم المادة / الصنف *',
                                 prefixIcon: const Icon(Icons.fastfood),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
@@ -360,13 +422,14 @@ class ProductsScreen extends StatelessWidget {
                             DropdownButtonFormField<int>(
                               initialValue: selectedCatId,
                               decoration: InputDecoration(
-                                labelText: 'التصنيف الرئيسي',
+                                labelText: isEng ? 'Main Category' : 'التصنيف الرئيسي',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               items: categories.map((cat) {
+                                final cName = (cat.name == 'عام' && isEng) ? 'General' : cat.name;
                                 return DropdownMenuItem<int>(
                                   value: cat.id,
-                                  child: Text(cat.name),
+                                  child: Text(cName),
                                 );
                               }).toList(),
                               onChanged: (val) {
@@ -382,7 +445,7 @@ class ProductsScreen extends StatelessWidget {
                                   child: TextField(
                                     controller: barcodeController,
                                     decoration: InputDecoration(
-                                      labelText: 'الباركود (خيار الباركود)',
+                                      labelText: isEng ? 'Barcode (Optional)' : 'الباركود (خيار الباركود)',
                                       prefixIcon: const Icon(Icons.qr_code_scanner),
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
@@ -404,7 +467,7 @@ class ProductsScreen extends StatelessWidget {
                                     });
                                   },
                                   icon: const Icon(Icons.auto_fix_high, size: 18),
-                                  label: const Text('توليد باركود'),
+                                  label: Text(isEng ? 'Generate Barcode' : 'توليد باركود'),
                                 ),
                                 const SizedBox(width: 6),
                                 ElevatedButton.icon(
@@ -421,7 +484,10 @@ class ProductsScreen extends StatelessWidget {
                                     final bCode = barcodeController.text.trim();
                                     final pName = nameController.text.trim();
                                     if (pName.isEmpty) {
-                                      TopNotification.showWarning(context, 'يرجى كتابة اسم المادة أولاً لطباعة الباركود.');
+                                      TopNotification.showWarning(
+                                        context,
+                                        isEng ? 'Please enter product name first.' : 'يرجى كتابة اسم المادة أولاً لطباعة الباركود.',
+                                      );
                                       return;
                                     }
                                     final tempProduct = ProductModel(
@@ -435,7 +501,7 @@ class ProductsScreen extends StatelessWidget {
                                     _showPrintBarcodeQuantityDialog(context, tempProduct);
                                   },
                                   icon: const Icon(Icons.print_rounded, size: 18, color: Colors.purple),
-                                  label: const Text('طباعة باركود', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  label: Text(isEng ? 'Print Barcode' : 'طباعة باركود', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -453,7 +519,7 @@ class ProductsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _sectionTitle('2. خيار الأسعار والتكاليف'),
+                            _sectionTitle(isEng ? '2. Pricing & Cost Options' : '2. خيار الأسعار والتكاليف'),
                             const SizedBox(height: 12),
                             Row(
                               children: [
@@ -462,7 +528,7 @@ class ProductsScreen extends StatelessWidget {
                                     controller: buyPriceController,
                                     keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
-                                      labelText: 'سعر الكلفة / الشراء ($currencySym)',
+                                      labelText: isEng ? 'Cost Price ($currencySym)' : 'سعر الكلفة / الشراء ($currencySym)',
                                       prefixIcon: const Icon(Icons.shopping_bag_outlined),
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
@@ -475,7 +541,7 @@ class ProductsScreen extends StatelessWidget {
                                     controller: sellPriceController,
                                     keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
-                                      labelText: 'سعر البيع ($currencySym) *',
+                                      labelText: isEng ? 'Sale Price ($currencySym) *' : 'سعر البيع ($currencySym) *',
                                       prefixIcon: const Icon(Icons.sell_outlined),
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
@@ -497,7 +563,10 @@ class ProductsScreen extends StatelessWidget {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('صافي الربح المتوقع للقطعة:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    isEng ? 'Expected Net Profit per item:' : 'صافي الربح المتوقع للقطعة:',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
                                   Text(
                                     '${calculatedProfit.toStringAsFixed(0)} $currencySym',
                                     style: TextStyle(
@@ -512,8 +581,8 @@ class ProductsScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('خيار تغيير السعر: السماح للتعديل المباشر بالكاشير'),
-                              subtitle: const Text('يمكن للكاشير تغيير سعر البيع لهذه المادة مباشرة'),
+                              title: Text(isEng ? 'Allow Cashier Price Override' : 'خيار تغيير السعر: السماح للتعديل المباشر بالكاشير'),
+                              subtitle: Text(isEng ? 'Cashier can change the sale price directly during checkout' : 'يمكن للكاشير تغيير سعر البيع لهذه المادة مباشرة'),
                               value: allowPriceChange,
                               onChanged: (val) {
                                 setState(() {
@@ -535,18 +604,18 @@ class ProductsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _sectionTitle('3. خيار وحدة القياس والوزن'),
+                            _sectionTitle(isEng ? '3. Unit of Measure & Weight' : '3. خيار وحدة القياس والوزن'),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
                               initialValue: availableUnits.contains(selectedUnit) ? selectedUnit : availableUnits.first,
                               decoration: InputDecoration(
-                                labelText: 'خيار وحدة القياس',
+                                labelText: isEng ? 'Unit of Measurement' : 'خيار وحدة القياس',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               items: availableUnits.map((u) {
                                 return DropdownMenuItem<String>(
                                   value: u,
-                                  child: Text(u),
+                                  child: Text(formatUnitName(u)),
                                 );
                               }).toList(),
                               onChanged: (val) {
@@ -560,8 +629,8 @@ class ProductsScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('خيار الوزن: مادة مباعة بالوزن (موزونة)'),
-                              subtitle: const Text('يتم حساب إجمالي السعر ضرب الكمية الموزونة'),
+                              title: Text(isEng ? 'Weighted Product (Sold by weight)' : 'خيار الوزن: مادة مباعة بالوزن (موزونة)'),
+                              subtitle: Text(isEng ? 'Total price calculated as price multiplied by scale weight' : 'يتم حساب إجمالي السعر ضرب الكمية الموزونة'),
                               value: isWeighted,
                               onChanged: (val) {
                                 setState(() {
@@ -583,12 +652,12 @@ class ProductsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _sectionTitle('4. خيار المخزون وتتبع الكميات'),
+                            _sectionTitle(isEng ? '4. Inventory & Stock Tracking' : '4. خيار المخزون وتتبع الكميات'),
                             const SizedBox(height: 12),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('تفعيل خيار تتبع الكمية بالمخزن'),
-                              subtitle: const Text('خصم الكميات تلقائياً عند إنشاء المبيعات والتنبيه'),
+                              title: Text(isEng ? 'Enable Stock Inventory Tracking' : 'تفعيل خيار تتبع الكمية بالمخزن'),
+                              subtitle: Text(isEng ? 'Automatically deduct stock on sales and trigger low stock alerts' : 'خصم الكميات تلقائياً عند إنشاء المبيعات والتنبيه'),
                               value: trackStock,
                               onChanged: (val) {
                                 setState(() {
@@ -605,7 +674,7 @@ class ProductsScreen extends StatelessWidget {
                                       controller: stockController,
                                       keyboardType: TextInputType.number,
                                       decoration: InputDecoration(
-                                        labelText: 'الكمية المتاحة بالمخزن',
+                                        labelText: isEng ? 'Available Stock Qty' : 'الكمية المتاحة بالمخزن',
                                         prefixIcon: const Icon(Icons.inventory),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                       ),
@@ -617,7 +686,7 @@ class ProductsScreen extends StatelessWidget {
                                       controller: minStockController,
                                       keyboardType: TextInputType.number,
                                       decoration: InputDecoration(
-                                        labelText: 'الحد الأدنى للتنبيه',
+                                        labelText: isEng ? 'Low Stock Warning Limit' : 'الحد الأدنى للتنبيه',
                                         prefixIcon: const Icon(Icons.warning_amber),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                       ),
@@ -629,7 +698,7 @@ class ProductsScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('مادة متوفرة للبيع حالياً'),
+                              title: Text(isEng ? 'Available for sale currently' : 'مادة متوفرة للبيع حالياً'),
                               value: isAvailable,
                               onChanged: (val) {
                                 setState(() {
@@ -651,12 +720,12 @@ class ProductsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _sectionTitle('5. خيار طباعة الصنف في المطبخ (وصل KOT)'),
+                            _sectionTitle(isEng ? '5. Kitchen Printing Option (KOT Ticket)' : '5. خيار طباعة الصنف في المطبخ (وصل KOT)'),
                             const SizedBox(height: 12),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ'),
-                              subtitle: const Text('إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير'),
+                              title: Text(isEng ? '🍳 Print product to Kitchen Printer automatically' : '🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ'),
+                              subtitle: Text(isEng ? 'Sends this item to kitchen ticket printer on hold/order' : 'إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير'),
                               activeThumbColor: Colors.orange,
                               value: printToKitchen,
                               onChanged: (val) {
@@ -677,13 +746,13 @@ class ProductsScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Row(
+                                    Row(
                                       children: [
-                                        Icon(Icons.print_rounded, color: Colors.orange),
-                                        SizedBox(width: 8),
+                                        const Icon(Icons.print_rounded, color: Colors.orange),
+                                        const SizedBox(width: 8),
                                         Text(
-                                          'اختر طابعة المطبخ المراد إرسال هذا الصنف إليها:',
-                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          isEng ? 'Select target kitchen printer for this item:' : 'اختر طابعة المطبخ المراد إرسال هذا الصنف إليها:',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                         ),
                                       ],
                                     ),
@@ -691,7 +760,7 @@ class ProductsScreen extends StatelessWidget {
                                     DropdownButtonFormField<String?>(
                                       initialValue: selectedKitchenPrinter,
                                       decoration: InputDecoration(
-                                        labelText: 'طابعة المطبخ المستهدفة',
+                                        labelText: isEng ? 'Target Kitchen Printer' : 'طابعة المطبخ المستهدفة',
                                         prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.deepOrange),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                         filled: true,
@@ -702,8 +771,8 @@ class ProductsScreen extends StatelessWidget {
                                           value: null,
                                           child: Text(
                                             context.watch<SettingsProvider>().kitchenPrinter.isNotEmpty
-                                                ? 'طابعة المطبخ الرئيسية الافتراضية (${context.watch<SettingsProvider>().kitchenPrinter})'
-                                                : 'طابعة المطبخ الرئيسية الافتراضية',
+                                                ? (isEng ? 'Default Main Kitchen Printer (${context.watch<SettingsProvider>().kitchenPrinter})' : 'طابعة المطبخ الرئيسية الافتراضية (${context.watch<SettingsProvider>().kitchenPrinter})')
+                                                : (isEng ? 'Default Main Kitchen Printer' : 'طابعة المطبخ الرئيسية الافتراضية'),
                                             style: const TextStyle(fontWeight: FontWeight.bold),
                                           ),
                                         ),
@@ -721,8 +790,8 @@ class ProductsScreen extends StatelessWidget {
                                     const SizedBox(height: 8),
                                     Text(
                                       selectedKitchenPrinter == null || selectedKitchenPrinter!.isEmpty
-                                          ? 'سيتم إرسال هذا الصنف إلى طابعة المطبخ الرئيسية المحددة بالإعدادات.'
-                                          : 'سيتم توجيه هذا الصنف مباشرة إلى طابعة: $selectedKitchenPrinter',
+                                          ? (isEng ? 'Item will be sent to system default kitchen printer.' : 'سيتم إرسال هذا الصنف إلى طابعة المطبخ الرئيسية المحددة بالإعدادات.')
+                                          : (isEng ? 'Item routed directly to: $selectedKitchenPrinter' : 'سيتم توجيه هذا الصنف مباشرة إلى طابعة: $selectedKitchenPrinter'),
                                       style: TextStyle(fontSize: 12, color: Colors.orange.shade900, fontWeight: FontWeight.bold),
                                     ),
                                   ],
@@ -736,14 +805,14 @@ class ProductsScreen extends StatelessWidget {
                                   color: Colors.grey.shade200,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.print_disabled, color: Colors.grey, size: 20),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.print_disabled, color: Colors.grey, size: 20),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'طباعة المطبخ غير مفعلة لهذا الصنف ولن تظهر أو تطبع في المطبخ.',
-                                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                                        isEng ? 'Kitchen print disabled for this item.' : 'طباعة المطبخ غير مفعلة لهذا الصنف ولن تظهر أو تطبع في المطبخ.',
+                                        style: const TextStyle(fontSize: 12, color: Colors.black54),
                                       ),
                                     ),
                                   ],
@@ -789,7 +858,7 @@ class ProductsScreen extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -806,12 +875,18 @@ class ProductsScreen extends StatelessWidget {
                     final minStock = double.tryParse(minStockController.text.trim()) ?? 5.0;
 
                     if (name.isEmpty) {
-                      TopNotification.showWarning(ctx, '⚠️ يرجى إدخال اسم المادة / الصنف أولاً');
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? '⚠️ Please enter product name first' : '⚠️ يرجى إدخال اسم المادة / الصنف أولاً',
+                      );
                       return;
                     }
 
                     if (price <= 0) {
-                      TopNotification.showWarning(ctx, '⚠️ يرجى إدخال سعر بيع صحيح أكبر من الصفر');
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? '⚠️ Please enter valid sale price greater than 0' : '⚠️ يرجى إدخال سعر بيع صحيح أكبر من الصفر',
+                      );
                       return;
                     }
 
@@ -846,17 +921,25 @@ class ProductsScreen extends StatelessWidget {
                         Navigator.pop(ctx);
                         TopNotification.showSuccess(
                           context,
-                          product == null ? 'تمت إضافة المادة بنجاح! 🎉' : 'تم تحديث المادة بنجاح! 🎉',
+                          product == null
+                              ? (isEng ? 'Product added successfully! 🎉' : 'تمت إضافة المادة بنجاح! 🎉')
+                              : (isEng ? 'Product updated successfully! 🎉' : 'تم تحديث المادة بنجاح! 🎉'),
                         );
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        TopNotification.showError(ctx, 'حدث خطأ أثناء حفظ المادة: $e');
+                        TopNotification.showError(
+                          ctx,
+                          isEng ? 'Error saving product: $e' : 'حدث خطأ أثناء حفظ المادة: $e',
+                        );
                       }
                     }
                   },
                   icon: const Icon(Icons.save, color: Colors.white),
-                  label: const Text('حفظ المادة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    isEng ? 'Save Product' : 'حفظ المادة',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             );
@@ -874,6 +957,7 @@ class ProductsScreen extends StatelessWidget {
   }
 
   Future<void> _showPrintBarcodeQuantityDialog(BuildContext context, ProductModel product) async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final qtyController = TextEditingController(text: '1');
     final settings = context.read<SettingsProvider>();
 
@@ -887,7 +971,7 @@ class ProductsScreen extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'طباعة باركود: ${product.name}',
+                isEng ? 'Print Barcode: ${product.name}' : 'طباعة باركود: ${product.name}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
@@ -898,11 +982,11 @@ class ProductsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'الباركود: ${product.barcode ?? "توليد تلقائي"}',
+              isEng ? 'Barcode: ${product.barcode ?? "Auto-generated"}' : 'الباركود: ${product.barcode ?? "توليد تلقائي"}',
               style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.bold),
             ),
             Text(
-              'السعر: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}',
+              isEng ? 'Price: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}' : 'السعر: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}',
               style: TextStyle(fontSize: 13, color: Colors.green.shade800),
             ),
             const SizedBox(height: 14),
@@ -913,7 +997,7 @@ class ProductsScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.purple),
               decoration: InputDecoration(
-                labelText: 'عدد ملصقات الباركود المطلوبة (الكمية) *',
+                labelText: isEng ? 'Required Barcode Labels Count (Qty) *' : 'عدد ملصقات الباركود المطلوبة (الكمية) *',
                 prefixIcon: const Icon(Icons.copy, color: Colors.purple),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 isDense: true,
@@ -924,7 +1008,7 @@ class ProductsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
+            child: Text(isEng ? 'Cancel' : 'إلغاء'),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -932,16 +1016,25 @@ class ProductsScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             icon: const Icon(Icons.print, color: Colors.white),
-            label: const Text('طباعة الملصقات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            label: Text(
+              isEng ? 'Print Labels' : 'طباعة الملصقات',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
             onPressed: () async {
               final count = int.tryParse(qtyController.text.trim()) ?? 1;
               if (count <= 0) {
-                TopNotification.showWarning(ctx, 'يرجى أدخال عدد ملصقات صحيح أكبر من الصفر');
+                TopNotification.showWarning(
+                  ctx,
+                  isEng ? 'Please enter valid label count greater than zero' : 'يرجى أدخال عدد ملصقات صحيح أكبر من الصفر',
+                );
                 return;
               }
               Navigator.pop(ctx);
 
-              TopNotification.showInfo(context, '🖨️ جاري إرسال $count ملصق باركود إلى طابعة الباركود...');
+              TopNotification.showInfo(
+                context,
+                isEng ? '🖨️ Sending $count barcode labels to printer...' : '🖨️ جاري إرسال $count ملصق باركود إلى طابعة الباركود...',
+              );
               final success = await PrintService.printBarcodeLabel(
                 product: product,
                 labelCount: count,
@@ -950,9 +1043,15 @@ class ProductsScreen extends StatelessWidget {
 
               if (context.mounted) {
                 if (success) {
-                  TopNotification.showSuccess(context, '🎉 تم إرسال $count ملصق باركود للطابعة بنجاح!');
+                  TopNotification.showSuccess(
+                    context,
+                    isEng ? '🎉 Sent $count barcode labels to printer successfully!' : '🎉 تم إرسال $count ملصق باركود للطابعة بنجاح!',
+                  );
                 } else {
-                  TopNotification.showWarning(context, '⚠️ تعذر إرسال امر الطباعة. تحقق من توصيل طابعة الباركود والإعدادات.');
+                  TopNotification.showWarning(
+                    context,
+                    isEng ? '⚠️ Failed to send print command. Verify barcode printer connection.' : '⚠️ تعذر إرسال امر الطباعة. تحقق من توصيل طابعة الباركود والإعدادات.',
+                  );
                 }
               }
             },

@@ -207,16 +207,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
-          title: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.storefront, size: 28),
-              SizedBox(width: 10),
-              Text(
-                "HAPPY DAY POS",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
+          title: const Text(
+            "HAPPY DAY POS",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           actions: [
             Padding(
