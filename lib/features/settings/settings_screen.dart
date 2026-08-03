@@ -1009,19 +1009,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundColor: AppColors.primary,
                               child: const Icon(Icons.store, color: Colors.white),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Text(
-                              'معلومات المطعم والشعار المطبوع بالفاتورة',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              isEng ? 'Restaurant Info & Printed Receipt Logo' : 'معلومات المطعم والشعار المطبوع بالفاتورة',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const Divider(height: 28),
 
                         // Custom Image Logo Upload Section (معرض الصور)
-                        const Text(
-                          'اختيار صورة الشعار الخاص بالمطعم من المعرض (Custom Logo Image):',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        Text(
+                          isEng ? 'Choose custom logo image from gallery (Custom Logo Image):' : 'اختيار صورة الشعار الخاص بالمطعم من المعرض (Custom Logo Image):',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         const SizedBox(height: 10),
                         Container(
@@ -1047,9 +1047,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       ),
                                       icon: const Icon(Icons.photo_library_rounded, size: 24),
-                                      label: const Text(
-                                        '🖼️ فتح المعرض واختيار صورة اللوجو من الجهاز',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                      label: Text(
+                                        isEng ? '🖼️ Choose Logo Image from Gallery' : '🖼️ فتح المعرض واختيار صورة اللوجو من الجهاز',
+                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ),
@@ -1096,7 +1096,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 controller: _logoPathController,
                                 onChanged: (_) => setState(() {}),
                                 decoration: InputDecoration(
-                                  labelText: 'مسار ملف الصورة بالجهاز (Path)',
+                                  labelText: isEng ? 'Image File Path' : 'مسار ملف الصورة بالجهاز (Path)',
                                   hintText: '/Users/.../logo.png',
                                   isDense: true,
                                   prefixIcon: const Icon(Icons.link, size: 20),
@@ -1110,9 +1110,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 20),
 
                         // Logo Presets Selection Section
-                        const Text(
-                          'أو اختر شعار رمز جرافيكي جاهز للفاتورة:',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        Text(
+                          isEng ? 'Or choose a graphic logo icon preset for receipts:' : 'أو اختر شعار رمز جرافيكي جاهز للفاتورة:',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         const SizedBox(height: 10),
                         Wrap(
@@ -1167,7 +1167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _nameController,
                           decoration: InputDecoration(
-                            labelText: 'اسم المطعم (يظهر أعلى وأسفل الفاتورة) *',
+                            labelText: isEng ? 'Restaurant Name (Printed at header & footer) *' : 'اسم المطعم (يظهر أعلى وأسفل الفاتورة) *',
                             prefixIcon: const Icon(Icons.business),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -1179,7 +1179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _addressController,
                           decoration: InputDecoration(
-                            labelText: 'عنوان المطعم التفصيلي (يظهر بالفاتورة) *',
+                            labelText: isEng ? 'Detailed Restaurant Address (Printed on receipt) *' : 'عنوان المطعم التفصيلي (يظهر بالفاتورة) *',
                             prefixIcon: const Icon(Icons.location_on),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -1192,7 +1192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
-                            labelText: 'رقم موبايل / هاتف المطعم (يظهر بالفاتورة) *',
+                            labelText: isEng ? 'Restaurant Phone Number (Printed on receipt) *' : 'رقم موبايل / هاتف المطعم (يظهر بالفاتورة) *',
                             prefixIcon: const Icon(Icons.phone),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -1208,16 +1208,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Icon(Icons.monetization_on_rounded, color: AppColors.primary),
                             ),
                             const SizedBox(width: 12),
-                            const Text(
-                              'عملة النظام والفواتير (Store Currency)',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            Text(
+                              isEng ? 'Store Currency (Store Currency)' : 'عملة النظام والفواتير (Store Currency)',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'اختر العملة الرسمية للمتجر لتطبيقها فورياً على كافة الفواتير والأسعار والتقارير:',
-                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                        Text(
+                          isEng ? 'Choose official store currency to apply across all invoices, prices, and reports:' : 'اختر العملة الرسمية للمتجر لتطبيقها فورياً على كافة الفواتير والأسعار والتقارير:',
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
                         ),
                         const SizedBox(height: 14),
                         Row(
@@ -1245,7 +1245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        '🇮🇶 دينار عراقي (د.ع)',
+                                        isEng ? '🇮🇶 Iraqi Dinar (IQD)' : '🇮🇶 دينار عراقي (د.ع)',
                                         style: TextStyle(
                                           fontWeight: _selectedCurrency == 'د.ع' ? FontWeight.bold : FontWeight.normal,
                                           color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.black87,
@@ -1285,7 +1285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        '🇺🇸 دولار أمريكي (\$)',
+                                        isEng ? '🇺🇸 US Dollar (\$)' : '🇺🇸 دولار أمريكي (\$)',
                                         style: TextStyle(
                                           fontWeight: _selectedCurrency == '\$' ? FontWeight.bold : FontWeight.normal,
                                           color: _selectedCurrency == '\$' ? AppColors.primary : Colors.black87,
@@ -1326,16 +1326,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Icon(Icons.print_rounded, color: Colors.white),
                             ),
                             const SizedBox(width: 12),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'إعدادات طابعة الكاشير وطابعة المطبخ (KOT)',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                isEng ? 'Cashier & Kitchen Printer Settings (KOT)' : 'إعدادات طابعة الكاشير وطابعة المطبخ (KOT)',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ),
                             IconButton(
                               onPressed: _loadSystemPrinters,
                               icon: const Icon(Icons.refresh_rounded, color: Colors.teal),
-                              tooltip: 'تحديث قائمة طابعات الجهاز',
+                              tooltip: isEng ? 'Refresh system printers list' : 'تحديث قائمة طابعات الجهاز',
                             ),
                           ],
                         ),
@@ -1356,10 +1356,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Expanded(
                                 child: Text(
                                   _isLoadingPrinters
-                                      ? 'جاري الاستعلام عن طابعات جهاز الكمبيوتر...'
+                                      ? (isEng ? 'Querying system printers list...' : 'جاري الاستعلام عن طابعات جهاز الكمبيوتر...')
                                       : _systemPrinters.isEmpty
-                                          ? 'لم يتم الكشف عن طابعات مخصصة في النظام. يمكنك الطباعة عبر طابعة النظام الافتراضية.'
-                                          : 'تم الكشف عن ${_systemPrinters.length} طابعة معرفة ومجهزة في جهازك!',
+                                          ? (isEng ? 'No mapped printers detected. System default printer will be used.' : 'لم يتم الكشف عن طابعات مخصصة في النظام. يمكنك الطباعة عبر طابعة النظام الافتراضية.')
+                                          : (isEng ? 'Detected ${_systemPrinters.length} mapped system printers on your PC!' : 'تم الكشف عن ${_systemPrinters.length} طابعة معرفة ومجهزة في جهازك!'),
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
@@ -1382,15 +1382,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: TextField(
                                 controller: _cashierPrinterController,
                                 decoration: InputDecoration(
-                                  labelText: 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
+                                  labelText: isEng ? 'Invoice & Cashier Main Printer' : 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
                                   prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
                                   suffixIcon: IconButton(
                                     icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
-                                    tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                                    onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, 'اختر طابعة الفواتير والكاشير الرئيسية'),
+                                    tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                                    onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
                                   ),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                  helperText: 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
+                                  helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
                                 ),
                               ),
                             ),
@@ -1404,16 +1404,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 ),
                                 icon: const Icon(Icons.vpn_key_outlined, color: Colors.white, size: 20),
-                                label: const Text('اختبار فتح الدرج 🔑', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                label: Text(isEng ? 'Test Drawer 🔑' : 'اختبار فتح الدرج 🔑', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                                 onPressed: () async {
                                   final settings = context.read<SettingsProvider>();
-                                  TopNotification.showInfo(context, '🔑 جاري اختار فتح درج النقدية...');
+                                  TopNotification.showInfo(context, isEng ? '🔑 Sending cash drawer kick signal...' : '🔑 جاري اختار فتح درج النقدية...');
                                   final success = await PrintService.openCashDrawer(settings);
                                   if (context.mounted) {
                                     if (success) {
-                                      TopNotification.showSuccess(context, '🎉 تم إرسال إشارة فتح الدرج بنجاح! 💵');
+                                      TopNotification.showSuccess(context, isEng ? '🎉 Cash drawer kick signal sent successfully! 💵' : '🎉 تم إرسال إشارة فتح الدرج بنجاح! 💵');
                                     } else {
-                                      TopNotification.showWarning(context, '⚠️ فشل الاتصال بالطابعة. تحقق من اختيار الطابعة الصحيحة وتوصيل كابل الدرج (RJ11).');
+                                      TopNotification.showWarning(context, isEng ? '⚠️ Failed to connect printer. Verify printer selection and RJ11 cable connection.' : '⚠️ فشل الاتصال بالطابعة. تحقق من اختيار الطابعة الصحيحة وتوصيل كابل الدرج (RJ11).');
                                     }
                                   }
                                 },
@@ -1428,15 +1428,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _kitchenPrinterController,
                           decoration: InputDecoration(
-                            labelText: 'طابعة المطبخ وإرسال الطلبات (Kitchen KOT Printer)',
+                            labelText: isEng ? 'Kitchen Order Ticket Printer (KOT)' : 'طابعة المطبخ وإرسال الطلبات (Kitchen KOT Printer)',
                             prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.orange),
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.orange),
-                              tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_kitchenPrinterController, 'اختر طابعة المطبخ (KOT)'),
+                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                              onPressed: () => _showPrinterSelectionDialog(_kitchenPrinterController, isEng ? 'Select Kitchen (KOT) Printer' : 'اختر طابعة المطبخ (KOT)'),
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: 'انقر على السهم لاختيار طابعة المطبخ من الكمبيوتر أو اكتب الاسم المباشر',
+                            helperText: isEng ? 'Click dropdown arrow to pick kitchen printer or type printer name directly' : 'انقر على السهم لاختيار طابعة المطبخ من الكمبيوتر أو اكتب الاسم المباشر',
                           ),
                         ),
 
@@ -1446,15 +1446,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _reportsPrinterController,
                           decoration: InputDecoration(
-                            labelText: 'طابعة التقارير الإدارية والمالية (Reports Printer)',
+                            labelText: isEng ? 'Administrative & Financial Reports Printer' : 'طابعة التقارير الإدارية والمالية (Reports Printer)',
                             prefixIcon: const Icon(Icons.print, color: Colors.purple),
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.purple),
-                              tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_reportsPrinterController, 'اختر طابعة التقارير الإدارية'),
+                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                              onPressed: () => _showPrinterSelectionDialog(_reportsPrinterController, isEng ? 'Select Reports Printer' : 'اختر طابعة التقارير الإدارية'),
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: 'تستخدم لطباعة التقرير اليومي، الشهري، والمالي مباشرة من قسم التقارير',
+                            helperText: isEng ? 'Used to print daily, monthly, and financial reports directly' : 'تستخدم لطباعة التقرير اليومي، الشهري، والمالي مباشرة من قسم التقارير',
                           ),
                         ),
 
@@ -1464,15 +1464,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _barcodePrinterController,
                           decoration: InputDecoration(
-                            labelText: 'طابعة ملصقات الباركود (Barcode Label Printer)',
+                            labelText: isEng ? 'Barcode Label Printer' : 'طابعة ملصقات الباركود (Barcode Label Printer)',
                             prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.blue),
-                              tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_barcodePrinterController, 'اختر طابعة ملصقات الباركود'),
+                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                              onPressed: () => _showPrinterSelectionDialog(_barcodePrinterController, isEng ? 'Select Barcode Printer' : 'اختر طابعة ملصقات الباركود'),
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: 'تستخدم لطباعة ملصقات الباركود للأصناف والمنتجات مباشرة (مثل طابعات Xprinter / Zebra)',
+                            helperText: isEng ? 'Used for barcode sticker printing (e.g. Xprinter / Zebra)' : 'تستخدم لطباعة ملصقات الباركود للأصناف والمنتجات مباشرة (مثل طابعات Xprinter / Zebra)',
                           ),
                         ),
                       ],
@@ -1491,16 +1491,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            CircleAvatar(
+                            const CircleAvatar(
                               backgroundColor: Colors.purple,
                               child: Icon(Icons.receipt, color: Colors.white),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Text(
-                              'نصوص الترحيب والتذييل بالفاتورة',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              isEng ? 'Receipt Header & Footer Messages' : 'نصوص الترحيب والتذييل بالفاتورة',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -1510,7 +1510,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _headerController,
                           decoration: InputDecoration(
-                            labelText: 'رسالة الترحيب أعلى الفاتورة',
+                            labelText: isEng ? 'Receipt Top Welcome Message' : 'رسالة الترحيب أعلى الفاتورة',
                             prefixIcon: const Icon(Icons.short_text),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -1522,7 +1522,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextField(
                           controller: _footerController,
                           decoration: InputDecoration(
-                            labelText: 'رسالة الختام أسفل الفاتورة',
+                            labelText: isEng ? 'Receipt Bottom Footer Message' : 'رسالة الختام أسفل الفاتورة',
                             prefixIcon: const Icon(Icons.notes),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -1547,23 +1547,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            CircleAvatar(
+                            const CircleAvatar(
                               backgroundColor: Colors.red,
                               child: Icon(Icons.delete_forever, color: Colors.white),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Text(
-                              'إعادة تعيين المصنع (مسح جميع البيانات)',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                              isEng ? 'Factory Reset (Erase All Data)' : 'إعادة تعيين المصنع (مسح جميع البيانات)',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
                             ),
                           ],
                         ),
                         const Divider(height: 28),
-                        const Text(
-                          'تنبيه: مسح كافة بيانات النظام والمنتجات والفواتير السابقة وإعادة التثبيت الافتراضي. تطلب موافقة المدير بالرمز السري.',
-                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                        Text(
+                          isEng ? 'Warning: Deletes all products, categories, invoices, and user records. Reverts to default fresh install.' : 'تنبيه: مسح كافة بيانات النظام والمنتجات والفواتير السابقة وإعادة التثبيت الافتراضي. تطلب موافقة المدير بالرمز السري.',
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
                         ),
                         const SizedBox(height: 16),
                         SizedBox(
@@ -1577,9 +1577,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
                             icon: const Icon(Icons.warning_rounded),
-                            label: const Text(
-                              'إعادة تعيين المصنع ومسح البيانات...',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            label: Text(
+                              isEng ? 'Factory Reset & Wipe Data...' : 'إعادة تعيين المصنع ومسح البيانات...',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -1603,9 +1603,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       elevation: 3,
                     ),
                     icon: const Icon(Icons.save_rounded, size: 26),
-                    label: const Text(
-                      'حفظ إعدادات المطعم والطابعات والشعار',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    label: Text(
+                      isEng ? 'Save Restaurant & Printer Settings 💾' : 'حفظ إعدادات المطعم والطابعات والشعار',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
