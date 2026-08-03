@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
 import '../../models/user.dart';
+import '../settings/settings_provider.dart';
 import 'auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -38,13 +39,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleCompleteInitialSetup() async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final managerName = _initManagerNameController.text.trim();
     final managerPass = _initManagerPassController.text.trim();
     final cashierName = _initCashierNameController.text.trim();
     final cashierPass = _initCashierPassController.text.trim();
 
     if (managerName.isEmpty || managerPass.isEmpty) {
-      TopNotification.showWarning(context, '⚠️ يرجى إدخال اسم مدير النظام والرمز السري الخاص به');
+      TopNotification.showWarning(
+        context,
+        isEng ? '⚠️ Please enter Manager name & PIN code' : '⚠️ يرجى إدخال اسم مدير النظام والرمز السري الخاص به',
+      );
       return;
     }
 
@@ -60,17 +65,20 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         TopNotification.showSuccess(
           context,
-          '🎉 تم حفظ الحسابات وإعداد النظام بنجاح! أهلاً بك $managerName',
+          isEng ? '🎉 System setup saved successfully! Welcome $managerName' : '🎉 تم حفظ الحسابات وإعداد النظام بنجاح! أهلاً بك $managerName',
         );
       }
     } catch (e) {
       if (mounted) {
-        TopNotification.showError(context, 'حدث خطأ أثناء حفظ الإعداد الأول: $e');
+        TopNotification.showError(
+          context,
+          isEng ? 'Error saving setup: $e' : 'حدث خطأ أثناء حفظ الإعداد الأول: $e',
+        );
       }
     }
   }
 
-  Widget _buildInitialSetupCard() {
+  Widget _buildInitialSetupCard(bool isEng) {
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -93,16 +101,16 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             Center(
               child: Text(
-                'إعداد وتصفير النظام - حساب مدير جديد',
+                isEng ? 'Initial Setup - New Manager Account' : 'إعداد وتصفير النظام - حساب مدير جديد',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
                 textAlign: TextAlign.center,
               ),
             ),
             const SizedBox(height: 6),
-            const Center(
+            Center(
               child: Text(
-                'النظام فارغ حالياً. يرجى كتابة اسم ورمز مدير النظام الجديد للبدء.',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
+                isEng ? 'System database is empty. Please enter new Manager name & PIN code to get started.' : 'النظام فارغ حالياً. يرجى كتابة اسم ورمز مدير النظام الجديد للبدء.',
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -119,13 +127,13 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.admin_panel_settings, color: Colors.purple, size: 22),
-                      SizedBox(width: 8),
+                      const Icon(Icons.admin_panel_settings, color: Colors.purple, size: 22),
+                      const SizedBox(width: 8),
                       Text(
-                        '1. بيانات حساب المدير (مدير النظام)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.purple),
+                        isEng ? '1. Manager Account Credentials' : '1. بيانات حساب المدير (مدير النظام)',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.purple),
                       ),
                     ],
                   ),
@@ -133,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _initManagerNameController,
                     decoration: InputDecoration(
-                      labelText: 'اسم مدير النظام *',
+                      labelText: isEng ? 'Manager Name *' : 'اسم مدير النظام *',
                       prefixIcon: const Icon(Icons.person),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -146,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _isObscure,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'الرقم السري للمدير *',
+                      labelText: isEng ? 'Manager PIN Code *' : 'الرقم السري للمدير *',
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
                         icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
@@ -174,13 +182,13 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.badge, color: Colors.blue, size: 22),
-                      SizedBox(width: 8),
+                      const Icon(Icons.badge, color: Colors.blue, size: 22),
+                      const SizedBox(width: 8),
                       Text(
-                        '2. بيانات حساب الكاشير الأول',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue),
+                        isEng ? '2. First Cashier Account (Optional)' : '2. بيانات حساب الكاشير الأول',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue),
                       ),
                     ],
                   ),
@@ -188,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _initCashierNameController,
                     decoration: InputDecoration(
-                      labelText: 'اسم الكاشير الأول (اختياري)',
+                      labelText: isEng ? 'First Cashier Name (Optional)' : 'اسم الكاشير الأول (اختياري)',
                       prefixIcon: const Icon(Icons.person_outline),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -201,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _isObscure,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'الرقم السري للكاشير (اختياري)',
+                      labelText: isEng ? 'Cashier PIN Code (Optional)' : 'الرقم السري للكاشير (اختياري)',
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -227,9 +235,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 onPressed: _handleCompleteInitialSetup,
                 icon: const Icon(Icons.check_circle_rounded, size: 24),
-                label: const Text(
-                  'حفظ وإتمام الإعداد والدخول للنظام 🚀',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                label: Text(
+                  isEng ? 'Save Setup & Launch System 🚀' : 'حفظ وإتمام الإعداد والدخول للنظام 🚀',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -240,11 +248,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final username = _selectedUsername ?? _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      TopNotification.showWarning(context, '⚠️ يرجى إدخال اسم المستخدم والرقم السري');
+      TopNotification.showWarning(
+        context,
+        isEng ? '⚠️ Please enter username & PIN code' : '⚠️ يرجى إدخال اسم المستخدم والرقم السري',
+      );
       return;
     }
 
@@ -254,11 +266,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (!success) {
-      TopNotification.showError(context, '❌ اسم المستخدم أو الرقم السري غير صحيح!');
+      TopNotification.showError(
+        context,
+        isEng ? '❌ Invalid username or PIN code!' : '❌ اسم المستخدم أو الرقم السري غير صحيح!',
+      );
     }
   }
 
   void _showAddUserDialog() {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final authProvider = context.read<AuthProvider>();
 
     // Deduplicate manager list to avoid dropdown key conflicts
@@ -295,7 +311,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Icon(Icons.person_add_alt_1, color: AppColors.primary),
                   ),
                   const SizedBox(width: 10),
-                  const Text('إضافة مستخدم جديد للنظام', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    isEng ? 'Add New System User' : 'إضافة مستخدم جديد للنظام',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               content: ConstrainedBox(
@@ -313,23 +332,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.purple.shade200),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.admin_panel_settings, color: Colors.purple, size: 20),
-                                SizedBox(width: 6),
+                                const Icon(Icons.admin_panel_settings, color: Colors.purple, size: 20),
+                                const SizedBox(width: 6),
                                 Text(
-                                  'صلاحية إذن المدير لتأكيد الإضافة',
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+                                  isEng ? 'Manager Authorization Required' : 'صلاحية إذن المدير لتأكيد الإضافة',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              'أدخل اسم المدير ورقمه السري للموافق على إضافة المستعمل:',
-                              style: TextStyle(fontSize: 12, color: Colors.black87),
+                              isEng ? 'Enter manager name & PIN code to authorize user addition:' : 'أدخل اسم المدير ورقمه السري للموافق على إضافة المستعمل:',
+                              style: const TextStyle(fontSize: 12, color: Colors.black87),
                             ),
                           ],
                         ),
@@ -341,14 +360,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         DropdownButtonFormField<String>(
                           initialValue: activeManagerValue,
                           decoration: InputDecoration(
-                            labelText: '1. اسم المدير الحالي *',
+                            labelText: isEng ? '1. Current Manager Name *' : '1. اسم المدير الحالي *',
                             prefixIcon: const Icon(Icons.security),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           items: managerList.map((m) {
                             return DropdownMenuItem<String>(
                               value: m.username,
-                              child: Text('${m.username} (مدير النظام)'),
+                              child: Text(isEng ? '${m.username} (Manager)' : '${m.username} (مدير النظام)'),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -363,7 +382,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: managerNameController,
                           decoration: InputDecoration(
-                            labelText: '1. اسم المدير الحالي *',
+                            labelText: isEng ? '1. Current Manager Name *' : '1. اسم المدير الحالي *',
                             prefixIcon: const Icon(Icons.security),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -377,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: true,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: '2. الرقم السري للمدير *',
+                          labelText: isEng ? '2. Manager PIN Code *' : '2. الرقم السري للمدير *',
                           prefixIcon: const Icon(Icons.key),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -387,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       // New User Details Section
                       Text(
-                        'بيانات الحساب الجديد:',
+                        isEng ? 'New User Credentials:' : 'بيانات الحساب الجديد:',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
                       ),
                       const SizedBox(height: 10),
@@ -396,7 +415,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: newUsernameController,
                         decoration: InputDecoration(
-                          labelText: '3. اسم المستخدم الجديد *',
+                          labelText: isEng ? '3. New Username *' : '3. اسم المستخدم الجديد *',
                           prefixIcon: const Icon(Icons.person_add),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -410,7 +429,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: true,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: '4. الرقم السري للمستخدم الجديد *',
+                          labelText: isEng ? '4. New User PIN Code *' : '4. الرقم السري للمستخدم الجديد *',
                           prefixIcon: const Icon(Icons.lock_outline),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -422,12 +441,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       DropdownButtonFormField<String>(
                         initialValue: selectedRole,
                         decoration: InputDecoration(
-                          labelText: '5. نوع صلاحية المستخدم الجديد',
+                          labelText: isEng ? '5. New User Role' : '5. نوع صلاحية المستخدم الجديد',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'كاشير', child: Text('كاشير (صلاحية بيع فقط)')),
-                          DropdownMenuItem(value: 'مدير', child: Text('مدير النظام (صلاحية كاملة)')),
+                        items: [
+                          DropdownMenuItem(
+                            value: 'كاشير',
+                            child: Text(isEng ? 'Cashier (Sales Only)' : 'كاشير (صلاحية بيع فقط)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'مدير',
+                            child: Text(isEng ? 'Manager (Full Admin Access)' : 'مدير النظام (صلاحية كاملة)'),
+                          ),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -444,7 +469,7 @@ class _LoginScreenState extends State<LoginScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -459,12 +484,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     final newUserPassword = newUserPasswordController.text.trim();
 
                     if (managerName.isEmpty || managerPassword.isEmpty) {
-                      TopNotification.showWarning(ctx, '⚠️ يرجى إدخال اسم ورقم سري المدير للموافقة');
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? '⚠️ Please enter manager credentials for authorization' : '⚠️ يرجى إدخال اسم ورقم سري المدير للموافقة',
+                      );
                       return;
                     }
 
                     if (newUsername.isEmpty || newUserPassword.isEmpty) {
-                      TopNotification.showWarning(ctx, '⚠️ يرجى إدخال اسم المستخدم الجديد والرمز السري الخاص به');
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? '⚠️ Please enter new username and PIN code' : '⚠️ يرجى إدخال اسم المستخدم الجديد والرمز السري الخاص به',
+                      );
                       return;
                     }
 
@@ -483,7 +514,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.pop(ctx);
                         TopNotification.showSuccess(
                           context,
-                          '🎉 تم إضافة المستخدم الجديد "$newUsername" بنجاح!',
+                          isEng ? '🎉 New user "$newUsername" added successfully!' : '🎉 تم إضافة المستخدم الجديد "$newUsername" بنجاح!',
                         );
                       }
                     } catch (e) {
@@ -493,7 +524,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                   },
                   icon: const Icon(Icons.check_circle, color: Colors.white),
-                  label: const Text('إضافة المستخدم', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    isEng ? 'Add User' : 'إضافة المستخدم',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             );
@@ -505,6 +539,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = context.watch<SettingsProvider>();
+    final isEng = settingsProvider.isEnglish;
     final authProvider = context.watch<AuthProvider>();
 
     // Deduplicate user list for main login dropdown
@@ -522,7 +558,7 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
-              child: _buildInitialSetupCard(),
+              child: _buildInitialSetupCard(isEng),
             ),
           ),
         ),
@@ -562,9 +598,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'نظام هابي داي لنقاط البيع',
-                      style: TextStyle(
+                    Text(
+                      isEng ? 'Happy Day POS System' : 'نظام هابي داي لنقاط البيع',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
@@ -573,7 +609,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'يرجى تسجيل الدخول لمتابعة العمل',
+                      isEng ? 'Please sign in to continue' : 'يرجى تسجيل الدخول لمتابعة العمل',
                       style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                     const SizedBox(height: 28),
@@ -582,15 +618,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (userList.isNotEmpty) ...[
                       DropdownButtonFormField<String>(
                         initialValue: activeLoginUserValue,
-                        hint: const Text('اختر اسم المستخدم أو المدير...'),
+                        hint: Text(isEng ? 'Select User or Manager...' : 'اختر اسم المستخدم أو المدير...'),
                         decoration: InputDecoration(
-                          labelText: 'اختر اسم المستخدم أو المدير',
+                          labelText: isEng ? 'Select User or Manager' : 'اختر اسم المستخدم أو المدير',
                           prefixIcon: const Icon(Icons.person),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           filled: true,
                           fillColor: Colors.white,
                         ),
                         items: userList.map((u) {
+                          final roleLabel = isEng
+                              ? (u.isManager ? 'Manager' : 'Cashier')
+                              : u.role;
+
                           return DropdownMenuItem<String>(
                             value: u.username,
                             child: Row(
@@ -604,7 +644,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    u.role,
+                                    roleLabel,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: u.isManager ? Colors.purple : Colors.blue,
@@ -630,7 +670,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _usernameController,
                         decoration: InputDecoration(
-                          labelText: 'اسم المستخدم أو المدير',
+                          labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
                           prefixIcon: const Icon(Icons.person),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           filled: true,
@@ -646,7 +686,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: _isObscure,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'الرقم السري / كلمة المرور',
+                        labelText: isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور',
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
@@ -673,9 +713,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           elevation: 2,
                         ),
                         icon: const Icon(Icons.login),
-                        label: const Text(
-                          'تسجيل الدخول',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        label: Text(
+                          isEng ? 'Sign In 🚪' : 'تسجيل الدخول',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -694,9 +734,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         icon: const Icon(Icons.person_add_alt_1),
-                        label: const Text(
-                          'إضافة مستخدم جديد',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        label: Text(
+                          isEng ? 'Add New User 👤+' : 'إضافة مستخدم جديد',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
