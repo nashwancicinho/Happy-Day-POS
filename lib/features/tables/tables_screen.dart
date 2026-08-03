@@ -296,14 +296,14 @@ class _TablesScreenState extends State<TablesScreen> {
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.menu, color: Colors.white, size: 24),
-                  SizedBox(width: 8),
+                  const Icon(Icons.menu, color: Colors.white, size: 24),
+                  const SizedBox(width: 8),
                   Text(
-                    'خيارات الطاولات',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    isEng ? 'Table Options' : 'خيارات الطاولات',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ],
               ),
@@ -337,7 +337,10 @@ class _TablesScreenState extends State<TablesScreen> {
                       child: const Icon(Icons.add, color: Colors.green, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Text('إضافة طاولة جديدة ➕', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(
+                      isEng ? 'Add New Table ➕' : 'إضافة طاولة جديدة ➕',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ),
@@ -360,7 +363,7 @@ class _TablesScreenState extends State<TablesScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      _isDesignMode ? 'حفظ الأماكن 💾' : 'تغير مكان الطاولة 📐',
+                      _isDesignMode ? (isEng ? 'Save Layout 💾' : 'حفظ الأماكن 💾') : (isEng ? 'Move / Design Layout 📐' : 'تغير مكان الطاولة 📐'),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -385,7 +388,7 @@ class _TablesScreenState extends State<TablesScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      _isDeleteMode ? 'إلغاء وضع الحذف' : 'حذف طاولة 🗑️',
+                      _isDeleteMode ? (isEng ? 'Cancel Delete Mode' : 'إلغاء وضع الحذف') : (isEng ? 'Delete Table 🗑️' : 'حذف طاولة 🗑️'),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ],

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/restaurant_table.dart';
+import '../settings/settings_provider.dart';
 import 'tables_provider.dart';
 
 class FloorPlanCanvas extends StatefulWidget {
@@ -100,10 +101,16 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
       posY = paddingTop + row * (cardSize + spacing);
     }
 
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final isOccupied = table.status == 1;
     final statusColor = isOccupied ? AppColors.danger : AppColors.success;
     final tableWidth = table.shape == 'rectangle' ? 160.0 : 120.0;
     final tableHeight = table.shape == 'rectangle' ? 110.0 : 120.0;
+
+    String formatTableName(String rawName) {
+      if (!isEng) return rawName;
+      return rawName.replaceAll('طاولة', 'Table');
+    }
 
     return Positioned(
       left: posX,
@@ -177,7 +184,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      table.name,
+                      formatTableName(table.name),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -187,7 +194,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '${table.capacity} أشخاص',
+                      isEng ? '${table.capacity} Persons' : '${table.capacity} أشخاص',
                       style: TextStyle(fontSize: 9.5, color: Colors.grey.shade700),
                     ),
                     const SizedBox(height: 3),
@@ -198,7 +205,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        isOccupied ? 'مشغولة' : 'شاغرة',
+                        isEng ? (isOccupied ? 'Occupied' : 'Vacant') : (isOccupied ? 'مشغولة' : 'شاغرة'),
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,

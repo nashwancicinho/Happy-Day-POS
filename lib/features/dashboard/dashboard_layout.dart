@@ -239,7 +239,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          "${authProvider.currentUserName} (${authProvider.currentUserRole})",
+                          "${authProvider.currentUserName} (${context.watch<SettingsProvider>().isEnglish ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ],
