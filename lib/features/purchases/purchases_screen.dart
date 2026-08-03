@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
 import '../../models/purchase.dart';
 import '../../models/supplier.dart';
+import '../settings/settings_provider.dart';
 import 'purchases_provider.dart';
 import 'widgets/add_purchase_dialog.dart';
 import 'widgets/add_supplier_dialog.dart';
@@ -25,6 +26,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchasesProvider>().loadAllData();
     });
@@ -40,6 +44,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PurchasesProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final currencySym = context.watch<SettingsProvider>().currencySymbol;
     final query = _searchController.text.trim().toLowerCase();
 
     final filteredPurchases = provider.purchases.where((p) {
@@ -58,7 +64,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة المشتريات والموردين والديون'),
+        title: Text(isEng ? 'Purchases, Suppliers & Debts Management' : 'إدارة المشتريات والموردين والديون'),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -68,9 +74,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
           unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          tabs: const [
-            Tab(icon: Icon(Icons.receipt_long), text: 'فواتير المشتريات (Invoices)'),
-            Tab(icon: Icon(Icons.group_outlined), text: 'دليل الموردين وديونهم (Suppliers)'),
+          tabs: [
+            Tab(icon: const Icon(Icons.receipt_long), text: isEng ? 'Purchase Invoices' : 'فواتير المشتريات (Invoices)'),
+            Tab(icon: const Icon(Icons.group_outlined), text: isEng ? 'Suppliers Directory & Debts' : 'دليل الموردين وديونهم (Suppliers)'),
           ],
         ),
       ),
@@ -85,7 +91,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
-          _tabController.index == 0 ? 'فاتورة مشتريات جديدة 📦' : 'إضافة مورد جديد 🚚',
+          _tabController.index == 0
+              ? (isEng ? 'New Purchase Invoice 📦+' : 'فاتورة مشتريات جديدة 📦+')
+              : (isEng ? 'Add New Supplier 🚚+' : 'إضافة مورد جديد 🚚+'),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -101,8 +109,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     children: [
                       Expanded(
                         child: _buildSummaryCard(
-                          title: 'إجمالي المشتريات',
-                          value: '${provider.totalPurchasesAmount.toStringAsFixed(0)} د.ع',
+                          title: isEng ? 'Total Purchases' : 'إجمالي المشتريات',
+                          value: '${provider.totalPurchasesAmount.toStringAsFixed(0)} $currencySym',
                           icon: Icons.shopping_bag,
                           color: Colors.indigo,
                         ),
@@ -110,8 +118,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildSummaryCard(
-                          title: 'المبالغ المدفوعة',
-                          value: '${provider.totalPaidAmount.toStringAsFixed(0)} د.ع',
+                          title: isEng ? 'Paid Amount' : 'المبالغ المدفوعة',
+                          value: '${provider.totalPaidAmount.toStringAsFixed(0)} $currencySym',
                           icon: Icons.check_circle_outline,
                           color: Colors.green.shade800,
                         ),
@@ -119,8 +127,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildSummaryCard(
-                          title: 'ديون الموردين (كم أنا مدين له)',
-                          value: '${provider.totalSuppliersDebt.toStringAsFixed(0)} د.ع',
+                          title: isEng ? 'Supplier Debts (Payable)' : 'ديون الموردين (كم أنا مدين له)',
+                          value: '${provider.totalSuppliersDebt.toStringAsFixed(0)} $currencySym',
                           icon: Icons.error_outline,
                           color: Colors.red.shade800,
                         ),
@@ -128,8 +136,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildSummaryCard(
-                          title: 'إجمالي الموردين',
-                          value: '${provider.suppliers.length} مورد',
+                          title: isEng ? 'Total Suppliers' : 'إجمالي الموردين',
+                          value: isEng ? '${provider.suppliers.length} Suppliers' : '${provider.suppliers.length} مورد',
                           icon: Icons.group,
                           color: Colors.teal.shade800,
                         ),
@@ -145,7 +153,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: 'ابحث باسم المورد، رقم الفاتورة، الوصل، الهاتف...',
+                      hintText: isEng
+                          ? 'Search supplier name, invoice no, phone...'
+                          : 'ابحث باسم المورد، رقم الفاتورة، الوصل، الهاتف...',
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -159,10 +169,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     controller: _tabController,
                     children: [
                       // TAB 1: PURCHASES INVOICES LIST
-                      _buildInvoicesTab(context, filteredPurchases),
+                      _buildInvoicesTab(context, filteredPurchases, isEng, currencySym),
 
                       // TAB 2: SUPPLIERS LIST & DEBTS
-                      _buildSuppliersTab(context, filteredSuppliers),
+                      _buildSuppliersTab(context, filteredSuppliers, isEng, currencySym),
                     ],
                   ),
                 ),
@@ -213,10 +223,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildInvoicesTab(BuildContext context, List<PurchaseInvoiceModel> purchases) {
+  Widget _buildInvoicesTab(BuildContext context, List<PurchaseInvoiceModel> purchases, bool isEng, String currencySym) {
     if (purchases.isEmpty) {
-      return const Center(
-        child: Text('لا توجد فواتير مشتريات مسجلة حالياً', style: TextStyle(fontSize: 16, color: Colors.grey)),
+      return Center(
+        child: Text(
+          isEng ? 'No purchase invoices recorded yet' : 'لا توجد فواتير مشتريات مسجلة حالياً',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
       );
     }
 
@@ -234,10 +247,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                 ? Colors.orange
                 : Colors.red;
         final statusText = isPaid
-            ? 'مدفوعة بالكامل 🟢'
+            ? (isEng ? 'Fully Paid 🟢' : 'مدفوعة بالكامل 🟢')
             : isPartial
-                ? 'مدفوعة جزئياً 🟡'
-                : 'آجل / غير مدفوعة 🔴';
+                ? (isEng ? 'Partially Paid 🟡' : 'مدفوعة جزئياً 🟡')
+                : (isEng ? 'Credit / Unpaid 🔴' : 'آجل / غير مدفوعة 🔴');
 
         return Card(
           margin: const EdgeInsets.only(bottom: 10),
@@ -251,7 +264,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
             title: Row(
               children: [
                 Text(
-                  'وصل #${invoice.invoiceNumber}',
+                  isEng ? 'Receipt #${invoice.invoiceNumber}' : 'وصل #${invoice.invoiceNumber}',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(width: 10),
@@ -269,11 +282,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               ],
             ),
             subtitle: Text(
-              'المورد: ${invoice.supplierName} • التاريخ: ${invoice.createdAt.split("T").first}',
+              isEng
+                  ? 'Supplier: ${invoice.supplierName} • Date: ${invoice.createdAt.split("T").first}'
+                  : 'المورد: ${invoice.supplierName} • التاريخ: ${invoice.createdAt.split("T").first}',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
             ),
             trailing: Text(
-              '${invoice.totalAmount.toStringAsFixed(0)} د.ع',
+              '${invoice.totalAmount.toStringAsFixed(0)} $currencySym',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.indigo),
             ),
             children: [
@@ -285,17 +300,29 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('المبلغ المدفوع: ${invoice.paidAmount.toStringAsFixed(0)} د.ع', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                        Text('الدين المتبقي للمورد: ${invoice.remainingAmount.toStringAsFixed(0)} د.ع', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade800)),
+                        Text(
+                          isEng ? 'Paid Amount: ${invoice.paidAmount.toStringAsFixed(0)} $currencySym' : 'المبلغ المدفوع: ${invoice.paidAmount.toStringAsFixed(0)} د.ع',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                        Text(
+                          isEng ? 'Remaining Debt to Supplier: ${invoice.remainingAmount.toStringAsFixed(0)} $currencySym' : 'الدين المتبقي للمورد: ${invoice.remainingAmount.toStringAsFixed(0)} د.ع',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade800),
+                        ),
                       ],
                     ),
                     if (invoice.notes != null && invoice.notes!.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Text('ملاحظات: ${invoice.notes}', style: TextStyle(fontSize: 12, color: Colors.grey.shade800)),
+                      Text(
+                        isEng ? 'Notes: ${invoice.notes}' : 'ملاحظات: ${invoice.notes}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                      ),
                     ],
                     const Divider(),
 
-                    const Text('المواد والمشتريات بالمشروعات:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      isEng ? 'Purchased Items & Materials:' : 'المواد والمشتريات بالمشروعات:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
                     const SizedBox(height: 6),
 
                     for (var item in invoice.items)
@@ -305,8 +332,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                           children: [
                             Text('• ${item.itemName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                             const Spacer(),
-                            Text('${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} د.ع = ', style: const TextStyle(fontSize: 12)),
-                            Text('${item.subtotal.toStringAsFixed(0)} د.ع', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.indigo)),
+                            Text('${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} $currencySym = ', style: const TextStyle(fontSize: 12)),
+                            Text('${item.subtotal.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.indigo)),
                           ],
                         ),
                       ),
@@ -316,7 +343,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
                         icon: const Icon(Icons.delete_forever, color: Colors.red),
-                        label: const Text('مسح الفاتورة', style: TextStyle(color: Colors.red)),
+                        label: Text(isEng ? 'Delete Invoice' : 'مسح الفاتورة', style: const TextStyle(color: Colors.red)),
                         onPressed: () => _confirmDeleteInvoice(context, invoice),
                       ),
                     ),
@@ -330,10 +357,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildSuppliersTab(BuildContext context, List<SupplierModel> suppliers) {
+  Widget _buildSuppliersTab(BuildContext context, List<SupplierModel> suppliers, bool isEng, String currencySym) {
     if (suppliers.isEmpty) {
-      return const Center(
-        child: Text('لا يوجد موردون مسجلون حالياً', style: TextStyle(fontSize: 16, color: Colors.grey)),
+      return Center(
+        child: Text(
+          isEng ? 'No suppliers registered yet' : 'لا يوجد موردون مسجلون حالياً',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
       );
     }
 
@@ -373,11 +403,16 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'هاتف: ${supplier.phone ?? "غير محدد"} • العنوان: ${supplier.address ?? "غير محدد"}',
+                        isEng
+                            ? 'Phone: ${supplier.phone ?? "N/A"} • Address: ${supplier.address ?? "N/A"}'
+                            : 'هاتف: ${supplier.phone ?? "غير محدد"} • العنوان: ${supplier.address ?? "غير محدد"}',
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                       ),
                       if (supplier.notes != null && supplier.notes!.isNotEmpty)
-                        Text('ملاحظات: ${supplier.notes}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        Text(
+                          isEng ? 'Notes: ${supplier.notes}' : 'ملاحظات: ${supplier.notes}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
                     ],
                   ),
                 ),
@@ -386,9 +421,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('الدين المستحق له:', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+                    Text(isEng ? 'Debt Payable to Supplier:' : 'الدين المستحق له:', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
                     Text(
-                      '${supplier.balance.toStringAsFixed(0)} د.ع',
+                      '${supplier.balance.toStringAsFixed(0)} $currencySym',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -406,7 +441,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             ),
                             icon: const Icon(Icons.payments, color: Colors.white, size: 16),
-                            label: const Text('تسديد دين 💳', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            label: Text(
+                              isEng ? 'Pay Debt 💳' : 'تسديد دين 💳',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
                             onPressed: () {
                               showDialog(
                                 context: context,
@@ -416,7 +454,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                           ),
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.indigo, size: 20),
-                          tooltip: 'تعديل البيانات',
+                          tooltip: isEng ? 'Edit Details' : 'تعديل البيانات',
                           onPressed: () {
                             showDialog(
                               context: context,
@@ -426,7 +464,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                          tooltip: 'حذف المورد',
+                          tooltip: isEng ? 'Delete Supplier' : 'حذف المورد',
                           onPressed: () => _confirmDeleteSupplier(context, supplier),
                         ),
                       ],
@@ -457,13 +495,21 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _confirmDeleteSupplier(BuildContext context, SupplierModel supplier) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('تأكيد مسح المورد'),
-        content: Text('هل أنت متأكد من مسح المورد (${supplier.name})؟'),
+        title: Text(isEng ? 'Confirm Delete Supplier' : 'تأكيد مسح المورد'),
+        content: Text(
+          isEng
+              ? 'Are you sure you want to delete supplier (${supplier.name})?'
+              : 'هل أنت متأكد من مسح المورد (${supplier.name})؟',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -471,11 +517,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               if (supplier.id != null) {
                 await context.read<PurchasesProvider>().deleteSupplier(supplier.id!);
                 if (context.mounted) {
-                  TopNotification.showSuccess(context, '🎉 تم مسح المورد بنجاح.');
+                  TopNotification.showSuccess(
+                    context,
+                    isEng ? '🎉 Supplier deleted successfully.' : '🎉 تم مسح المورد بنجاح.',
+                  );
                 }
               }
             },
-            child: const Text('مسح المورد', style: TextStyle(color: Colors.white)),
+            child: Text(isEng ? 'Delete Supplier' : 'مسح المورد', style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -483,13 +532,21 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _confirmDeleteInvoice(BuildContext context, PurchaseInvoiceModel invoice) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('تأكيد مسح فاتورة المشتريات'),
-        content: Text('هل أنت متأكد من مسح الفاتورة رقم (#${invoice.invoiceNumber}) للمورد (${invoice.supplierName})؟'),
+        title: Text(isEng ? 'Confirm Delete Purchase Invoice' : 'تأكيد مسح فاتورة المشتريات'),
+        content: Text(
+          isEng
+              ? 'Are you sure you want to delete receipt (#${invoice.invoiceNumber}) for supplier (${invoice.supplierName})?'
+              : 'هل أنت متأكد من مسح الفاتورة رقم (#${invoice.invoiceNumber}) للمورد (${invoice.supplierName})؟',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -497,11 +554,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               if (invoice.id != null) {
                 await context.read<PurchasesProvider>().deletePurchaseInvoice(invoice.id!);
                 if (context.mounted) {
-                  TopNotification.showSuccess(context, '🎉 تم مسح الفاتورة بنجاح.');
+                  TopNotification.showSuccess(
+                    context,
+                    isEng ? '🎉 Invoice deleted successfully.' : '🎉 تم مسح الفاتورة بنجاح.',
+                  );
                 }
               }
             },
-            child: const Text('مسح الفاتورة', style: TextStyle(color: Colors.white)),
+            child: Text(isEng ? 'Delete Invoice' : 'مسح الفاتورة', style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

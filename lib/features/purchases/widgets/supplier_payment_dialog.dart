@@ -37,6 +37,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySymbol = context.watch<SettingsProvider>().currencySymbol;
 
     return AlertDialog(
@@ -47,7 +48,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'تسديد دين للمورد: ${widget.supplier.name}',
+              isEng ? 'Pay Debt to Supplier: ${widget.supplier.name}' : 'تسديد دين للمورد: ${widget.supplier.name}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
             ),
           ),
@@ -73,7 +74,10 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('الدين المستحق حالياً للمورد:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                    Text(
+                      isEng ? 'Current Debt Payable to Supplier:' : 'الدين المستحق حالياً للمورد:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                    ),
                     Text(
                       '${widget.supplier.balance.toStringAsFixed(0)} $currencySymbol',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red.shade800),
@@ -87,7 +91,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'المبلغ المدفوع للتسديد ($currencySymbol) *',
+                  labelText: isEng ? 'Paid Amount for Settlement ($currencySymbol) *' : 'المبلغ المدفوع للتسديد ($currencySymbol) *',
                   prefixIcon: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Center(
@@ -102,10 +106,16 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'يرجى إدخال مبلغ التسديد';
+                  if (val == null || val.trim().isEmpty) {
+                    return isEng ? 'Please enter payment amount' : 'يرجى إدخال مبلغ التسديد';
+                  }
                   final amount = double.tryParse(val.trim());
-                  if (amount == null || amount <= 0) return 'يرجى إدخال مبلغ صحيح أكبر من 0';
-                  if (amount > widget.supplier.balance) return 'المبلغ المدفوع أكبر من إجمالي الدين المستحق!';
+                  if (amount == null || amount <= 0) {
+                    return isEng ? 'Please enter valid amount greater than 0' : 'يرجى إدخال مبلغ صحيح أكبر من 0';
+                  }
+                  if (amount > widget.supplier.balance) {
+                    return isEng ? 'Paid amount is greater than total debt due!' : 'المبلغ المدفوع أكبر من إجمالي الدين المستحق!';
+                  }
                   return null;
                 },
               ),
@@ -114,13 +124,13 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               DropdownButtonFormField<String>(
                 value: _paymentMethod,
                 decoration: InputDecoration(
-                  labelText: 'طريقة الدفع',
+                  labelText: isEng ? 'Payment Method' : 'طريقة الدفع',
                   prefixIcon: const Icon(Icons.payment),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'CASH', child: Text('نقداً (من خزينة الكاشير)')),
-                  DropdownMenuItem(value: 'BANK', child: Text('تحويل بانكي / كارت')),
+                items: [
+                  DropdownMenuItem(value: 'CASH', child: Text(isEng ? 'Cash (Drawer Treasury)' : 'نقداً (من خزينة الكاشير)')),
+                  DropdownMenuItem(value: 'BANK', child: Text(isEng ? 'Bank Transfer / Card' : 'تحويل بانكي / كارت')),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _paymentMethod = val);
@@ -131,7 +141,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               TextFormField(
                 controller: _notesController,
                 decoration: InputDecoration(
-                  labelText: 'ملاحظات / رقم الحوالة',
+                  labelText: isEng ? 'Notes / Reference No' : 'ملاحظات / رقم الحوالة',
                   prefixIcon: const Icon(Icons.note_alt_outlined),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -143,7 +153,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
+          child: Text(isEng ? 'Cancel' : 'إلغاء'),
         ),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
@@ -151,7 +161,10 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-          label: const Text('تأكيد التسديد وصرف المبلغ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          label: Text(
+            isEng ? 'Confirm & Disburse Payment' : 'تأكيد التسديد وصرف المبلغ',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           onPressed: () async {
             if (!_formKey.currentState!.validate()) return;
             final amount = double.parse(_amountController.text.trim());
@@ -170,10 +183,15 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               if (success) {
                 TopNotification.showSuccess(
                   context,
-                  '🎉 تم تسديد مبلغ ${amount.toStringAsFixed(0)} $currencySymbol للمورد (${widget.supplier.name}) وتسجيل الصرف بنجاح!',
+                  isEng
+                      ? '🎉 Paid ${amount.toStringAsFixed(0)} $currencySymbol to supplier (${widget.supplier.name}) successfully!'
+                      : '🎉 تم تسديد مبلغ ${amount.toStringAsFixed(0)} $currencySymbol للمورد (${widget.supplier.name}) وتسجيل الصرف بنجاح!',
                 );
               } else {
-                TopNotification.showWarning(context, '⚠️ حدث خطأ أثناء تسجيل عملية الدفع.');
+                TopNotification.showWarning(
+                  context,
+                  isEng ? '⚠️ Error recording payment operation.' : '⚠️ حدث خطأ أثناء تسجيل عملية الدفع.',
+                );
               }
             }
           },

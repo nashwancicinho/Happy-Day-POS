@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/top_notification.dart';
 import '../../../models/supplier.dart';
+import '../../settings/settings_provider.dart';
 import '../purchases_provider.dart';
 
 class AddSupplierDialog extends StatefulWidget {
@@ -45,6 +46,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
     final isEditing = widget.supplierToEdit != null;
 
     return AlertDialog(
@@ -54,7 +56,9 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
           Icon(isEditing ? Icons.edit : Icons.person_add_alt_1, color: AppColors.primary, size: 26),
           const SizedBox(width: 10),
           Text(
-            isEditing ? 'تعديل بيانات المورد' : 'إضافة مورد جديد 🚚',
+            isEditing
+                ? (isEng ? 'Edit Supplier Info' : 'تعديل بيانات المورد')
+                : (isEng ? 'Add New Supplier 🚚' : 'إضافة مورد جديد 🚚'),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ],
@@ -70,18 +74,20 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'اسم المورد / الشركة *',
+                    labelText: isEng ? 'Supplier / Company Name *' : 'اسم المورد / الشركة *',
                     prefixIcon: const Icon(Icons.business_center),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم المورد' : null,
+                  validator: (val) => val == null || val.trim().isEmpty
+                      ? (isEng ? 'Please enter supplier name' : 'يرجى إدخال اسم المورد')
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'رقم الهاتف',
+                    labelText: isEng ? 'Phone Number' : 'رقم الهاتف',
                     prefixIcon: const Icon(Icons.phone),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -90,7 +96,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                 TextFormField(
                   controller: _addressController,
                   decoration: InputDecoration(
-                    labelText: 'العنوان / الموقع',
+                    labelText: isEng ? 'Address / Location' : 'العنوان / الموقع',
                     prefixIcon: const Icon(Icons.location_on),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -101,10 +107,10 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                     controller: _initialDebtController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'الدين السابق المتبقي للمورد (إن وجد)',
+                      labelText: isEng ? 'Initial Previous Debt (If any)' : 'الدين السابق المتبقي للمورد (إن وجد)',
                       prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.orange),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      helperText: 'أدخل المبلغ إذا كان لديك دين سابق للمورد قبل استخدام النظام',
+                      helperText: isEng ? 'Enter amount if you owe previous debt before using system' : 'أدخل المبلغ إذا كان لديك دين سابق للمورد قبل استخدام النظام',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -113,7 +119,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                   controller: _notesController,
                   maxLines: 2,
                   decoration: InputDecoration(
-                    labelText: 'ملاحظات إضافية',
+                    labelText: isEng ? 'Additional Notes' : 'ملاحظات إضافية',
                     prefixIcon: const Icon(Icons.note_alt),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -126,7 +132,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
+          child: Text(isEng ? 'Cancel' : 'إلغاء'),
         ),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
@@ -135,7 +141,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
           ),
           icon: const Icon(Icons.check, color: Colors.white),
           label: Text(
-            isEditing ? 'حفظ التعديلات' : 'إضافة المورد',
+            isEditing ? (isEng ? 'Save Changes' : 'حفظ التعديلات') : (isEng ? 'Add Supplier' : 'إضافة المورد'),
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           onPressed: () async {
@@ -154,7 +160,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
               await provider.updateSupplier(updated);
               if (mounted) {
                 Navigator.pop(context);
-                TopNotification.showSuccess(context, '🎉 تم تعديل بيانات المورد بنجاح!');
+                TopNotification.showSuccess(context, isEng ? '🎉 Supplier updated successfully.' : '🎉 تم تحديث بيانات المورد بنجاح.');
               }
             } else {
               final newSupplier = SupplierModel(
@@ -167,7 +173,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
               await provider.addSupplier(newSupplier);
               if (mounted) {
                 Navigator.pop(context);
-                TopNotification.showSuccess(context, '🎉 تم إضافة المورد بنجاح!');
+                TopNotification.showSuccess(context, isEng ? '🎉 New supplier added successfully!' : '🎉 تمت إضافة المورد الجديد بنجاح!');
               }
             }
           },
