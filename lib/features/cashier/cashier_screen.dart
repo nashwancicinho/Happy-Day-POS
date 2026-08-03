@@ -1983,6 +1983,7 @@ class _CashierScreenState extends State<CashierScreen> {
   Widget build(BuildContext context) {
     final categoriesProvider = context.watch<CategoriesProvider>();
     final productsProvider = context.watch<ProductsProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
 
     final selectedCategoryId = productsProvider.selectedCategoryId;
     final searchQuery = productsProvider.searchQuery;
@@ -2074,8 +2075,8 @@ class _CashierScreenState extends State<CashierScreen> {
                             const SizedBox(width: 8),
                             Text(
                               showingCategoriesView
-                                  ? 'اختر التصنيف لعرض الأصناف بداخله:'
-                                  : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}',
+                                  ? (isEng ? 'Select Category to view items:' : 'اختر التصنيف لعرض الأصناف بداخله:')
+                                  : (isEng ? 'Category items: ${_getCategoryName(categoriesProvider, selectedCategoryId)}' : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}'),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -2114,7 +2115,9 @@ class _CashierScreenState extends State<CashierScreen> {
                               Icon(Icons.shopping_cart_checkout, color: AppColors.primary),
                               const SizedBox(width: 8),
                               Text(
-                                _existingOrderId != null ? 'طلب الطاولة الحالي' : 'سلة الطلب',
+                                _existingOrderId != null
+                                    ? (isEng ? 'Current Table Order' : 'طلب الطاولة الحالي')
+                                    : (isEng ? 'Order Cart' : 'سلة الطلب'),
                                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -2122,7 +2125,7 @@ class _CashierScreenState extends State<CashierScreen> {
                           if (_cart.isNotEmpty)
                             IconButton(
                               icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                              tooltip: 'تفريغ السلة',
+                              tooltip: isEng ? 'Clear Cart' : 'تفريغ السلة',
                               onPressed: _clearCart,
                             ),
                         ],
@@ -2142,7 +2145,7 @@ class _CashierScreenState extends State<CashierScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                '${widget.selectedTable!.name} (سعة ${widget.selectedTable!.capacity})',
+                                isEng ? '${widget.selectedTable!.name} (Cap. ${widget.selectedTable!.capacity})' : '${widget.selectedTable!.name} (سعة ${widget.selectedTable!.capacity})',
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
                               ),
                               if (_existingOrderId != null)
@@ -2152,7 +2155,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                     color: Colors.red.shade100,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text('طلب مفتوح 📌', style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
+                                  child: Text(isEng ? 'Open Order 📌' : 'طلب مفتوح 📌', style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
                                 ),
                             ],
                           ),
@@ -2164,15 +2167,15 @@ class _CashierScreenState extends State<CashierScreen> {
                       // Cart List
                       Expanded(
                         child: _cart.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.remove_shopping_cart_outlined, size: 60, color: Colors.grey),
-                                    SizedBox(height: 10),
-                                    Text('لا توجد أصناف في الطلب حالياً', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                                    SizedBox(height: 4),
-                                    Text('اختر المادة من القائمة لإضافتها', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                    const Icon(Icons.remove_shopping_cart_outlined, size: 60, color: Colors.grey),
+                                    const SizedBox(height: 10),
+                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                                    const SizedBox(height: 4),
+                                    Text(isEng ? 'Select an item from the list to add' : 'اختر المادة من القائمة لإضافتها', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                   ],
                                 ),
                               )
@@ -2192,7 +2195,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  item.productName ?? 'صنف',
+                                                  item.productName ?? (isEng ? 'Item' : 'صنف'),
                                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                                 ),
                                                 Text(
@@ -2235,7 +2238,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.edit_note, size: 20, color: Colors.blue),
-                                            tooltip: 'تعديل السعر أو الوزن',
+                                            tooltip: isEng ? 'Edit price or qty' : 'تعديل السعر أو الوزن',
                                             onPressed: () => _showEditCartItemDialog(index),
                                           ),
                                           SizedBox(
@@ -2264,7 +2267,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('المجموع الإجمالي:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           Text(
                             '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
                             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
@@ -2388,7 +2391,7 @@ class _CashierScreenState extends State<CashierScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '$itemsCount عناصر',
+                          context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

@@ -21,7 +21,9 @@ class DayClosingScreen extends StatefulWidget {
 class _DayClosingScreenState extends State<DayClosingScreen> {
   @override
   Widget build(BuildContext context) {
-    final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final settingsProvider = context.watch<SettingsProvider>();
+    final currencySym = settingsProvider.currencySymbol;
+    final isEng = settingsProvider.isEnglish;
     final ordersProvider = context.watch<OrdersProvider>();
     final shiftsProvider = context.watch<ShiftsProvider>();
     final authProvider = context.watch<AuthProvider>();
@@ -32,12 +34,12 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.lock_clock, size: 26),
-            SizedBox(width: 10),
-            Text('إغلاق اليوم والخزينة', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.lock_clock, size: 26),
+            const SizedBox(width: 10),
+            Text(isEng ? 'Day Closing & Treasury' : 'إغلاق اليوم والخزينة', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         centerTitle: true,
@@ -70,12 +72,12 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'اليوم: ${DateTime.now().toIso8601String().substring(0, 10)}',
+                                isEng ? 'Date: ${DateTime.now().toIso8601String().substring(0, 10)}' : 'اليوم: ${DateTime.now().toIso8601String().substring(0, 10)}',
                                 style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'حالة الشيفت الحالي: ${isShiftOpen ? "مفتوح ومستمر ✅" : "مغلق 🔒"} | المنفذ: ${authProvider.currentUserName}',
+                                isEng ? 'Shift Status: ${isShiftOpen ? "Open & Active ✅" : "Closed 🔒"} | User: ${authProvider.currentUserName}' : 'حالة الشيفت الحالي: ${isShiftOpen ? "مفتوح ومستمر ✅" : "مغلق 🔒"} | المنفذ: ${authProvider.currentUserName}',
                                 style: const TextStyle(color: Colors.white70, fontSize: 13),
                               ),
                             ],
@@ -93,7 +95,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                   children: [
                     Expanded(
                       child: _buildMetricCard(
-                        title: 'مبيعات اليوم الإجمالية',
+                        title: isEng ? 'Total Today Sales' : 'مبيعات اليوم الإجمالية',
                         value: '${todaySales.toStringAsFixed(0)} $currencySym',
                         icon: Icons.payments,
                         color: Colors.green.shade700,
@@ -102,8 +104,8 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildMetricCard(
-                        title: 'عدد الفواتير المكتملة',
-                        value: '$todayOrdersCount فاتورة',
+                        title: isEng ? 'Completed Invoices' : 'عدد الفواتير المكتملة',
+                        value: isEng ? '$todayOrdersCount Invoices' : '$todayOrdersCount فاتورة',
                         icon: Icons.receipt_long,
                         color: Colors.blue.shade700,
                       ),
@@ -113,9 +115,9 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
 
                 const SizedBox(height: 30),
 
-                const Text(
-                  'تصفية الخزينة وإغلاق اليوم:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  isEng ? 'Day Closing & Treasury Action:' : 'تصفية الخزينة وإغلاق اليوم:',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 14),
 
@@ -141,12 +143,12 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'إغلاق اليوم وتصفية الخزينة والشيفت',
+                                isEng ? 'Close Day & Settlement' : 'إغلاق اليوم وتصفية الخزينة والشيفت',
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange.shade900),
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'عند الضغط، تظهر شاشة الخزينة لتأكيد الوارد الكلي والمصروف واحتساب صافي الربح وإغلاق اليوم رسمياً.',
+                                isEng ? 'Calculates net income, saves treasury records, and performs automatic database backup to target folder.' : 'عند الضغط، تظهر شاشة الخزينة لتأكيد الوارد الكلي والمصروف واحتساب صافي الربح وإغلاق اليوم رسمياً.',
                                 style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                               ),
                               const SizedBox(height: 16),
@@ -167,9 +169,9 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                                     shiftsProvider,
                                   ),
                                   icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.white),
-                                  label: const Text(
-                                    'إغلاق اليوم وتصفية الشيفت',
-                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                  label: Text(
+                                    isEng ? 'Close Day & Shift Now' : 'إغلاق اليوم وتصفية الشيفت',
+                                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
