@@ -1170,7 +1170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      preset['label'] as String,
+                                      isEng ? (preset['labelEn'] ?? preset['label']) as String : preset['label'] as String,
                                       style: TextStyle(
                                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                         color: isSelected ? AppColors.primary : Colors.black87,
