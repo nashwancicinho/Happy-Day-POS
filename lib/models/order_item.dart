@@ -9,6 +9,7 @@ class OrderItemModel {
   final double discount; // Discount per item or line
   final String? notes;
   final bool printToKitchen;
+  final String? kitchenPrinter;
 
   const OrderItemModel({
     this.id,
@@ -21,6 +22,7 @@ class OrderItemModel {
     this.discount = 0.0,
     this.notes,
     this.printToKitchen = true,
+    this.kitchenPrinter,
   });
 
   double get subtotal => (price * quantity) - discount;
@@ -43,10 +45,11 @@ class OrderItemModel {
       'discount': discount,
       'notes': notes,
       'print_to_kitchen': printToKitchen ? 1 : 0,
+      'kitchen_printer': kitchenPrinter,
     };
   }
 
-  factory OrderItemModel.fromMap(Map<String, dynamic> map, {String? productName, bool? printToKitchen}) {
+  factory OrderItemModel.fromMap(Map<String, dynamic> map, {String? productName, bool? printToKitchen, String? kitchenPrinter}) {
     return OrderItemModel(
       id: map['id'] as int?,
       orderId: map['order_id'] as int?,
@@ -58,6 +61,7 @@ class OrderItemModel {
       discount: (map['discount'] as num? ?? 0.0).toDouble(),
       notes: map['notes'] as String?,
       printToKitchen: printToKitchen ?? ((map['print_to_kitchen'] as int? ?? 1) == 1),
+      kitchenPrinter: kitchenPrinter ?? map['kitchen_printer'] as String?,
     );
   }
 
@@ -72,6 +76,7 @@ class OrderItemModel {
     double? discount,
     String? notes,
     bool? printToKitchen,
+    String? kitchenPrinter,
   }) {
     return OrderItemModel(
       id: id ?? this.id,
@@ -84,6 +89,7 @@ class OrderItemModel {
       discount: discount ?? this.discount,
       notes: notes ?? this.notes,
       printToKitchen: printToKitchen ?? this.printToKitchen,
+      kitchenPrinter: kitchenPrinter ?? this.kitchenPrinter,
     );
   }
 }

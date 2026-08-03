@@ -97,6 +97,8 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'products', 'track_stock', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'min_stock', 'REAL DEFAULT 5');
     await _addColumnIfMissing(db, 'products', 'print_to_kitchen', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'products', 'kitchen_printer', 'TEXT');
+    await _addColumnIfMissing(db, 'order_items', 'kitchen_printer', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'color', 'TEXT');
     await _addColumnIfMissing(db, 'restaurant_tables', 'pos_x', 'REAL DEFAULT -1.0');
     await _addColumnIfMissing(db, 'restaurant_tables', 'pos_y', 'REAL DEFAULT -1.0');

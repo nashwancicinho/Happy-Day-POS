@@ -267,6 +267,10 @@ class ProductsScreen extends StatelessWidget {
     bool trackStock = product?.trackStock ?? false;
     bool isAvailable = product?.isAvailable ?? true;
     bool printToKitchen = product?.printToKitchen ?? true;
+    String? selectedKitchenPrinter = product?.kitchenPrinter;
+
+    List<dynamic> systemPrinters = [];
+    bool isPrintersLoaded = false;
 
     final currencySym = context.read<SettingsProvider>().currencySymbol;
     final categories = context.read<CategoriesProvider>().categories;
@@ -289,6 +293,17 @@ class ProductsScreen extends StatelessWidget {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) {
+            if (!isPrintersLoaded) {
+              isPrintersLoaded = true;
+              PrintService.getSystemPrinters().then((printers) {
+                if (ctx.mounted) {
+                  setState(() {
+                    systemPrinters = printers;
+                  });
+                }
+              }).catchError((_) {});
+            }
+
             final buyPriceVal = double.tryParse(buyPriceController.text.trim()) ?? 0.0;
             final sellPriceVal = double.tryParse(sellPriceController.text.trim()) ?? 0.0;
             final calculatedProfit = sellPriceVal - buyPriceVal;
@@ -657,27 +672,56 @@ class ProductsScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.orange.shade200),
                                 ),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.print_rounded, color: Colors.orange),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'طابعة المطبخ المحددة لإرسال الطلب إليها:',
-                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            context.watch<SettingsProvider>().kitchenPrinter.isNotEmpty
-                                                ? context.watch<SettingsProvider>().kitchenPrinter
-                                                : 'طابعة المطبخ الحرارية (KOT-Kitchen)',
-                                            style: TextStyle(color: Colors.orange.shade900, fontSize: 12, fontWeight: FontWeight.bold),
-                                          ),
-                                        ],
+                                    const Row(
+                                      children: [
+                                        Icon(Icons.print_rounded, color: Colors.orange),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'اختر طابعة المطبخ المراد إرسال هذا الصنف إليها:',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    DropdownButtonFormField<String?>(
+                                      initialValue: selectedKitchenPrinter,
+                                      decoration: InputDecoration(
+                                        labelText: 'طابعة المطبخ المستهدفة',
+                                        prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.deepOrange),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                        filled: true,
+                                        fillColor: Colors.white,
                                       ),
+                                      items: [
+                                        DropdownMenuItem<String?>(
+                                          value: null,
+                                          child: Text(
+                                            context.watch<SettingsProvider>().kitchenPrinter.isNotEmpty
+                                                ? 'طابعة المطبخ الرئيسية الافتراضية (${context.watch<SettingsProvider>().kitchenPrinter})'
+                                                : 'طابعة المطبخ الرئيسية الافتراضية',
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        ...systemPrinters.map((p) => DropdownMenuItem<String?>(
+                                          value: p.name as String,
+                                          child: Text('🖨️ ${p.name}'),
+                                        )),
+                                      ],
+                                      onChanged: (val) {
+                                        setState(() {
+                                          selectedKitchenPrinter = val;
+                                        });
+                                      },
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      selectedKitchenPrinter == null || selectedKitchenPrinter!.isEmpty
+                                          ? 'سيتم إرسال هذا الصنف إلى طابعة المطبخ الرئيسية المحددة بالإعدادات.'
+                                          : 'سيتم توجيه هذا الصنف مباشرة إلى طابعة: $selectedKitchenPrinter',
+                                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900, fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
@@ -787,6 +831,7 @@ class ProductsScreen extends StatelessWidget {
                         categoryId: selectedCatId,
                         isAvailable: isAvailable,
                         printToKitchen: printToKitchen,
+                        kitchenPrinter: selectedKitchenPrinter,
                       );
 
                       if (product == null) {

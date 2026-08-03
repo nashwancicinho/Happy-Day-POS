@@ -144,6 +144,7 @@ class _CashierScreenState extends State<CashierScreen> {
           price: price,
           notes: notes,
           printToKitchen: product.printToKitchen,
+          kitchenPrinter: product.kitchenPrinter,
         ));
       }
     });

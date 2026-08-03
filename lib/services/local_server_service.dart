@@ -265,6 +265,7 @@ class LocalServerService extends ChangeNotifier {
       final prod = productsMap[pId];
       final pName = prod != null ? prod['name'] as String : null;
       final printToKit = prod != null ? ((prod['print_to_kitchen'] as int? ?? 1) == 1) : true;
+      final kitPrinter = prod != null ? prod['kitchen_printer'] as String? : null;
 
       return OrderItemModel(
         productId: pId,
@@ -273,6 +274,7 @@ class LocalServerService extends ChangeNotifier {
         price: (item['price'] as num).toDouble(),
         notes: item['notes'] as String?,
         printToKitchen: printToKit,
+        kitchenPrinter: kitPrinter,
       );
     }).toList();
 

@@ -493,70 +493,89 @@ class PrintService {
         arabicFontBold = await PdfGoogleFonts.cairoBold();
       }
 
-      final pdf = pw.Document(
-        theme: pw.ThemeData.withFont(
-          base: arabicFont,
-          bold: arabicFontBold,
-        ),
-      );
+      // Group items by target kitchen printer
+      final Map<String, List<OrderItemModel>> itemsByPrinter = {};
+      for (var item in kitchenItems) {
+        final targetPrinter = (item.kitchenPrinter != null && item.kitchenPrinter!.isNotEmpty)
+            ? item.kitchenPrinter!
+            : settings.kitchenPrinter;
+        itemsByPrinter.putIfAbsent(targetPrinter, () => []).add(item);
+      }
 
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
-          build: (pw.Context context) {
-            return pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                pw.Center(
-                  child: pw.Text('*** أمر مطبخ (KOT) ***', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                ),
-                pw.Center(
-                  child: pw.Text('طلب #${order.id ?? 1} - ${order.orderType}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                ),
-                if (tableName != null)
-                  pw.Center(
-                    child: pw.Text('طاولة: $tableName', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                  ),
-                pw.Divider(thickness: 1),
+      bool allSuccess = true;
 
-                ...kitchenItems.map((item) {
-                  return pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 4),
-                    child: pw.Row(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('[ ${item.formattedQuantity} × ] ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                        pw.Expanded(
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text(item.productName ?? '', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                              if (item.notes != null && item.notes!.isNotEmpty)
-                                pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 9)),
-                            ],
-                          ),
-                        ),
-                      ],
+      for (var entry in itemsByPrinter.entries) {
+        final printerName = entry.key;
+        final printerGroupItems = entry.value;
+
+        final pdf = pw.Document(
+          theme: pw.ThemeData.withFont(
+            base: arabicFont,
+            bold: arabicFontBold,
+          ),
+        );
+
+        pdf.addPage(
+          pw.Page(
+            pageFormat: PdfPageFormat.roll80,
+            margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+            build: (pw.Context context) {
+              return pw.Directionality(
+                textDirection: pw.TextDirection.rtl,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Center(
+                      child: pw.Text('*** أمر مطبخ (KOT) ***', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
                     ),
-                  );
-                }),
-                pw.Divider(thickness: 1),
-              ],
-            ),
-          );
-        },
-        ),
-      );
+                    pw.Center(
+                      child: pw.Text('طلب #${order.id ?? 1} - ${order.orderType}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                    ),
+                    if (tableName != null)
+                      pw.Center(
+                        child: pw.Text('طاولة: $tableName', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                      ),
+                    pw.Divider(thickness: 1),
 
-      final pdfBytes = await pdf.save();
-      return await sendPdfToPrinter(
-        pdfBytes: pdfBytes,
-        printerNameConfig: settings.kitchenPrinter,
-        docName: 'KOT_${order.id ?? 1}',
-      );
+                    ...printerGroupItems.map((item) {
+                      return pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                        child: pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('[ ${item.formattedQuantity} × ] ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                            pw.Expanded(
+                              child: pw.Column(
+                                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                children: [
+                                  pw.Text(item.productName ?? '', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                                  if (item.notes != null && item.notes!.isNotEmpty)
+                                    pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 9)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    pw.Divider(thickness: 1),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+
+        final pdfBytes = await pdf.save();
+        final success = await sendPdfToPrinter(
+          pdfBytes: pdfBytes,
+          printerNameConfig: printerName,
+          docName: 'KOT_${order.id ?? 1}',
+        );
+        if (!success) allSuccess = false;
+      }
+
+      return allSuccess;
     } catch (e) {
       debugPrint('Error printing KOT ticket: $e');
       return false;
