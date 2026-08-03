@@ -61,21 +61,24 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   }
 
   Future<AppExitResponse> _handleExitRequested() async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final shouldExit = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.power_settings_new_rounded, color: Colors.red, size: 30),
-            SizedBox(width: 10),
-            Text('تأكيد إغلاق البرنامج', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.power_settings_new_rounded, color: Colors.red, size: 30),
+            const SizedBox(width: 10),
+            Text(isEng ? 'Confirm Exit Application' : 'تأكيد إغلاق البرنامج', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text(
-          'هل أنت تأكد من رغبتك في إغلاق وخروج البرنامج بالكامل؟',
-          style: TextStyle(fontSize: 16),
+        content: Text(
+          isEng
+              ? 'Are you sure you want to exit the application completely?'
+              : 'هل أنت تأكد من رغبتك في إغلاق وخروج البرنامج بالكامل؟',
+          style: const TextStyle(fontSize: 16),
         ),
         actions: [
           OutlinedButton(
@@ -84,7 +87,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('لا (إلغاء الإغلاق)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            child: Text(isEng ? 'No (Cancel)' : 'لا (إلغاء الإغلاق)', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -93,7 +96,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('نعم، إغلاق البرنامج', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            child: Text(isEng ? 'Yes, Exit App' : 'نعم، إغلاق البرنامج', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -125,6 +128,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final isEng = context.watch<SettingsProvider>().isEnglish;
 
     // 1. Check if user is logged in. If not, show LoginScreen
     if (!authProvider.isLoggedIn) {
@@ -161,7 +165,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${authProvider.currentUserName} (${authProvider.currentUserRole})",
+                        "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -174,22 +178,22 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               Expanded(
                 child: Consumer<SettingsProvider>(
                   builder: (context, settings, _) {
-                    final isEng = settings.isEnglish;
+                    final isEnglish = settings.isEnglish;
                     return ListView(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       children: [
-                        _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEng ? "Home" : "الرئيسية"),
-                        _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEng ? "Tables Map" : "الطاولات"),
-                        _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEng ? "Cashier & POS" : "الكاشير"),
-                        _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, isEng ? "Products" : "الأصناف"),
-                        _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEng ? "Categories" : "التصنيفات"),
-                        _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEng ? "Inventory" : "المخزن"),
-                        _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEng ? "Purchases" : "المشتريات والموردين"),
-                        _buildDrawerTile(7, Icons.people_outline, Icons.people, isEng ? "Users & Roles" : "المستخدمون"),
-                        _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEng ? "Debts Log" : "سجل الديون"),
-                        _buildDrawerTile(9, Icons.bar_chart_outlined, Icons.bar_chart, isEng ? "Reports & Sales" : "التقارير"),
-                        _buildDrawerTile(10, Icons.settings_outlined, Icons.settings, isEng ? "Settings" : "الإعدادات"),
-                        _buildDrawerTile(11, Icons.lock_clock_outlined, Icons.lock_clock, isEng ? "Day Closing" : "إغلاق اليوم"),
+                        _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEnglish ? "Home" : "الرئيسية"),
+                        _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEnglish ? "Tables Map" : "الطاولات"),
+                        _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEnglish ? "Cashier & POS" : "الكاشير"),
+                        _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, isEnglish ? "Products" : "الأصناف"),
+                        _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEnglish ? "Categories" : "التصنيفات"),
+                        _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEnglish ? "Inventory" : "المخزن"),
+                        _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEnglish ? "Purchases" : "المشتريات والموردين"),
+                        _buildDrawerTile(7, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
+                        _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
+                        _buildDrawerTile(9, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
+                        _buildDrawerTile(10, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
+                        _buildDrawerTile(11, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
                       ],
                     );
                   },
@@ -203,7 +207,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           leading: Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu, size: 28),
-              tooltip: 'القائمة الرئيسية',
+              tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
@@ -232,7 +236,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          "${authProvider.currentUserName} (${context.watch<SettingsProvider>().isEnglish ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
+                          "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ],
@@ -250,7 +254,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                       );
                     },
                     icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
-                    label: Text(context.watch<SettingsProvider>().isEnglish ? 'Sync Waiter 📱' : 'ربط النادل', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    label: Text(isEng ? 'Sync Waiter 📱' : 'ربط النادل', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -284,14 +288,14 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                   // Logout Button
                   IconButton(
                     icon: const Icon(Icons.logout, color: Colors.white),
-                    tooltip: 'تسجيل الخروج',
+                    tooltip: isEng ? 'Logout' : 'تسجيل الخروج',
                     onPressed: () => _confirmLogout(context, authProvider),
                   ),
 
                   // Exit App Button
                   IconButton(
                     icon: const Icon(Icons.power_settings_new_rounded, color: Colors.redAccent),
-                    tooltip: 'إغلاق البرنامج بالكامل',
+                    tooltip: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
                     onPressed: () => _confirmExitApp(context),
                   ),
                 ],
@@ -339,20 +343,23 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   }
 
   void _confirmLogout(BuildContext parentContext, AuthProvider authProvider) {
+    final isEng = parentContext.read<SettingsProvider>().isEnglish;
     showDialog(
       context: parentContext,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.logout_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 10),
-            Text('تأكيد تسجيل الخروج', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.logout_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 10),
+            Text(isEng ? 'Confirm Logout' : 'تأكيد تسجيل الخروج', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text(
-          'هل أنت تأكد من رغبتك في تسجيل الخروج من النظام والعودة لشاشة الدخول؟',
-          style: TextStyle(fontSize: 16),
+        content: Text(
+          isEng
+              ? 'Are you sure you want to log out and return to login screen?'
+              : 'هل أنت تأكد من رغبتك في تسجيل الخروج من النظام والعودة لشاشة الدخول؟',
+          style: const TextStyle(fontSize: 16),
         ),
         actions: [
           OutlinedButton(
@@ -361,7 +368,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('كلا (إلغاء)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            child: Text(isEng ? 'No (Cancel)' : 'كلا (إلغاء)', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -373,7 +380,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               Navigator.pop(dialogContext);
               authProvider.logout();
             },
-            child: const Text('نعم، تسجيل الخروج', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            child: Text(isEng ? 'Yes, Log Out' : 'نعم، تسجيل الخروج', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

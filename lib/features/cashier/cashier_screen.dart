@@ -1276,7 +1276,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                             const SizedBox(width: 4),
                                             IconButton(
                                               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                              tooltip: 'حذف هذا الزبون (للمدير فقط)',
+                                              tooltip: dialogCtx.watch<SettingsProvider>().isEnglish ? 'Delete Customer (Manager Only)' : 'حذف هذا الزبون (للمدير فقط)',
                                                onPressed: () async {
                                                  if (customer.balance > 0) {
                                                    showDialog(
@@ -2026,7 +2026,7 @@ class _CashierScreenState extends State<CashierScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'إدارة استرجاع الفواتير والمواد',
+            tooltip: isEng ? 'Refund & Returns Management' : 'إدارة استرجاع الفواتير والمواد',
             icon: const Icon(Icons.assignment_return_rounded, color: Colors.white),
             onPressed: _showRefundDialog,
           ),

@@ -278,7 +278,7 @@ class _TablesScreenState extends State<TablesScreen> {
             const SizedBox(width: 10),
           ],
           PopupMenuButton<String>(
-            tooltip: 'خصائص الطاولات',
+            tooltip: isEng ? 'Table Properties' : 'خصائص الطاولات',
             offset: const Offset(0, -190),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             color: const Color(0xFF1F2937),
@@ -605,9 +605,9 @@ class _TablesScreenState extends State<TablesScreen> {
 
                                     // Popup Menu options (edit / status) when delete mode is off
                                     if (!_isDeleteMode)
-                                      PopupMenuButton<String>(
-                                        icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
-                                        tooltip: 'خيارات التحكم بالطاولة',
+                                        PopupMenuButton<String>(
+                                          icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
+                                          tooltip: isEng ? 'Table Control Options' : 'خيارات التحكم بالطاولة',
                                         onSelected: (value) async {
                                           if (value == 'transfer') {
                                             _showTransferTableDialog(context, table);
