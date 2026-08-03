@@ -200,257 +200,269 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          margin: const pw.EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  // 1. Logo (Enlarged & Centered)
-                  if (logoImage != null)
-                    pw.Center(
-                      child: pw.Container(
-                        height: 150,
-                        margin: const pw.EdgeInsets.only(bottom: 10),
-                        child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    // 1. Logo (Enlarged & Centered)
+                    if (logoImage != null)
+                      pw.Center(
+                        child: pw.Container(
+                          height: 150,
+                          margin: const pw.EdgeInsets.only(bottom: 10),
+                          child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+                        ),
                       ),
-                    ),
 
-                  // 2. Store Header Info (Centered)
-                  pw.Center(
-                    child: pw.Text(
-                      settings.storeName,
-                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                  if (settings.storeAddress.isNotEmpty)
+                    // 2. Store Header Info (Centered)
                     pw.Center(
                       child: pw.Text(
-                        settings.storeAddress,
-                        style: const pw.TextStyle(fontSize: 9.5),
+                        settings.storeName,
+                        style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
-                  if (settings.storePhone.isNotEmpty)
-                    pw.Center(
-                      child: pw.Text(
-                        settings.storePhone,
-                        style: const pw.TextStyle(fontSize: 9.5),
-                        textAlign: pw.TextAlign.center,
+                    if (settings.storeAddress.isNotEmpty)
+                      pw.Center(
+                        child: pw.Text(
+                          settings.storeAddress,
+                          style: const pw.TextStyle(fontSize: 9.5),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
-                    ),
-                  if (settings.receiptHeader.isNotEmpty)
-                    pw.Center(
-                      child: pw.Text(
-                        settings.receiptHeader,
-                        style: const pw.TextStyle(fontSize: 9.5),
-                        textAlign: pw.TextAlign.center,
+                    if (settings.storePhone.isNotEmpty)
+                      pw.Center(
+                        child: pw.Text(
+                          settings.storePhone,
+                          style: const pw.TextStyle(fontSize: 9.5),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
-                    ),
-
-                  pw.SizedBox(height: 4),
-                  pw.Divider(thickness: 1),
-
-                  // 3. Order Info & Separate Date / Time Lines (Centered)
-                  if (cleanTable.isNotEmpty)
-                    pw.Center(
-                      child: pw.Text(
-                        'طاولة: $cleanTable',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
-                        textAlign: pw.TextAlign.center,
+                    if (settings.receiptHeader.isNotEmpty)
+                      pw.Center(
+                        child: pw.Text(
+                          settings.receiptHeader,
+                          style: const pw.TextStyle(fontSize: 9.5),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
-                    )
-                  else
-                    pw.Center(
-                      child: pw.Text(
-                        'نوع الطلب: $typeText',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    ),
 
-                  pw.SizedBox(height: 2),
-                  pw.Center(
-                    child: pw.Text(
-                      'التاريخ: $formattedDate',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                  pw.Center(
-                    child: pw.Text(
-                      'الوقت: $formattedTime',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-
-                  // Delivery Customer Info Block
-                  if (order.orderType == 'DELIVERY' ||
-                      (order.customerPhone != null && order.customerPhone!.isNotEmpty) ||
-                      (order.customerAddress != null && order.customerAddress!.isNotEmpty)) ...[
                     pw.SizedBox(height: 4),
-                    pw.Container(
-                      width: double.infinity,
-                      padding: const pw.EdgeInsets.all(5),
-                      decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: PdfColors.black, width: 0.8),
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                    pw.Divider(thickness: 1),
+
+                    // 3. Order Info & Separate Date / Time Lines (Centered)
+                    if (cleanTable.isNotEmpty)
+                      pw.Center(
+                        child: pw.Text(
+                          'طاولة: $cleanTable',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      )
+                    else
+                      pw.Center(
+                        child: pw.Text(
+                          'نوع الطلب: $typeText',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text('--- بيانات التوصيل والزبون ---', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5), textAlign: pw.TextAlign.center),
-                          if (order.customerName != null && order.customerName!.isNotEmpty)
-                            pw.Text('اسم الزبون: ${order.customerName}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                          if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
-                            pw.Text('هاتف الزبون: ${order.customerPhone}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
-                          if (order.customerAddress != null && order.customerAddress!.isNotEmpty)
-                            pw.Text('عنوان التوصيل: ${order.customerAddress}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
-                        ],
+
+                    pw.SizedBox(height: 2),
+                    pw.Center(
+                      child: pw.Text(
+                        'التاريخ: $formattedDate',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                        textAlign: pw.TextAlign.center,
                       ),
                     ),
-                  ],
-
-                  pw.Divider(thickness: 1),
-
-                  // 4. Items Table Header
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                    child: pw.Row(
-                      children: [
-                        pw.Expanded(
-                          flex: 7,
-                          child: pw.Text(
-                            'الصنف / المادة',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-                            textAlign: pw.TextAlign.right,
-                          ),
-                        ),
-                        pw.Expanded(
-                          flex: 2,
-                          child: pw.Text(
-                            'الكمية',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Expanded(
-                          flex: 3,
-                          child: pw.Text(
-                            'المجموع',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-                            textAlign: pw.TextAlign.left,
-                          ),
-                        ),
-                      ],
+                    pw.Center(
+                      child: pw.Text(
+                        'الوقت: $formattedTime',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
-                  ),
-                  pw.Divider(thickness: 0.5),
 
-                  // 5. Items Rows
-                  ...items.map((item) {
-                    final rawName = (item.productName != null && item.productName!.isNotEmpty)
-                        ? item.productName!
-                        : 'صنف #${item.productId}';
-                    final pName = rawName.replaceAll(RegExp(r'\s+'), ' ').trim();
-                    return pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 3),
+                    // Delivery Customer Info Block
+                    if (order.orderType == 'DELIVERY' ||
+                        (order.customerPhone != null && order.customerPhone!.isNotEmpty) ||
+                        (order.customerAddress != null && order.customerAddress!.isNotEmpty)) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Container(
+                        width: double.infinity,
+                        padding: const pw.EdgeInsets.all(5),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.black, width: 0.8),
+                          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('--- بيانات التوصيل والزبون ---', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5), textAlign: pw.TextAlign.center),
+                            if (order.customerName != null && order.customerName!.isNotEmpty)
+                              pw.Text('اسم الزبون: ${order.customerName}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                            if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
+                              pw.Text('هاتف الزبون: ${order.customerPhone}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
+                            if (order.customerAddress != null && order.customerAddress!.isNotEmpty)
+                              pw.Text('عنوان التوصيل: ${order.customerAddress}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    pw.Divider(thickness: 1),
+
+                    // 4. Items Table Header
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 2),
                       child: pw.Row(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Expanded(
-                            flex: 7,
-                            child: pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                              children: [
-                                pw.Text(
-                                  pName,
-                                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-                                  textAlign: pw.TextAlign.right,
-                                  softWrap: true,
-                                ),
-                                if (item.notes != null && item.notes!.isNotEmpty)
-                                  pw.Text(
-                                    'ملاحظة: ${item.notes}',
-                                    style: const pw.TextStyle(fontSize: 8.5),
-                                    textAlign: pw.TextAlign.right,
-                                    softWrap: true,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          pw.Expanded(
-                            flex: 2,
+                            flex: 12,
                             child: pw.Text(
-                              item.formattedQuantity,
-                              style: const pw.TextStyle(fontSize: 10),
-                              textAlign: pw.TextAlign.center,
+                              'الصنف / المادة',
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                              textAlign: pw.TextAlign.right,
                             ),
                           ),
                           pw.Expanded(
                             flex: 3,
                             child: pw.Text(
-                              '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
-                              style: const pw.TextStyle(fontSize: 10),
+                              'الكمية',
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                          ),
+                          pw.Expanded(
+                            flex: 4,
+                            child: pw.Text(
+                              'المجموع',
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
                               textAlign: pw.TextAlign.left,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }),
-                  pw.Divider(thickness: 1),
+                    ),
+                    pw.Divider(thickness: 0.5),
 
-                  // 6. Summary
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11.5)),
-                      pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11.5)),
+                    // 5. Items Rows
+                    ...items.map((item) {
+                      final rawName = (item.productName != null && item.productName!.isNotEmpty)
+                          ? item.productName!
+                          : 'صنف #${item.productId}';
+                      final pName = rawName.replaceAll(RegExp(r'\s+'), ' ').trim();
+                      return pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+                        child: pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Expanded(
+                              flex: 12,
+                              child: pw.Column(
+                                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                children: [
+                                  pw.Text(
+                                    pName,
+                                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                    textAlign: pw.TextAlign.right,
+                                    softWrap: true,
+                                  ),
+                                  if (item.notes != null && item.notes!.isNotEmpty)
+                                    pw.Text(
+                                      'ملاحظة: ${item.notes}',
+                                      style: const pw.TextStyle(fontSize: 8.5),
+                                      textAlign: pw.TextAlign.right,
+                                      softWrap: true,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            pw.Expanded(
+                              flex: 3,
+                              child: pw.Text(
+                                item.formattedQuantity,
+                                style: const pw.TextStyle(fontSize: 10),
+                                textAlign: pw.TextAlign.center,
+                              ),
+                            ),
+                            pw.Expanded(
+                              flex: 4,
+                              child: pw.Text(
+                                '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
+                                style: const pw.TextStyle(fontSize: 10),
+                                textAlign: pw.TextAlign.left,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    pw.Divider(thickness: 1),
+
+                    // 6. Summary
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                          pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    if (cashPaid > 0) ...[
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9.5)),
+                            pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
+                          ],
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9.5)),
+                            pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
+                          ],
+                        ),
+                      ),
                     ],
-                  ),
-                  if (cashPaid > 0) ...[
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9.5)),
-                        pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
-                      ],
-                    ),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9.5)),
-                        pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
-                      ],
-                    ),
-                  ],
-                  pw.Divider(thickness: 1),
+                    pw.Divider(thickness: 1),
 
-                  // 7. Footer (Centered)
-                  if (settings.receiptFooter.isNotEmpty) ...[
+                    // 7. Footer (Centered)
+                    if (settings.receiptFooter.isNotEmpty) ...[
+                      pw.Center(
+                        child: pw.Text(
+                          settings.receiptFooter,
+                          style: const pw.TextStyle(fontSize: 9.5),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                    ],
+
+                    // 8. Invoice ID at the very bottom (Small font, numbers only without #)
                     pw.Center(
                       child: pw.Text(
-                        settings.receiptFooter,
-                        style: const pw.TextStyle(fontSize: 9.5),
+                        '${order.id ?? 1}',
+                        style: const pw.TextStyle(fontSize: 8),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
-                    pw.SizedBox(height: 4),
                   ],
-
-                  // 8. Invoice ID at the very bottom (Small font, numbers only without #)
-                  pw.Center(
-                    child: pw.Text(
-                      '${order.id ?? 1}',
-                      style: const pw.TextStyle(fontSize: 8),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -518,7 +530,7 @@ class PrintService {
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.roll80,
-            margin: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+            margin: const pw.EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
             build: (pw.Context context) {
               return pw.Directionality(
                 textDirection: pw.TextDirection.rtl,
