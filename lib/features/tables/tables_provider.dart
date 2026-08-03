@@ -79,6 +79,50 @@ class TablesProvider extends ChangeNotifier {
     await loadTables();
   }
 
+  void updateTableLocalPosition(int tableId, double posX, double posY, {double? width, double? height, String? shape}) {
+    final index = _tables.indexWhere((t) => t.id == tableId);
+    if (index != -1) {
+      _tables[index] = _tables[index].copyWith(
+        posX: posX,
+        posY: posY,
+        width: width,
+        height: height,
+        shape: shape,
+      );
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveTablePosition(int tableId, double posX, double posY, {double? width, double? height, String? shape}) async {
+    updateTableLocalPosition(tableId, posX, posY, width: width, height: height, shape: shape);
+    await _repository.updateTablePosition(tableId, posX, posY, width: width, height: height, shape: shape);
+  }
+
+  Future<void> autoArrangeTables({double canvasWidth = 1000, double canvasHeight = 700}) async {
+    const double cardW = 130;
+    const double cardH = 130;
+    const double spacing = 25;
+    const double paddingLeft = 30;
+    const double paddingTop = 30;
+
+    int cols = ((canvasWidth - paddingLeft) / (cardW + spacing)).floor();
+    if (cols < 1) cols = 1;
+
+    for (int i = 0; i < _tables.length; i++) {
+      final t = _tables[i];
+      if (t.id != null) {
+        int row = i ~/ cols;
+        int col = i % cols;
+        double x = paddingLeft + col * (cardW + spacing);
+        double y = paddingTop + row * (cardH + spacing);
+
+        _tables[i] = t.copyWith(posX: x, posY: y);
+        await _repository.updateTablePosition(t.id!, x, y);
+      }
+    }
+    notifyListeners();
+  }
+
   RestaurantTable? getTableById(int id) {
     try {
       return _tables.firstWhere((table) => table.id == id);

@@ -230,4 +230,50 @@ class OrdersProvider extends ChangeNotifier {
       selectedProdId: selectedProdId,
     );
   }
+
+  Future<bool> transferTableOrder({
+    required int sourceTableId,
+    required int targetTableId,
+  }) async {
+    final success = await _repository.transferTableOrder(
+      sourceTableId: sourceTableId,
+      targetTableId: targetTableId,
+    );
+    if (success) {
+      await loadOrders();
+    }
+    return success;
+  }
+
+  Future<bool> refundFullOrder(int orderId) async {
+    final success = await _repository.refundFullOrder(orderId);
+    if (success) {
+      await loadOrders();
+    }
+    return success;
+  }
+
+  Future<bool> refundOrderItem({
+    required int orderId,
+    required int orderItemId,
+    required double refundQuantity,
+  }) async {
+    final success = await _repository.refundOrderItem(
+      orderId: orderId,
+      orderItemId: orderItemId,
+      refundQuantity: refundQuantity,
+    );
+    if (success) {
+      await loadOrders();
+    }
+    return success;
+  }
+
+  Future<bool> cancelTableOrder(int tableId) async {
+    final success = await _repository.cancelTableOrder(tableId);
+    if (success) {
+      await loadOrders();
+    }
+    return success;
+  }
 }

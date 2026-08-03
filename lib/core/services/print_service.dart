@@ -7,60 +7,21 @@ import 'package:printing/printing.dart';
 
 import '../../models/order.dart';
 import '../../models/order_item.dart';
+import '../../models/product.dart';
 import '../../features/settings/settings_provider.dart';
 
 class PrintService {
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر
+  /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر مستخدمين الحزمة الرسمية للنظام
   static Future<List<Printer>> getSystemPrinters() async {
-    List<Printer> printers = [];
     try {
-      printers = await Printing.listPrinters();
+      final printers = await Printing.listPrinters();
+      debugPrint('Total discovered system printers via native plugin: ${printers.length}');
+      return printers;
     } catch (e) {
       debugPrint('Error listing system printers via Printing package: $e');
+      return [];
     }
-
-    // Fallback for macOS / Linux if Printing.listPrinters() returns empty
-    if (printers.isEmpty && (Platform.isMacOS || Platform.isLinux)) {
-      try {
-        final result = await Process.run('lpstat', ['-p', '-d']);
-        if (result.exitCode == 0) {
-          final output = result.stdout.toString();
-          final lines = output.split('\n');
-          String? defaultPrinterName;
-
-          for (final line in lines) {
-            if (line.contains('system default destination:')) {
-              defaultPrinterName = line.split(':').last.trim();
-            }
-          }
-
-          for (final line in lines) {
-            if (line.startsWith('printer ')) {
-              final parts = line.split(' ');
-              if (parts.length > 1) {
-                final printerName = parts[1].trim();
-                final isDefault = (printerName == defaultPrinterName);
-                if (printerName.isNotEmpty && !printers.any((p) => p.name == printerName)) {
-                  printers.add(
-                    Printer(
-                      name: printerName,
-                      url: printerName,
-                      isDefault: isDefault,
-                      isAvailable: true,
-                    ),
-                  );
-                }
-              }
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('Fallback lpstat printer query failed: $e');
-      }
-    }
-
-    debugPrint('Total discovered system printers: ${printers.length}');
-    return printers;
   }
 
   /// البحث عن طابعة محددة بالاسم أو إرجاع الطابعة الافتراضية
@@ -69,18 +30,65 @@ class PrintService {
     if (printers.isEmpty) return null;
 
     final trimmed = printerName.trim();
-    if (trimmed.isEmpty ||
-        trimmed.contains('الافتراضية') ||
-        trimmed.contains('POS-80') ||
-        trimmed.contains('KOT-Kitchen') ||
-        trimmed.contains('Default Printer')) {
+    if (trimmed.isEmpty) {
       return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
     }
 
-    return printers.where((p) => p.name.toLowerCase() == trimmed.toLowerCase() || p.url.toLowerCase() == trimmed.toLowerCase()).firstOrNull ??
-        printers.where((p) => p.name.toLowerCase().contains(trimmed.toLowerCase())).firstOrNull ??
-        printers.where((p) => p.isDefault).firstOrNull ??
-        printers.first;
+    final trimmedLower = trimmed.toLowerCase();
+    final cleanTrimmed = trimmedLower.replaceAll('_', ' ').replaceAll('-', ' ');
+
+    // 1. Exact match on printer name or url
+    final exact = printers.where((p) =>
+      p.name.toLowerCase() == trimmedLower ||
+      p.url.toLowerCase() == trimmedLower
+    ).firstOrNull;
+    if (exact != null) return exact;
+
+    // 2. Match inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
+    final matchInParen = RegExp(r'\((.*?)\)').firstMatch(trimmed);
+    if (matchInParen != null) {
+      final inside = matchInParen.group(1)!.trim().toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+      if (inside.isNotEmpty && inside != 'pos-80' && inside != 'kot-kitchen' && inside != 'default printer') {
+        final parenMatch = printers.where((p) {
+          final pName = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+          final pUrl = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+          return pName.contains(inside) || pUrl.contains(inside);
+        }).firstOrNull;
+        if (parenMatch != null) return parenMatch;
+      }
+    }
+
+    // 3. Partial substring match (ignoring underscores/dashes)
+    final matches = printers.where((p) {
+      final pNameLower = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+      final pUrlLower = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+      return cleanTrimmed.contains(pNameLower) ||
+             pNameLower.contains(cleanTrimmed) ||
+             pUrlLower.contains(cleanTrimmed);
+    }).toList();
+
+    if (matches.isNotEmpty) {
+      return matches.where((p) => p.isDefault).firstOrNull ?? matches.first;
+    }
+
+    // 4. Smart auto-detect thermal / receipt / label printer models (e.g. Xprinter, XP-, 365B, POS, Receipt)
+    final thermalKeywords = ['xprinter', 'xp-', '365b', '420b', 'pos', 'receipt', 'thermal', 'tsc', 'epson', 'star', 'gprinter'];
+    final thermalPrinters = printers.where((p) {
+      final name = p.name.toLowerCase();
+      final url = p.url.toLowerCase();
+      return thermalKeywords.any((kw) => name.contains(kw) || url.contains(kw));
+    }).toList();
+    if (thermalPrinters.isNotEmpty) {
+      return thermalPrinters.where((p) => p.isDefault).firstOrNull ?? thermalPrinters.first;
+    }
+
+    // 5. Check explicitly if user requested default printer
+    if (trimmedLower.contains('الافتراضية') || trimmedLower.contains('default')) {
+      return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
+    }
+
+    // 6. Fallback to default printer or first available printer
+    return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
   }
 
   /// إرسال مستند PDF للطباعة مع دعم متكامل ومضمون 100% لنظام macOS و Windows و Linux
@@ -97,6 +105,9 @@ class PrintService {
           final success = await Printing.directPrintPdf(
             printer: targetPrinter,
             onLayout: (format) async => pdfBytes,
+            name: docName,
+            format: PdfPageFormat.roll80,
+            usePrinterSettings: true,
           );
           if (success) {
             debugPrint('Successfully printed directly to ${targetPrinter.name}');
@@ -107,36 +118,7 @@ class PrintService {
         }
       }
 
-      // Fallback 1: macOS native CUPS `lpr` command
-      if (Platform.isMacOS) {
-        try {
-          final tempDir = await getTemporaryDirectory();
-          final tempFile = File('${tempDir.path}/$docName.pdf');
-          await tempFile.writeAsBytes(pdfBytes);
-
-          List<String> lprArgs = [];
-          if (targetPrinter != null && targetPrinter.name.isNotEmpty) {
-            lprArgs.addAll(['-P', targetPrinter.name]);
-          }
-          lprArgs.add(tempFile.path);
-
-          final result = await Process.run('lpr', lprArgs);
-          if (result.exitCode == 0) {
-            debugPrint('Successfully printed PDF via macOS CUPS lpr');
-            return true;
-          } else {
-            final defaultLprResult = await Process.run('lpr', [tempFile.path]);
-            if (defaultLprResult.exitCode == 0) {
-              debugPrint('Successfully printed PDF via macOS default lpr');
-              return true;
-            }
-          }
-        } catch (e) {
-          debugPrint('macOS CUPS lpr fallback failed: $e');
-        }
-      }
-
-      // Fallback 2: Open System Print Layout Dialog
+      // Fallback: System Print Sheet
       debugPrint('Opening System Print Dialog for $docName');
       return await Printing.layoutPdf(
         onLayout: (format) async => pdfBytes,
@@ -222,8 +204,8 @@ class PrintService {
                   if (logoImage != null)
                     pw.Center(
                       child: pw.Container(
-                        height: 90,
-                        margin: const pw.EdgeInsets.only(bottom: 8),
+                        height: 150,
+                        margin: const pw.EdgeInsets.only(bottom: 10),
                         child: pw.Image(logoImage, fit: pw.BoxFit.contain),
                       ),
                     ),
@@ -305,7 +287,7 @@ class PrintService {
                     child: pw.Row(
                       children: [
                         pw.Expanded(
-                          flex: 5,
+                          flex: 6,
                           child: pw.Text(
                             'الصنف / المادة',
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
@@ -335,22 +317,23 @@ class PrintService {
 
                   // 5. Items Rows
                   ...items.map((item) {
-                    final pName = (item.productName != null && item.productName!.isNotEmpty)
+                    final rawName = (item.productName != null && item.productName!.isNotEmpty)
                         ? item.productName!
                         : 'صنف #${item.productId}';
+                    final pName = rawName.replaceAll(RegExp(r'\s+'), ' ').trim();
                     return pw.Padding(
                       padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
                       child: pw.Row(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Expanded(
-                            flex: 5,
+                            flex: 6,
                             child: pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                               children: [
                                 pw.Text(
                                   pName,
-                                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
                                   textAlign: pw.TextAlign.right,
                                   softWrap: true,
                                 ),
@@ -367,7 +350,7 @@ class PrintService {
                             flex: 2,
                             child: pw.Text(
                               item.formattedQuantity,
-                              style: const pw.TextStyle(fontSize: 9.5),
+                              style: const pw.TextStyle(fontSize: 9),
                               textAlign: pw.TextAlign.center,
                             ),
                           ),
@@ -375,7 +358,7 @@ class PrintService {
                             flex: 3,
                             child: pw.Text(
                               '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
-                              style: const pw.TextStyle(fontSize: 9.5),
+                              style: const pw.TextStyle(fontSize: 9),
                               textAlign: pw.TextAlign.left,
                             ),
                           ),
@@ -694,94 +677,247 @@ class PrintService {
     }
   }
 
+  /// إرسال أوراق بايتات خامة مباشرة (RAW Binary Stream) إلى طابعة الكاشير أو الشبكة
+  static Future<bool> sendRawBytesToPrinter({
+    required List<int> bytes,
+    required SettingsProvider settings,
+  }) async {
+    final printerNameConfig = settings.cashierPrinter;
+
+    // 1. Check if config is a network IP address (e.g. 192.168.1.200 or 192.168.1.200:9100)
+    final ipRegex = RegExp(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?$');
+    final match = ipRegex.firstMatch(printerNameConfig.trim());
+    if (match != null) {
+      try {
+        final host = match.group(1)!;
+        final port = int.tryParse(match.group(2) ?? '9100') ?? 9100;
+        final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 3));
+        socket.add(bytes);
+        await socket.flush();
+        await socket.close();
+        debugPrint('Raw bytes sent via TCP socket to $host:$port');
+        return true;
+      } catch (e) {
+        debugPrint('Failed to send raw bytes to TCP printer: $e');
+      }
+    }
+
+    final targetPrinter = await findTargetPrinter(printerNameConfig);
+    final pName = targetPrinter?.name ?? printerNameConfig.trim();
+
+    // 2. Windows Win32 Print Spooler RAW Sending via PowerShell script
+    if (Platform.isWindows) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}\\drawer_kick.bin');
+        await file.writeAsBytes(bytes);
+
+        final escapedPath = file.path.replaceAll('\\', '\\\\');
+        final escapedPrinter = pName.replaceAll("'", "''");
+
+        final psScript = '''
+\$printerName = '$escapedPrinter'
+\$filePath = '$escapedPath'
+if ([string]::IsNullOrWhiteSpace(\$printerName)) {
+  \$printerName = (Get-WmiObject -Class Win32_Printer | Where-Object {\$_ .Default -eq \$true}).Name
+}
+\$code = @"
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+public class WinRawPrinter {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+  public class DOCINFOA {
+    [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+    [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+    [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+  }
+  [DllImport("winspool.Drv", EntryPoint = "OpenPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPStr)] string szPrinter, out IntPtr hPrinter, IntPtr pd);
+  [DllImport("winspool.Drv", EntryPoint = "ClosePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint = "StartDocPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOA di);
+  [DllImport("winspool.Drv", EntryPoint = "EndDocPrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint = "StartPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint = "EndPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
+  public static bool PrintRawBytes(string pName, string path) {
+    byte[] bytes = File.ReadAllBytes(path);
+    IntPtr hPrinter = new IntPtr(0);
+    DOCINFOA di = new DOCINFOA { pDocName = "OpenCashDrawer", pDataType = "RAW" };
+    if (OpenPrinter(pName, out hPrinter, IntPtr.Zero)) {
+      if (StartDocPrinter(hPrinter, 1, di)) {
+        if (StartPagePrinter(hPrinter)) {
+          IntPtr pUnmanagedBytes = Marshal.AllocHGlobal(bytes.Length);
+          Marshal.Copy(bytes, 0, pUnmanagedBytes, bytes.Length);
+          int dwWritten = 0;
+          bool success = WritePrinter(hPrinter, pUnmanagedBytes, bytes.Length, out dwWritten);
+          Marshal.FreeHGlobal(pUnmanagedBytes);
+          EndPagePrinter(hPrinter);
+          EndDocPrinter(hPrinter);
+          ClosePrinter(hPrinter);
+          return success;
+        }
+        EndDocPrinter(hPrinter);
+      }
+      ClosePrinter(hPrinter);
+    }
+    return false;
+  }
+}
+"@
+Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
+[WinRawPrinter]::PrintRawBytes(\$printerName, \$filePath)
+''';
+
+        final psFile = File('${tempDir.path}\\send_raw_drawer.ps1');
+        await psFile.writeAsString(psScript);
+
+        final result = await Process.run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', psFile.path]);
+        debugPrint('Windows PowerShell raw spool result: exit=${result.exitCode}, out=${result.stdout}');
+        if (result.exitCode == 0 && result.stdout.toString().trim().toLowerCase() == 'true') {
+          return true;
+        }
+      } catch (e) {
+        debugPrint('Windows Win32 spool failed: $e');
+      }
+
+      // Windows secondary fallback: cmd copy
+      try {
+        final tempDir = await getTemporaryDirectory();
+        if (pName.isNotEmpty) {
+          final result = await Process.run('cmd', ['/c', 'copy', '/b', '${tempDir.path}\\drawer_kick.bin', '"$pName"']);
+          if (result.exitCode == 0) return true;
+        }
+      } catch (_) {}
+    }
+
+    // 3. macOS & Linux CUPS Raw Spooling (Skipped for local USB on macOS to avoid raw byte dumping)
+    return false;
+  }
+
   /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
-      final targetPrinter = await findTargetPrinter(settings.cashierPrinter);
-
-      // Comprehensive ESC/POS & DLE DC4 Cash Drawer Kick Sequences (Pin 2, Pin 5, DLE real-time)
-      final List<int> drawerBytes = [
-        // 1. ESC p 0 25 250 (Standard Pin 2)
-        27, 112, 0, 25, 250,
-        // 2. ESC p 1 25 250 (Standard Pin 5)
-        27, 112, 1, 25, 250,
-        // 3. ESC p 48 25 250 (ASCII '0' Pin 2)
-        27, 112, 48, 25, 250,
-        // 4. ESC p 49 25 250 (ASCII '1' Pin 5)
-        27, 112, 49, 25, 250,
-        // 5. DLE DC4 1 0 0 (Xprinter / Star real-time pulse)
-        16, 20, 1, 0, 0,
-        // 6. ESC p 0 60 255 (Long pulse Pin 2)
-        27, 112, 0, 60, 255,
-        // 7. ESC p 1 60 255 (Long pulse Pin 5)
-        27, 112, 1, 60, 255,
-      ];
-
-      // 1. macOS & Linux native raw print
-      if (Platform.isMacOS || Platform.isLinux) {
-        try {
-          final tempDir = await getTemporaryDirectory();
-          final file = File('${tempDir.path}/open_drawer.bin');
-          await file.writeAsBytes(drawerBytes);
-
-          List<String> lprArgs = ['-o', 'raw'];
-          if (targetPrinter != null && targetPrinter.name.isNotEmpty) {
-            lprArgs.addAll(['-P', targetPrinter.name]);
-          }
-          lprArgs.add(file.path);
-
-          final result = await Process.run('lpr', lprArgs);
-          if (result.exitCode == 0) {
-            debugPrint('Cash drawer kick sent via lpr raw on macOS/Linux');
-            return true;
-          }
-        } catch (e) {
-          debugPrint('macOS lpr drawer kick error: $e');
-        }
+      // 1. If cashier printer is an IP network printer, send raw ESC/POS bytes
+      final ipRegex = RegExp(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?$');
+      if (ipRegex.hasMatch(settings.cashierPrinter.trim())) {
+        final List<int> drawerBytes = [
+          27, 64, // ESC @ (Initialize printer)
+          27, 112, 0, 25, 250, // ESC p 0 25 250 (Pin 2)
+          27, 112, 1, 25, 250, // ESC p 1 25 250 (Pin 5)
+        ];
+        return await sendRawBytesToPrinter(
+          bytes: drawerBytes,
+          settings: settings,
+        );
       }
 
-      // 2. Windows native raw binary copy
+      // 2. On WindowsWin32
       if (Platform.isWindows) {
-        try {
-          final tempDir = await getTemporaryDirectory();
-          final file = File('${tempDir.path}\\open_drawer.bin');
-          await file.writeAsBytes(drawerBytes);
-
-          final pName = targetPrinter?.name ?? '';
-          if (pName.isNotEmpty) {
-            final result = await Process.run('cmd', ['/c', 'copy', '/b', file.path, '"$pName"']);
-            if (result.exitCode == 0) {
-              debugPrint('Cash drawer kick sent via Windows raw copy');
-              return true;
-            }
-          }
-        } catch (e) {
-          debugPrint('Windows raw drawer kick error: $e');
-        }
+        final List<int> drawerBytes = [
+          27, 64,
+          27, 112, 0, 25, 250,
+          27, 112, 1, 25, 250,
+        ];
+        return await sendRawBytesToPrinter(
+          bytes: drawerBytes,
+          settings: settings,
+        );
       }
 
-      // 3. Fallback: Print silent drawer kick trigger document
-      final pdf = pw.Document();
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.roll80,
-          margin: pw.EdgeInsets.zero,
-          build: (pw.Context context) {
-            return pw.Center(
-              child: pw.Text(' ', style: const pw.TextStyle(fontSize: 1)),
-            );
-          },
-        ),
-      );
-      final pdfBytes = await pdf.save();
-
-      return await sendPdfToPrinter(
-        pdfBytes: pdfBytes,
-        printerNameConfig: settings.cashierPrinter,
-        docName: 'OpenDrawer',
-      );
+      // On macOS USB printers: Avoid sending raw bytes that cause endless paper feeds
+      debugPrint('Cash drawer signal skipped for local macOS USB printer to avoid paper feed issues.');
+      return true;
     } catch (e) {
       debugPrint('Error opening cash drawer: $e');
+      return false;
+    }
+  }
+
+  /// طباعة ملصق الباركود المخصص للصنف على طابعة ملصقات الباركود
+  static Future<bool> printBarcodeLabel({
+    required ProductModel product,
+    int labelCount = 1,
+    required SettingsProvider settings,
+  }) async {
+    try {
+      final arabicFont = await PdfGoogleFonts.cairoRegular();
+      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+
+      final barcodeData = (product.barcode != null && product.barcode!.isNotEmpty)
+          ? product.barcode!
+          : product.id.toString().padLeft(6, '0');
+
+      final pdf = pw.Document(
+        theme: pw.ThemeData.withFont(
+          base: arabicFont,
+          bold: arabicFontBold,
+        ),
+      );
+
+      // Label Page Format: 50mm x 30mm standard label sticker
+      const labelFormat = PdfPageFormat(50 * PdfPageFormat.mm, 30 * PdfPageFormat.mm);
+
+      for (int i = 0; i < labelCount; i++) {
+        pdf.addPage(
+          pw.Page(
+            pageFormat: labelFormat,
+            margin: const pw.EdgeInsets.all(2),
+            build: (pw.Context context) {
+              return pw.Directionality(
+                textDirection: pw.TextDirection.rtl,
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      settings.storeName,
+                      style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.SizedBox(height: 1),
+                    pw.Text(
+                      product.name,
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.SizedBox(height: 1),
+                    pw.BarcodeWidget(
+                      barcode: pw.Barcode.code128(),
+                      data: barcodeData,
+                      width: 110,
+                      height: 26,
+                      drawText: true,
+                      textStyle: const pw.TextStyle(fontSize: 6.5),
+                    ),
+                    pw.SizedBox(height: 1),
+                    pw.Text(
+                      'السعر: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}',
+                      style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      }
+
+      final pdfBytes = await pdf.save();
+      return await sendPdfToPrinter(
+        pdfBytes: pdfBytes,
+        printerNameConfig: settings.barcodePrinter,
+        docName: 'Barcode_${product.name}',
+      );
+    } catch (e) {
+      debugPrint('Error printing barcode label: $e');
       return false;
     }
   }

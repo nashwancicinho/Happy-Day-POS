@@ -10,10 +10,12 @@ import 'features/customers/customers_provider.dart';
 import 'features/dashboard/dashboard_layout.dart';
 import 'features/orders/orders_provider.dart';
 import 'features/products/products_provider.dart';
+import 'features/purchases/purchases_provider.dart';
 import 'features/settings/settings_provider.dart';
 import 'features/shifts/shifts_provider.dart';
 import 'features/tables/tables_provider.dart';
 import 'features/treasury/treasury_provider.dart';
+import 'features/waiter/waiter_connect_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +57,9 @@ class HappyDayPOS extends StatelessWidget {
           create: (_) => CustomersProvider()..loadCustomers(),
         ),
         ChangeNotifierProvider(
+          create: (_) => PurchasesProvider()..loadAllData(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => SettingsProvider()..loadSettings(),
         ),
         ChangeNotifierProvider(
@@ -63,11 +68,12 @@ class HappyDayPOS extends StatelessWidget {
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, child) {
+          final isMobile = Platform.isAndroid || Platform.isIOS;
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'Happy Day POS (Aronium Edition)',
+            title: isMobile ? 'تطبيق النادل - Happy Day POS' : 'Happy Day POS (Aronium Edition)',
             theme: AppTheme.getTheme(settings.primaryColor),
-            home: const DashboardLayout(),
+            home: isMobile ? const WaiterConnectScreen() : const DashboardLayout(),
           );
         },
       ),

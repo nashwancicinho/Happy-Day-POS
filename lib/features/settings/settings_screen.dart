@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
-import 'package:sqflite/sqflite.dart';
 
 import '../../core/services/print_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -13,8 +12,10 @@ import '../../database/database_helper.dart';
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import '../categories/categories_provider.dart';
+import '../customers/customers_provider.dart';
 import '../orders/orders_provider.dart';
 import '../products/products_provider.dart';
+import '../purchases/purchases_provider.dart';
 import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
@@ -36,7 +37,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _cashierPrinterController;
   late TextEditingController _kitchenPrinterController;
   late TextEditingController _reportsPrinterController;
+  late TextEditingController _barcodePrinterController;
   late TextEditingController _logoPathController;
+  late TextEditingController _backupFolderController;
   String _selectedLogoIcon = 'storefront';
   String _selectedCurrency = 'د.ع';
 
@@ -64,7 +67,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cashierPrinterController = TextEditingController(text: settings.cashierPrinter);
     _kitchenPrinterController = TextEditingController(text: settings.kitchenPrinter);
     _reportsPrinterController = TextEditingController(text: settings.reportsPrinter);
+    _barcodePrinterController = TextEditingController(text: settings.barcodePrinter);
     _logoPathController = TextEditingController(text: settings.storeLogoPath);
+    _backupFolderController = TextEditingController(text: settings.backupFolderPath);
     _selectedLogoIcon = settings.settings['store_logo_icon'] ?? 'storefront';
     _selectedCurrency = settings.currencySymbol;
 
@@ -108,7 +113,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cashierPrinterController.dispose();
     _kitchenPrinterController.dispose();
     _reportsPrinterController.dispose();
+    _barcodePrinterController.dispose();
     _logoPathController.dispose();
+    _backupFolderController.dispose();
     super.dispose();
   }
 
@@ -128,6 +135,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'cashier_printer': _cashierPrinterController.text.trim(),
         'kitchen_printer': _kitchenPrinterController.text.trim(),
         'reports_printer': _reportsPrinterController.text.trim(),
+        'barcode_printer': _barcodePrinterController.text.trim(),
+        'backup_folder_path': _backupFolderController.text.trim(),
       });
 
       await settingsProvider.loadSettings();
@@ -389,7 +398,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _cashierPrinterController.text = settings.cashierPrinter;
       _kitchenPrinterController.text = settings.kitchenPrinter;
       _reportsPrinterController.text = settings.reportsPrinter;
+      _barcodePrinterController.text = settings.barcodePrinter;
       _logoPathController.text = settings.storeLogoPath;
+      _backupFolderController.text = settings.backupFolderPath;
       _selectedLogoIcon = settings.settings['store_logo_icon'] ?? 'storefront';
       _selectedCurrency = settings.currencySymbol;
       _isLoadedFromProvider = true;
@@ -406,6 +417,264 @@ class _SettingsScreenState extends State<SettingsScreen> {
     {'name': 'الوردي الفاخر (Magenta)', 'hex': '#C2185B', 'color': const Color(0xFFC2185B)},
     {'name': 'الكحلي العميق (Navy)', 'hex': '#0D47A1', 'color': const Color(0xFF0D47A1)},
   ];
+
+  Future<void> _pickBackupFolder() async {
+    try {
+      final String? directoryPath = await getDirectoryPath();
+      if (!mounted) return;
+      if (directoryPath != null && directoryPath.isNotEmpty) {
+        setState(() {
+          _backupFolderController.text = directoryPath;
+        });
+        await context.read<SettingsProvider>().updateSetting('backup_folder_path', directoryPath);
+        if (mounted) {
+          TopNotification.showSuccess(context, '📁 تم اختيار وتحديد مجلد النسخ الاحتياطي بنجاح!');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking directory: $e');
+      if (mounted) {
+        TopNotification.showWarning(context, 'تعذر فتح حوار اختيار المجلد تلقائياً. يمكنك كتابة أو نسخ مسار المجلد المباشر.');
+      }
+    }
+  }
+
+  Future<void> _performBackup() async {
+    final settings = context.read<SettingsProvider>();
+    String targetPath = _backupFolderController.text.trim();
+
+    try {
+      if (targetPath.isEmpty) {
+        final String? selectedDir = await getDirectoryPath();
+        if (selectedDir != null && selectedDir.isNotEmpty) {
+          targetPath = selectedDir;
+          setState(() {
+            _backupFolderController.text = selectedDir;
+          });
+          await settings.updateSetting('backup_folder_path', selectedDir);
+        } else {
+          targetPath = await DatabaseHelper.getAppDatabaseDirectory();
+        }
+      }
+
+      if (!mounted) return;
+      TopNotification.showInfo(context, '⌛ جاري إنشاء نسخة احتياطية من قاعدة البيانات...');
+      final savedFile = await DatabaseHelper.instance.backupDatabase(targetPath);
+
+      if (mounted) {
+        TopNotification.showSuccess(
+          context,
+          '🎉 تم حفظ النسخة الاحتياطية بنجاح في:\n${savedFile.path}',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error performing backup: $e');
+      if (mounted) {
+        TopNotification.showWarning(context, 'حدث خطأ أثناء عمل النسخة الاحتياطية: $e');
+      }
+    }
+  }
+
+  Future<void> _performRestore() async {
+    try {
+      final XFile? file = await openFile(
+        acceptedTypeGroups: const <XTypeGroup>[
+          XTypeGroup(
+            label: 'ملفات قواعد البيانات (.db, .sqlite)',
+            extensions: <String>['db', 'sqlite', 'bak', 'DB', 'SQLITE'],
+          ),
+        ],
+      );
+
+      if (file == null) return;
+
+      if (!mounted) return;
+
+      final bool? confirm = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 10),
+              Text('تأكيد استعادة النسخة الاحتياطية'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'تنبيه مهم: استعادة النسخة الاحتياطية ستؤدي إلى استبدال قاعدة البيانات الحالية بالبيانات الموجودة في الملف المختار.',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+              const SizedBox(height: 12),
+              Text('الملف المختار: ${file.path}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+              const SizedBox(height: 12),
+              const Text('هل أنت أخيرًا متأكد من استكمال عملية الاستعادة؟'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade800,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('نعم، استعادة الآن'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      TopNotification.showInfo(context, '⌛ جاري استعادة قاعدة البيانات وتحديث النظام...');
+      await DatabaseHelper.instance.restoreDatabase(file.path);
+
+      if (!mounted) return;
+
+      await context.read<SettingsProvider>().loadSettings();
+      if (!mounted) return;
+      await context.read<CategoriesProvider>().loadCategories();
+      if (!mounted) return;
+      await context.read<ProductsProvider>().loadProducts();
+      if (!mounted) return;
+      await context.read<OrdersProvider>().loadOrders();
+      if (!mounted) return;
+      await context.read<ShiftsProvider>().loadCurrentShift();
+      if (!mounted) return;
+      await context.read<CustomersProvider>().loadCustomers();
+      if (!mounted) return;
+      await context.read<PurchasesProvider>().loadAllData();
+      if (!mounted) return;
+      await context.read<TreasuryProvider>().loadTreasuryRecords();
+      if (!mounted) return;
+      await context.read<TablesProvider>().loadTables();
+
+      if (mounted) {
+        TopNotification.showSuccess(
+          context,
+          '🎉 تم استعادة كافة بيانات النظام والمنتجات والفواتير والإعدادات بنجاح!',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error performing restore: $e');
+      if (mounted) {
+        TopNotification.showWarning(context, 'فشلت عملية الاستعادة: $e');
+      }
+    }
+  }
+
+  Widget _buildBackupRestoreSection(BuildContext context, SettingsProvider settingsProvider) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.teal.shade700,
+                  child: const Icon(Icons.sd_storage_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'النسخ الاحتياطي واستعادة البيانات 💾',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            const Text(
+              'قم بإنشاء نسخة احتياطية لقاعدة البيانات لحفظ جميع المنتجات والمبيعات والحسابات في مكان آمن، أو استرجع نسخة سابقة عند الحاجة:',
+              style: TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _backupFolderController,
+                    decoration: InputDecoration(
+                      labelText: 'مجلد حفظ النسخ الاحتياطية (Default Backup Folder)',
+                      hintText: '/Users/.../Backups أو C:\\Backups',
+                      prefixIcon: const Icon(Icons.folder_special, color: Colors.teal),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      helperText: 'يمكنك اختيار مجلد حفظ مخصص على جهازك ليتم حفظ النسخ فيه تلقائياً',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 22),
+                  child: ElevatedButton.icon(
+                    onPressed: _pickBackupFolder,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade50,
+                      foregroundColor: Colors.teal.shade800,
+                      side: BorderSide(color: Colors.teal.shade300),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.folder_open_rounded),
+                    label: const Text('تغيير المجلد', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _performBackup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.cloud_upload_rounded, size: 22),
+                    label: const Text(
+                      '📦 إنشاء نسخة احتياطية الآن',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _performRestore,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade800,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.restore_page_rounded, size: 22),
+                    label: const Text(
+                      '🔄 استعادة نسخة احتياطية من ملف...',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildThemeColorSection(BuildContext context, SettingsProvider settingsProvider) {
     final currentHex = settingsProvider.themeColorHex.toUpperCase();
@@ -513,6 +782,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Section -1: Database Backup & Restore Card
+                _buildBackupRestoreSection(context, settings),
+
+                const SizedBox(height: 20),
+
                 // Section 0: Theme Color Palette Selection
                 _buildThemeColorSection(context, settings),
 
@@ -898,20 +1172,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 18),
 
-                        // Cashier Printer Field with Selection Dialog
-                        TextField(
-                          controller: _cashierPrinterController,
-                          decoration: InputDecoration(
-                            labelText: 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
-                            prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
-                              tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, 'اختر طابعة الفواتير والكاشير الرئيسية'),
+                        // Cashier Printer Field with Selection Dialog & Test Drawer button
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _cashierPrinterController,
+                                decoration: InputDecoration(
+                                  labelText: 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
+                                  prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
+                                    tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                                    onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, 'اختر طابعة الفواتير والكاشير الرئيسية'),
+                                  ),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                                  helperText: 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
+                                ),
+                              ),
                             ),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
-                          ),
+                            const SizedBox(width: 10),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal.shade700,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                icon: const Icon(Icons.vpn_key_outlined, color: Colors.white, size: 20),
+                                label: const Text('اختبار فتح الدرج 🔑', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                onPressed: () async {
+                                  final settings = context.read<SettingsProvider>();
+                                  TopNotification.showInfo(context, '🔑 جاري اختار فتح درج النقدية...');
+                                  final success = await PrintService.openCashDrawer(settings);
+                                  if (context.mounted) {
+                                    if (success) {
+                                      TopNotification.showSuccess(context, '🎉 تم إرسال إشارة فتح الدرج بنجاح! 💵');
+                                    } else {
+                                      TopNotification.showWarning(context, '⚠️ فشل الاتصال بالطابعة. تحقق من اختيار الطابعة الصحيحة وتوصيل كابل الدرج (RJ11).');
+                                    }
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 20),
@@ -947,6 +1253,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                             helperText: 'تستخدم لطباعة التقرير اليومي، الشهري، والمالي مباشرة من قسم التقارير',
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Barcode Printer Field with Selection Dialog
+                        TextField(
+                          controller: _barcodePrinterController,
+                          decoration: InputDecoration(
+                            labelText: 'طابعة ملصقات الباركود (Barcode Label Printer)',
+                            prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.blue),
+                              tooltip: 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                              onPressed: () => _showPrinterSelectionDialog(_barcodePrinterController, 'اختر طابعة ملصقات الباركود'),
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                            helperText: 'تستخدم لطباعة ملصقات الباركود للأصناف والمنتجات مباشرة (مثل طابعات Xprinter / Zebra)',
                           ),
                         ),
                       ],

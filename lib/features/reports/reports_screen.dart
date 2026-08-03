@@ -36,11 +36,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? _selectedCashier;
   String _selectedOrderTypeFilter = 'ALL'; // 'ALL', 'DINE_IN', 'TAKEAWAY', 'DELIVERY'
 
+  final TextEditingController _invoiceSearchController = TextEditingController();
+
   // Loaded Report Data
   List<TopSellingProduct> _topSellingProducts = [];
   List<CashierSalesSummary> _cashierReportData = [];
   List<ProductNetProfitSummary> _netProfitReportData = [];
   bool _isLoadingReportData = false;
+
+  @override
+  void dispose() {
+    _invoiceSearchController.dispose();
+    super.dispose();
+  }
 
   String _formatDate(DateTime dt) {
     final year = dt.year.toString().padLeft(4, '0');
@@ -381,7 +389,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 icon: Icon(Icons.calendar_today, size: 18, color: primaryColor),
                                 label: Text('من تاريخ: ${_formatDate(_fromDate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              const Icon(Icons.arrow_back, color: Colors.grey),
+                              const Icon(Icons.arrow_forward, color: Colors.grey),
                               OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
                                   backgroundColor: Colors.white,
@@ -1365,6 +1373,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
       );
     }
 
+    final query = _invoiceSearchController.text.trim().toLowerCase();
+    final filteredOrders = orders.where((o) {
+      if (query.isEmpty) return true;
+      final idStr = o.id.toString();
+      final formattedId = '#${o.id}';
+      final cashier = (o.cashierName ?? '').toLowerCase();
+      final payment = o.paymentMethod.toLowerCase();
+      final orderType = _orderTypeLabel(o.orderType).toLowerCase();
+      final totalStr = o.total.toStringAsFixed(0);
+
+      return idStr.contains(query) ||
+          formattedId.contains(query) ||
+          cashier.contains(query) ||
+          payment.contains(query) ||
+          orderType.contains(query) ||
+          totalStr.contains(query);
+    }).toList();
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -1373,34 +1399,96 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('قائمة الفواتير المكتملة (${orders.length} فاتورة):', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 14),
-            Table(
-              border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+            Row(
               children: [
-                TableRow(
-                  decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1)),
-                  children: const [
-                    Padding(padding: EdgeInsets.all(10), child: Text('رقم الفاتورة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('نوع الطلب', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('طريقة الدفع', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('المبلغ الإجمالي', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(10), child: Text('التاريخ والوقت', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                  ],
+                Expanded(
+                  child: Text(
+                    query.isEmpty
+                        ? 'قائمة الفواتير المكتملة (${orders.length} فاتورة):'
+                        : 'نتيجة البحث (${filteredOrders.length} من أصل ${orders.length} فاتورة):',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                ...orders.map((o) {
-                  return TableRow(
-                    children: [
-                      Padding(padding: const EdgeInsets.all(10), child: Text('#${o.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text(_orderTypeLabel(o.orderType), textAlign: TextAlign.center)),
-                      Padding(padding: const EdgeInsets.all(10), child: Text(o.paymentMethod, textAlign: TextAlign.center)),
-                      Padding(padding: const EdgeInsets.all(10), child: Text('${o.total.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text(o.createdAt.substring(0, 16), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
-                    ],
-                  );
-                }),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 320,
+                  child: TextField(
+                    controller: _invoiceSearchController,
+                    onChanged: (_) {
+                      setState(() {});
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'البحث برقم الفاتورة...',
+                      hintText: 'اكتب رقم الفاتورة (مثال: 55)',
+                      prefixIcon: const Icon(Icons.search, color: Colors.purple),
+                      suffixIcon: _invoiceSearchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _invoiceSearchController.clear();
+                                });
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
+            const SizedBox(height: 16),
+            if (filteredOrders.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
+                      const SizedBox(height: 10),
+                      Text(
+                        'لم يتم العثور على أي فاتورة تطابق رقم الفاتورة أو البحث "$query"',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Table(
+                border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+                children: [
+                  TableRow(
+                    decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1)),
+                    children: const [
+                      Padding(padding: EdgeInsets.all(10), child: Text('رقم الفاتورة', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: EdgeInsets.all(10), child: Text('نوع الطلب', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: EdgeInsets.all(10), child: Text('طريقة الدفع', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: EdgeInsets.all(10), child: Text('المبلغ الإجمالي', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Padding(padding: EdgeInsets.all(10), child: Text('التاريخ والوقت', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    ],
+                  ),
+                  ...filteredOrders.map((o) {
+                    return TableRow(
+                      children: [
+                        Padding(padding: const EdgeInsets.all(10), child: Text('#${o.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(_orderTypeLabel(o.orderType), textAlign: TextAlign.center)),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(o.paymentMethod, textAlign: TextAlign.center)),
+                        Padding(padding: const EdgeInsets.all(10), child: Text('${o.total.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(o.createdAt.substring(0, 16), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
+                      ],
+                    );
+                  }),
+                ],
+              ),
           ],
         ),
       ),

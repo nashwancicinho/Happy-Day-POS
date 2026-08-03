@@ -13,11 +13,17 @@ import '../day_closing/presentation/day_closing_screen.dart';
 import '../inventory/presentation/inventory_screen.dart';
 import '../products/presentation/products_screen.dart';
 import '../products/products_provider.dart';
+import '../purchases/purchases_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../tables/tables_screen.dart';
 import '../users/users_screen.dart';
 import 'home_operation_screen.dart';
+import '../../services/local_server_service.dart';
+import '../settings/sync_qr_widget.dart';
+import '../waiter/waiter_connect_screen.dart';
+import '../tables/tables_provider.dart';
+import '../orders/orders_provider.dart';
 
 class DashboardLayout extends StatefulWidget {
   const DashboardLayout({super.key});
@@ -36,6 +42,15 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
+
+    // Start POS local network server for Waiter Mobile App
+    LocalServerService.instance.startServer();
+    LocalServerService.instance.setTableUpdateCallback(() {
+      if (mounted) {
+        context.read<TablesProvider>().loadTables();
+        context.read<OrdersProvider>().loadOrders();
+      }
+    });
   }
 
   @override
@@ -98,6 +113,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     ProductsScreen(),
     CategoriesScreen(),
     InventoryScreen(),
+    PurchasesScreen(),
     UsersScreen(),
     DebtsScreen(),
     ReportsScreen(),
@@ -164,11 +180,12 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                     _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, "الأصناف"),
                     _buildDrawerTile(4, Icons.category_outlined, Icons.category, "التصنيفات"),
                     _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, "المخزن"),
-                    _buildDrawerTile(6, Icons.people_outline, Icons.people, "المستخدمون"),
-                    _buildDrawerTile(7, Icons.request_quote_outlined, Icons.request_quote, "سجل الديون"),
-                    _buildDrawerTile(8, Icons.bar_chart_outlined, Icons.bar_chart, "التقارير"),
-                    _buildDrawerTile(9, Icons.settings_outlined, Icons.settings, "الإعدادات"),
-                    _buildDrawerTile(10, Icons.lock_clock_outlined, Icons.lock_clock, "إغلاق اليوم"),
+                    _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, "المشتريات والموردين"),
+                    _buildDrawerTile(7, Icons.people_outline, Icons.people, "المستخدمون"),
+                    _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, "سجل الديون"),
+                    _buildDrawerTile(9, Icons.bar_chart_outlined, Icons.bar_chart, "التقارير"),
+                    _buildDrawerTile(10, Icons.settings_outlined, Icons.settings, "الإعدادات"),
+                    _buildDrawerTile(11, Icons.lock_clock_outlined, Icons.lock_clock, "إغلاق اليوم"),
                   ],
                 ),
               ),
@@ -220,6 +237,26 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Waiter App Mobile Sync Button
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const SyncQrDialog(),
+                      );
+                    },
+                    icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
+                    label: const Text('ربط النادل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 2,
                     ),
                   ),
 

@@ -72,7 +72,7 @@ class ShiftsRepository {
     final result = await db.rawQuery('''
       SELECT SUM(total) as total_cash
       FROM orders
-      WHERE shift_id = ? AND payment_method = 'CASH' AND status != 'CANCELLED'
+      WHERE shift_id = ? AND payment_method = 'CASH' AND status = 'COMPLETED'
     ''', [shiftId]);
 
     final val = result.first['total_cash'];

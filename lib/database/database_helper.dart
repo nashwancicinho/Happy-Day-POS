@@ -97,6 +97,11 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'products', 'track_stock', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'min_stock', 'REAL DEFAULT 5');
     await _addColumnIfMissing(db, 'products', 'print_to_kitchen', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'products', 'color', 'TEXT');
+    await _addColumnIfMissing(db, 'restaurant_tables', 'pos_x', 'REAL DEFAULT -1.0');
+    await _addColumnIfMissing(db, 'restaurant_tables', 'pos_y', 'REAL DEFAULT -1.0');
+    await _addColumnIfMissing(db, 'restaurant_tables', 'width', 'REAL DEFAULT 120.0');
+    await _addColumnIfMissing(db, 'restaurant_tables', 'height', 'REAL DEFAULT 120.0');
 
     try {
       await db.execute('''
@@ -128,6 +133,72 @@ class DatabaseHelper {
           notes TEXT,
           closed_by TEXT,
           created_at TEXT NOT NULL
+        );
+      ''');
+    } catch (_) {}
+
+    // Suppliers table
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS suppliers(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phone TEXT,
+          address TEXT,
+          notes TEXT,
+          balance REAL DEFAULT 0.0,
+          created_at TEXT
+        );
+      ''');
+    } catch (_) {}
+
+    // Purchases table
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS purchases(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          supplier_id INTEGER NOT NULL,
+          supplier_name TEXT,
+          invoice_number TEXT NOT NULL,
+          total_amount REAL NOT NULL,
+          paid_amount REAL NOT NULL,
+          remaining_amount REAL NOT NULL,
+          payment_status TEXT NOT NULL DEFAULT 'PAID',
+          payment_method TEXT NOT NULL DEFAULT 'CASH',
+          notes TEXT,
+          created_at TEXT NOT NULL
+        );
+      ''');
+    } catch (_) {}
+
+    // Purchase Items table
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS purchase_items(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          purchase_id INTEGER NOT NULL,
+          product_id INTEGER,
+          item_name TEXT NOT NULL,
+          unit_price REAL NOT NULL,
+          quantity REAL NOT NULL,
+          subtotal REAL NOT NULL,
+          FOREIGN KEY(purchase_id) REFERENCES purchases(id) ON DELETE CASCADE
+        );
+      ''');
+    } catch (_) {}
+
+    // Supplier Payments table
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS supplier_payments(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          supplier_id INTEGER NOT NULL,
+          purchase_id INTEGER,
+          amount REAL NOT NULL,
+          payment_date TEXT NOT NULL,
+          payment_method TEXT NOT NULL DEFAULT 'CASH',
+          notes TEXT,
+          FOREIGN KEY(supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE
         );
       ''');
     } catch (_) {}
@@ -172,7 +243,11 @@ class DatabaseHelper {
         capacity INTEGER DEFAULT 4,
         status INTEGER DEFAULT 0,
         sort_order INTEGER DEFAULT 0,
-        shape TEXT DEFAULT 'square'
+        shape TEXT DEFAULT 'square',
+        pos_x REAL DEFAULT -1.0,
+        pos_y REAL DEFAULT -1.0,
+        width REAL DEFAULT 120.0,
+        height REAL DEFAULT 120.0
       )
     ''');
 
@@ -325,4 +400,75 @@ class DatabaseHelper {
     await deleteDatabase(path);
     _database = null;
   }
+
+  Future<File> backupDatabase(String targetDirectoryOrFilePath) async {
+    final db = await database;
+    try {
+      await db.execute('PRAGMA wal_checkpoint(FULL);');
+    } catch (_) {}
+
+    final currentDbPath = await getAppDatabaseFilePath();
+    final currentDbFile = File(currentDbPath);
+    if (!await currentDbFile.exists()) {
+      throw Exception('ملف قاعدة البيانات الأساسية غير موجود.');
+    }
+
+    String destinationPath = targetDirectoryOrFilePath;
+    final isDirectory = await FileSystemEntity.isDirectory(targetDirectoryOrFilePath);
+
+    if (isDirectory) {
+      final now = DateTime.now();
+      final dateStr =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}";
+      final fileName = 'happy_day_pos_backup_$dateStr.db';
+      destinationPath = join(targetDirectoryOrFilePath, fileName);
+    }
+
+    final targetFile = File(destinationPath);
+    final targetDir = targetFile.parent;
+    if (!await targetDir.exists()) {
+      await targetDir.create(recursive: true);
+    }
+
+    return await currentDbFile.copy(destinationPath);
+  }
+
+  Future<void> restoreDatabase(String backupFilePath) async {
+    final backupFile = File(backupFilePath);
+    if (!await backupFile.exists()) {
+      throw Exception('ملف النسخة الاحتياطية المحدد غير موجود.');
+    }
+
+    final bytes = await backupFile.readAsBytes();
+    if (bytes.length < 16) {
+      throw Exception('الملف المحدد ليس ملف قاعدة بيانات صحيح.');
+    }
+    final header = String.fromCharCodes(bytes.sublist(0, 16));
+    if (!header.startsWith('SQLite format 3')) {
+      throw Exception('الملف المحدد ليس ملف قاعدة بيانات SQLite مخصص للنظام.');
+    }
+
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+      _database = null;
+    }
+
+    final currentDbPath = await getAppDatabaseFilePath();
+    final currentDbFile = File(currentDbPath);
+
+    final walFile = File('$currentDbPath-wal');
+    if (await walFile.exists()) {
+      await walFile.delete();
+    }
+    final shmFile = File('$currentDbPath-shm');
+    if (await shmFile.exists()) {
+      await shmFile.delete();
+    }
+
+    await backupFile.copy(currentDbFile.path);
+
+    _database = await _initDatabase();
+    await _ensureColumnsExist(_database!);
+  }
 }
+

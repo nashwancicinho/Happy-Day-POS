@@ -5,6 +5,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
 import '../../models/restaurant_table.dart';
 import '../cashier/cashier_screen.dart';
+import '../orders/orders_provider.dart';
+import '../settings/sync_qr_widget.dart';
+import 'floor_plan_canvas.dart';
 import 'tables_provider.dart';
 
 class TablesScreen extends StatefulWidget {
@@ -16,6 +19,8 @@ class TablesScreen extends StatefulWidget {
 
 class _TablesScreenState extends State<TablesScreen> {
   bool _isDeleteMode = false;
+  bool _isDesignMode = false;
+  bool _isFloorPlanView = true;
 
   @override
   void initState() {
@@ -216,46 +221,219 @@ class _TablesScreenState extends State<TablesScreen> {
       appBar: AppBar(
         title: const Text("إدارة الطاولات ومبيعات الصالة"),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const SyncQrDialog(),
+                );
+              },
+              icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
+              label: const Text('ربط النادل 📱', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 2,
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Delete Mode Toggle Button (Next to Add Table button)
-          FloatingActionButton.extended(
-            heroTag: 'delete_mode_btn',
-            onPressed: () {
-              setState(() {
-                _isDeleteMode = !_isDeleteMode;
-              });
-            },
-            backgroundColor: _isDeleteMode ? Colors.red.shade700 : Colors.red.shade50,
-            elevation: _isDeleteMode ? 6 : 2,
-            icon: Icon(
-              _isDeleteMode ? Icons.close : Icons.delete_outline_rounded,
-              color: _isDeleteMode ? Colors.white : Colors.red.shade700,
+          if (_isDesignMode) ...[
+            FloatingActionButton.extended(
+              heroTag: 'save_design_btn',
+              onPressed: () {
+                setState(() {
+                  _isDesignMode = false;
+                });
+              },
+              backgroundColor: Colors.purple.shade700,
+              icon: const Icon(Icons.check, color: Colors.white),
+              label: const Text('حفظ الأماكن 💾', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-            label: Text(
-              _isDeleteMode ? 'إنهاء وضع الحذف' : 'حذف طاولة',
-              style: TextStyle(
-                color: _isDeleteMode ? Colors.white : Colors.red.shade700,
-                fontWeight: FontWeight.bold,
+            const SizedBox(width: 10),
+          ],
+          if (_isDeleteMode) ...[
+            FloatingActionButton.extended(
+              heroTag: 'exit_delete_btn',
+              onPressed: () {
+                setState(() {
+                  _isDeleteMode = false;
+                });
+              },
+              backgroundColor: Colors.red.shade700,
+              icon: const Icon(Icons.close, color: Colors.white),
+              label: const Text('إلغاء وضع الحذف', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 10),
+          ],
+          PopupMenuButton<String>(
+            tooltip: 'خصائص الطاولات',
+            offset: const Offset(0, -190),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: const Color(0xFF1F2937),
+            elevation: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.menu, color: Colors.white, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    'خيارات الطاولات',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Add Table Button
-          FloatingActionButton.extended(
-            heroTag: 'add_table_btn',
-            onPressed: () => _showAddTableDialog(context),
-            backgroundColor: AppColors.primary,
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text("إضافة طاولة جديدة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            onSelected: (value) {
+              if (value == 'add') {
+                _showAddTableDialog(context);
+              } else if (value == 'move') {
+                setState(() {
+                  _isDesignMode = !_isDesignMode;
+                  if (_isDesignMode) _isDeleteMode = false;
+                });
+              } else if (value == 'delete') {
+                setState(() {
+                  _isDeleteMode = !_isDeleteMode;
+                  if (_isDeleteMode) _isDesignMode = false;
+                });
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'add',
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.green, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('إضافة طاولة جديدة ➕', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'move',
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _isDesignMode ? Icons.check : Icons.open_with_rounded,
+                        color: Colors.purpleAccent,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _isDesignMode ? 'حفظ الأماكن 💾' : 'تغير مكان الطاولة 📐',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _isDeleteMode ? Icons.close : Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _isDeleteMode ? 'إلغاء وضع الحذف' : 'حذف طاولة 🗑️',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
       body: Column(
         children: [
+          // Banner notice for Design Mode
+          if (_isDesignMode && _isFloorPlanView)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.purple.shade100,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.open_with_rounded,
+                    color: Colors.purple.shade900,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '📐 وضع التنسيق مفعّل: اضغط باستمرار على أي طاولة واسحبها بأي اتجاه في الصالة لتحديد موقعها المطابق لمطعمك.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple.shade900,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _isDesignMode = false;
+                      });
+                    },
+                    icon: const Icon(Icons.check, size: 18, color: Colors.white),
+                    label: const Text('حفظ الإحداثيات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Only show delete mode header bar when delete mode is active
           if (_isDeleteMode)
             AnimatedContainer(
@@ -301,14 +479,24 @@ class _TablesScreenState extends State<TablesScreen> {
                 ? const Center(
                     child: Text("لا توجد طاولات مضافة حالياً", style: TextStyle(fontSize: 18, color: Colors.grey)),
                   )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
+                : _isFloorPlanView
+                    ? FloorPlanCanvas(
+                        tables: tables,
+                        isDesignMode: _isDesignMode,
+                        isDeleteMode: _isDeleteMode,
+                        onTableTap: (table) => _openCashierForTable(table),
+                        onDeleteTable: (table) => _confirmDeleteTable(context, table),
+                        onTransferTable: (table) => _showTransferTableDialog(context, table),
+                        onEditTable: (table) => _showEditTableDialog(context, table),
+                      )
+                    : GridView.builder(
+                    padding: const EdgeInsets.all(12),
                     itemCount: tables.length,
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 220,
-                      childAspectRatio: 1.05,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
+                      maxCrossAxisExtent: 160,
+                      childAspectRatio: 1.1,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
                     ),
                     itemBuilder: (context, index) {
                       final table = tables[index];
@@ -317,16 +505,16 @@ class _TablesScreenState extends State<TablesScreen> {
                       final statusText = isOccupied ? "مشغولة" : "شاغرة";
 
                       Widget cardContent = Card(
-                        elevation: _isDeleteMode ? 6 : 4,
+                        elevation: _isDeleteMode ? 5 : 3,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                           side: BorderSide(
                             color: _isDeleteMode ? Colors.red : color.withValues(alpha: 0.6),
-                            width: _isDeleteMode ? 2.5 : 2,
+                            width: _isDeleteMode ? 2 : 1.5,
                           ),
                         ),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                           onTap: () {
                             if (_isDeleteMode) {
                               _confirmDeleteTable(context, table);
@@ -337,44 +525,44 @@ class _TablesScreenState extends State<TablesScreen> {
                           child: Stack(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     // Table Icon & Status
                                     Icon(
                                       Icons.table_restaurant,
-                                      size: 34,
+                                      size: 26,
                                       color: _isDeleteMode ? Colors.red : color,
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 2),
                                     Text(
                                       table.name,
                                       style: const TextStyle(
-                                        fontSize: 16,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.bold,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 1),
                                     Text(
                                       "السعة: ${table.capacity} شخص",
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 11),
+                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 10),
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 4),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: color.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
                                         statusText,
                                         style: TextStyle(
                                           color: color,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 11,
+                                          fontSize: 10,
                                         ),
                                       ),
                                     ),
@@ -416,7 +604,9 @@ class _TablesScreenState extends State<TablesScreen> {
                                         icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
                                         tooltip: 'خيارات التحكم بالطاولة',
                                         onSelected: (value) async {
-                                          if (value == 'edit') {
+                                          if (value == 'transfer') {
+                                            _showTransferTableDialog(context, table);
+                                          } else if (value == 'edit') {
                                             _showEditTableDialog(context, table);
                                           } else if (value == 'toggle_status') {
                                             final newStatus = table.status == 1 ? 0 : 1;
@@ -424,6 +614,17 @@ class _TablesScreenState extends State<TablesScreen> {
                                           }
                                         },
                                         itemBuilder: (popCtx) => [
+                                          if (isOccupied)
+                                            const PopupMenuItem(
+                                              value: 'transfer',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.swap_horiz_rounded, size: 18, color: Colors.orange),
+                                                  SizedBox(width: 8),
+                                                  Text('تحويل الفاتورة إلى طاولة أخرى'),
+                                                ],
+                                              ),
+                                            ),
                                           const PopupMenuItem(
                                             value: 'edit',
                                             child: Row(
@@ -533,6 +734,116 @@ class _TablesScreenState extends State<TablesScreen> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showTransferTableDialog(BuildContext context, RestaurantTable sourceTable) async {
+    final tablesProvider = context.read<TablesProvider>();
+    final ordersProvider = context.read<OrdersProvider>();
+    final availableTables = tablesProvider.tables.where((t) => t.id != sourceTable.id).toList();
+
+    if (availableTables.isEmpty) {
+      TopNotification.showWarning(context, 'لا توجد طاولات أخرى متاحة للتحويل إليها.');
+      return;
+    }
+
+    RestaurantTable? selectedTargetTable = availableTables.first;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              const Icon(Icons.swap_horiz_rounded, color: Colors.orange, size: 28),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تحويل فاتورة (${sourceTable.name})',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'اختر الطاولة التي تريد نقل تحويل الفاتورة والحساب إليها:',
+                style: TextStyle(fontSize: 13, color: Colors.black87),
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<RestaurantTable>(
+                value: selectedTargetTable,
+                decoration: InputDecoration(
+                  labelText: 'الطاولة الهدف *',
+                  prefixIcon: const Icon(Icons.table_restaurant, color: Colors.orange),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  isDense: true,
+                ),
+                items: availableTables.map((table) {
+                  final isOcc = table.status == 1;
+                  return DropdownMenuItem<RestaurantTable>(
+                    value: table,
+                    child: Text(
+                      '${table.name} (${isOcc ? "مشغولة - سيتم دمج الطلبات" : "شاغرة"})',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isOcc ? Colors.red.shade700 : Colors.green.shade700,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() {
+                      selectedTargetTable = val;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade800,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+              label: const Text('تأكيد التحويل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              onPressed: () async {
+                if (selectedTargetTable == null) return;
+                Navigator.pop(ctx);
+
+                final targetName = selectedTargetTable!.name;
+                final success = await ordersProvider.transferTableOrder(
+                  sourceTableId: sourceTable.id!,
+                  targetTableId: selectedTargetTable!.id!,
+                );
+
+                if (!context.mounted) return;
+                await tablesProvider.loadTables();
+                if (!context.mounted) return;
+                if (success) {
+                  TopNotification.showSuccess(
+                    context,
+                    '🎉 تم تحويل فاتورة (${sourceTable.name}) إلى ($targetName) بنجاح!',
+                  );
+                } else {
+                  TopNotification.showWarning(context, '⚠️ لا يوجد طلب مفتوح على هذه الطاولة للتحويل.');
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

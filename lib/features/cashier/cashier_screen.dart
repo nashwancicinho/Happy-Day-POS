@@ -16,6 +16,8 @@ import '../orders/orders_provider.dart';
 import '../products/products_provider.dart';
 import '../settings/settings_provider.dart';
 import '../shifts/shifts_provider.dart';
+import '../tables/tables_provider.dart';
+import 'widgets/refund_dialog.dart';
 
 class CashierScreen extends StatefulWidget {
   final RestaurantTable? selectedTable;
@@ -842,43 +844,55 @@ class _CashierScreenState extends State<CashierScreen> {
     }
   }
 
-  void _cancelOrderAndGoHome() {
-    if (_cart.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
-            children: [
-              Icon(Icons.cancel_outlined, color: Colors.red, size: 28),
-              SizedBox(width: 10),
-              Text('تأكيد إلغاء الفاتورة'),
-            ],
-          ),
-          content: const Text(
-            'هل أنت تأكد من إلغاء الفاتورة وتفريغ سلة المواد والعودة للشاشة الرئيسية؟',
-            style: TextStyle(fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('تراجع (البقاء)'),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                Navigator.pop(ctx);
-                TopNotification.showInfo(context, 'تم إلغاء الفاتورة والتراجع عن الطلب.');
-                _finishOrderFlowNavigation();
-              },
-              icon: const Icon(Icons.delete_forever, color: Colors.white),
-              label: const Text('نعم، إلغاء والعودة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+  Future<void> _cancelOrderAndGoHome() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.cancel_outlined, color: Colors.red, size: 28),
+            SizedBox(width: 10),
+            Text('تأكيد إلغاء الفاتورة', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-      );
-    } else {
-      _finishOrderFlowNavigation();
+        content: Text(
+          widget.selectedTable != null
+              ? 'هل أنت تأكد من إلغاء فاتورة ${widget.selectedTable!.name} وإخلاء الطاولة بالكامل؟'
+              : 'هل أنت تأكد من إلغاء الفاتورة وتفريغ سلة المواد والعودة للشاشة الرئيسية؟',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('تراجع (البقاء)'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.delete_forever, color: Colors.white),
+            label: const Text('نعم، إلغاء الفاتورة وإخلاء الطاولة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      if (widget.selectedTable?.id != null) {
+        final tableId = widget.selectedTable!.id!;
+        await context.read<OrdersProvider>().cancelTableOrder(tableId);
+        await context.read<TablesProvider>().loadTables();
+      }
+
+      if (mounted) {
+        setState(() {
+          _cart.clear();
+          _existingOrderId = null;
+        });
+
+        TopNotification.showSuccess(context, 'تم إلغاء الفاتورة وإخلاء الطاولة بنجاح ❌');
+        _finishOrderFlowNavigation();
+      }
     }
   }
 
@@ -1536,6 +1550,13 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
+  Future<void> _showRefundDialog() async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => const RefundDialog(),
+    );
+  }
+
   Future<void> _showDiscountDialog() async {
     if (_cart.isEmpty) {
       TopNotification.showWarning(context, 'سلة الطلب فارغة! قم بإضافة مواد أولاً قبل تفعيل الخصم.');
@@ -1859,6 +1880,17 @@ class _CashierScreenState extends State<CashierScreen> {
               onTap: _openCashDrawer,
             ),
           ),
+          const SizedBox(width: 8),
+
+          // 6. استرجاع الفواتير (Refund)
+          Expanded(
+            child: _aroniumActionButton(
+              label: 'استرجاع الفواتير',
+              icon: Icons.assignment_return_rounded,
+              color: Colors.red.shade700,
+              onTap: _showRefundDialog,
+            ),
+          ),
         ],
       ),
     );
@@ -1944,11 +1976,6 @@ class _CashierScreenState extends State<CashierScreen> {
               : 'الكاشير نقطة البيع',
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.meeting_room_rounded, color: Colors.white),
-            tooltip: 'فتح درج النقدية',
-            onPressed: _openCashDrawer,
-          ),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1977,6 +2004,12 @@ class _CashierScreenState extends State<CashierScreen> {
               ),
             ),
           ),
+          IconButton(
+            tooltip: 'إدارة استرجاع الفواتير والمواد',
+            icon: const Icon(Icons.assignment_return_rounded, color: Colors.white),
+            onPressed: _showRefundDialog,
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoadingTableOrder
@@ -2221,21 +2254,20 @@ class _CashierScreenState extends State<CashierScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Action Button (Cancel Invoice & Return Home)
+                      // Action Button (Cancel Invoice)
                       SizedBox(
                         width: double.infinity,
                         height: 46,
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           onPressed: _cancelOrderAndGoHome,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.shade700,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.cancel_outlined),
-                          label: const Text(
-                            '🚫 إلغاء الفاتورة والعودة للرئيسية',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          child: const Text(
+                            'إلغاء الفاتورة',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -2532,5 +2564,54 @@ class _CashierScreenState extends State<CashierScreen> {
         );
       },
     );
+  }
+
+  Future<void> _confirmCancelTableOrder(BuildContext context) async {
+    if (widget.selectedTable?.id == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Text('تأكيد إلغاء الفاتورة', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text('هل أنت تأكد من رغبتك في إلغاء فاتورة ${widget.selectedTable!.name} وإخلاء الطاولة بالكامل؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('نعم، إلغاء الفاتورة وإخلاء الطاولة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final tableId = widget.selectedTable!.id!;
+      final ordersProvider = context.read<OrdersProvider>();
+      final tablesProvider = context.read<TablesProvider>();
+
+      await ordersProvider.cancelTableOrder(tableId);
+      await tablesProvider.loadTables();
+
+      if (mounted) {
+        setState(() {
+          _cart.clear();
+          _existingOrderId = null;
+        });
+
+        TopNotification.showSuccess(context, 'تم إلغاء فاتورة ${widget.selectedTable!.name} وإخلاء الطاولة بنجاح ❌');
+        Navigator.pop(context);
+      }
+    }
   }
 }

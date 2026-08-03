@@ -697,4 +697,198 @@ class OrdersRepository {
       );
     }).toList();
   }
+
+  /// تحويل الفاتورة المفتوحة من طاولة إلى طاولة أخرى (دمج الأصناف إذا كانت الطاولة المستقبلة مشغولة)
+  Future<bool> transferTableOrder({
+    required int sourceTableId,
+    required int targetTableId,
+  }) async {
+    final db = await _databaseHelper.database;
+
+    return await db.transaction((txn) async {
+      // 1. Get open order for source table
+      final sourceOrders = await txn.rawQuery('''
+        SELECT id FROM orders
+        WHERE table_id = ? AND status IN ('OPEN', 'SUSPENDED')
+        ORDER BY id DESC
+        LIMIT 1
+      ''', [sourceTableId]);
+
+      if (sourceOrders.isEmpty) return false;
+      final sourceOrderId = sourceOrders.first['id'] as int;
+
+      // 2. Check if target table has an open order
+      final targetOrders = await txn.rawQuery('''
+        SELECT id FROM orders
+        WHERE table_id = ? AND status IN ('OPEN', 'SUSPENDED')
+        ORDER BY id DESC
+        LIMIT 1
+      ''', [targetTableId]);
+
+      if (targetOrders.isNotEmpty) {
+        final targetOrderId = targetOrders.first['id'] as int;
+
+        // Copy source order items to target order
+        final sourceItems = await txn.query('order_items', where: 'order_id = ?', whereArgs: [sourceOrderId]);
+        for (final itemMap in sourceItems) {
+          final item = OrderItemModel.fromMap(itemMap);
+          final updatedItem = item.copyWith(id: null, orderId: targetOrderId);
+          await txn.insert('order_items', updatedItem.toMap());
+        }
+
+        // Recalculate target order total
+        final allTargetItems = await txn.rawQuery('''
+          SELECT SUM((price * quantity) - discount) as new_total
+          FROM order_items
+          WHERE order_id = ?
+        ''', [targetOrderId]);
+
+        final newTotal = (allTargetItems.first['new_total'] as num? ?? 0.0).toDouble();
+        await txn.update('orders', {'total': newTotal}, where: 'id = ?', whereArgs: [targetOrderId]);
+
+        // Delete source order
+        await txn.delete('order_items', where: 'order_id = ?', whereArgs: [sourceOrderId]);
+        await txn.delete('orders', where: 'id = ?', whereArgs: [sourceOrderId]);
+      } else {
+        // Transfer source order to target table
+        await txn.update(
+          'orders',
+          {'table_id': targetTableId},
+          where: 'id = ?',
+          whereArgs: [sourceOrderId],
+        );
+      }
+
+      // 3. Update table statuses: source -> vacant (0), target -> occupied (1)
+      await txn.update('restaurant_tables', {'status': 0}, where: 'id = ?', whereArgs: [sourceTableId]);
+      await txn.update('restaurant_tables', {'status': 1}, where: 'id = ?', whereArgs: [targetTableId]);
+
+      return true;
+    });
+  }
+
+  /// استرجاع الفاتورة بالكامل (Refund Full Order) - إعادة المخزن وخفض المبيعات والوارد
+  Future<bool> refundFullOrder(int orderId) async {
+    final db = await _databaseHelper.database;
+    return await db.transaction((txn) async {
+      final orderMaps = await txn.query('orders', where: 'id = ?', whereArgs: [orderId]);
+      if (orderMaps.isEmpty) return false;
+
+      final orderStatus = orderMaps.first['status'] as String;
+      if (orderStatus == 'REFUNDED') return false; // Already refunded
+
+      // 1. Restock items into inventory
+      final items = await txn.query('order_items', where: 'order_id = ?', whereArgs: [orderId]);
+      for (final item in items) {
+        final productId = item['product_id'] as int;
+        final qty = (item['quantity'] as num).toDouble();
+        await txn.rawUpdate('''
+          UPDATE products
+          SET stock_quantity = stock_quantity + ?
+          WHERE id = ? AND track_stock = 1
+        ''', [qty, productId]);
+      }
+
+      // 2. Update order status to REFUNDED
+      await txn.update(
+        'orders',
+        {'status': 'REFUNDED'},
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+
+      // 3. Free table if linked
+      final tableId = orderMaps.first['table_id'] as int?;
+      if (tableId != null) {
+        await txn.update('restaurant_tables', {'status': 0}, where: 'id = ?', whereArgs: [tableId]);
+      }
+
+      return true;
+    });
+  }
+
+  /// استرجاع جزئي لصنف محدد في الفاتورة (Partial Item Refund) - إعادة الكمية وإعادة حساب المجموع
+  Future<bool> refundOrderItem({
+    required int orderId,
+    required int orderItemId,
+    required double refundQuantity,
+  }) async {
+    final db = await _databaseHelper.database;
+    return await db.transaction((txn) async {
+      final itemMaps = await txn.query('order_items', where: 'id = ? AND order_id = ?', whereArgs: [orderItemId, orderId]);
+      if (itemMaps.isEmpty) return false;
+
+      final currentQty = (itemMaps.first['quantity'] as num).toDouble();
+      final productId = itemMaps.first['product_id'] as int;
+
+      final actualRefundQty = refundQuantity > currentQty ? currentQty : refundQuantity;
+
+      // 1. Restock returned quantity in inventory
+      await txn.rawUpdate('''
+        UPDATE products
+        SET stock_quantity = stock_quantity + ?
+        WHERE id = ? AND track_stock = 1
+      ''', [actualRefundQty, productId]);
+
+      if (actualRefundQty >= currentQty) {
+        // Remove item completely
+        await txn.delete('order_items', where: 'id = ?', whereArgs: [orderItemId]);
+      } else {
+        // Reduce item quantity
+        final newQty = currentQty - actualRefundQty;
+        await txn.update('order_items', {'quantity': newQty}, where: 'id = ?', whereArgs: [orderItemId]);
+      }
+
+      // 2. Recalculate order total
+      final remainingItems = await txn.rawQuery('''
+        SELECT SUM((price * quantity) - discount) as new_total
+        FROM order_items
+        WHERE order_id = ?
+      ''', [orderId]);
+
+      final newTotal = (remainingItems.first['new_total'] as num? ?? 0.0).toDouble();
+
+      if (newTotal <= 0) {
+        await txn.update('orders', {'status': 'REFUNDED', 'total': 0}, where: 'id = ?', whereArgs: [orderId]);
+      } else {
+        await txn.update('orders', {'total': newTotal}, where: 'id = ?', whereArgs: [orderId]);
+      }
+
+      return true;
+    });
+  }
+
+  Future<bool> cancelTableOrder(int tableId) async {
+    final db = await _databaseHelper.database;
+    return await db.transaction((txn) async {
+      final openOrders = await txn.rawQuery('''
+        SELECT id FROM orders
+        WHERE table_id = ? AND status NOT IN ('COMPLETED', 'REFUNDED')
+      ''', [tableId]);
+
+      for (final orderMap in openOrders) {
+        final orderId = orderMap['id'] as int;
+        await txn.delete(
+          'order_items',
+          where: 'order_id = ?',
+          whereArgs: [orderId],
+        );
+        await txn.update(
+          'orders',
+          {'status': 'CANCELLED', 'total': 0},
+          where: 'id = ?',
+          whereArgs: [orderId],
+        );
+      }
+
+      await txn.update(
+        'restaurant_tables',
+        {'status': 0},
+        where: 'id = ?',
+        whereArgs: [tableId],
+      );
+
+      return true;
+    });
+  }
 }

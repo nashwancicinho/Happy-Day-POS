@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/services/print_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_notification.dart';
 import '../../../models/category.dart';
@@ -219,6 +220,11 @@ class ProductsScreen extends StatelessWidget {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
+                                            icon: const Icon(Icons.qr_code_scanner, color: Colors.purple),
+                                            tooltip: 'طباعة ملصق الباركود',
+                                            onPressed: () => _showPrintBarcodeQuantityDialog(context, product),
+                                          ),
+                                          IconButton(
                                             icon: const Icon(Icons.edit, color: Colors.blue),
                                             tooltip: 'تعديل البيانات',
                                             onPressed: () => _showProductDialog(context, product: product),
@@ -370,7 +376,7 @@ class ProductsScreen extends StatelessWidget {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.grey.shade200,
                                     foregroundColor: Colors.black87,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                   onPressed: () {
@@ -382,6 +388,37 @@ class ProductsScreen extends StatelessWidget {
                                   },
                                   icon: const Icon(Icons.auto_fix_high, size: 18),
                                   label: const Text('توليد باركود'),
+                                ),
+                                const SizedBox(width: 6),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.purple.shade50,
+                                    foregroundColor: Colors.purple.shade900,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(color: Colors.purple.shade300),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    final bCode = barcodeController.text.trim();
+                                    final pName = nameController.text.trim();
+                                    if (pName.isEmpty) {
+                                      TopNotification.showWarning(context, 'يرجى كتابة اسم المادة أولاً لطباعة الباركود.');
+                                      return;
+                                    }
+                                    final tempProduct = ProductModel(
+                                      id: product?.id ?? 999,
+                                      name: pName,
+                                      price: double.tryParse(sellPriceController.text.trim()) ?? 0.0,
+                                      buyPrice: double.tryParse(buyPriceController.text.trim()) ?? 0.0,
+                                      barcode: bCode.isNotEmpty ? bCode : generateRandomBarcode(),
+                                      categoryId: selectedCatId ?? 1,
+                                    );
+                                    _showPrintBarcodeQuantityDialog(context, tempProduct);
+                                  },
+                                  icon: const Icon(Icons.print_rounded, size: 18, color: Colors.purple),
+                                  label: const Text('طباعة باركود', style: TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -730,6 +767,95 @@ class ProductsScreen extends StatelessWidget {
     return Text(
       title,
       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary),
+    );
+  }
+
+  Future<void> _showPrintBarcodeQuantityDialog(BuildContext context, ProductModel product) async {
+    final qtyController = TextEditingController(text: '1');
+    final settings = context.read<SettingsProvider>();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(
+          children: [
+            const Icon(Icons.qr_code_scanner, color: Colors.purple, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'طباعة باركود: ${product.name}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'الباركود: ${product.barcode ?? "توليد تلقائي"}',
+              style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'السعر: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}',
+              style: TextStyle(fontSize: 13, color: Colors.green.shade800),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.purple),
+              decoration: InputDecoration(
+                labelText: 'عدد ملصقات الباركود المطلوبة (الكمية) *',
+                prefixIcon: const Icon(Icons.copy, color: Colors.purple),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple.shade700,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.print, color: Colors.white),
+            label: const Text('طباعة الملصقات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              final count = int.tryParse(qtyController.text.trim()) ?? 1;
+              if (count <= 0) {
+                TopNotification.showWarning(ctx, 'يرجى أدخال عدد ملصقات صحيح أكبر من الصفر');
+                return;
+              }
+              Navigator.pop(ctx);
+
+              TopNotification.showInfo(context, '🖨️ جاري إرسال $count ملصق باركود إلى طابعة الباركود...');
+              final success = await PrintService.printBarcodeLabel(
+                product: product,
+                labelCount: count,
+                settings: settings,
+              );
+
+              if (context.mounted) {
+                if (success) {
+                  TopNotification.showSuccess(context, '🎉 تم إرسال $count ملصق باركود للطابعة بنجاح!');
+                } else {
+                  TopNotification.showWarning(context, '⚠️ تعذر إرسال امر الطباعة. تحقق من توصيل طابعة الباركود والإعدادات.');
+                }
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 }

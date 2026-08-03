@@ -21,8 +21,11 @@ class SettingsProvider extends ChangeNotifier {
   String get cashierPrinter => _settings['cashier_printer'] ?? 'طابعة الكاشير الرئيسية (POS-80)';
   String get kitchenPrinter => _settings['kitchen_printer'] ?? 'طابعة المطبخ الحرارية (KOT-Kitchen)';
   String get reportsPrinter => _settings['reports_printer'] ?? 'طابعة النظام الافتراضية (Default Printer)';
+  String get barcodePrinter => _settings['barcode_printer'] ?? 'طابعة ملصقات الباركود (Barcode Printer)';
   String get storeLogoPath => _settings['store_logo_path'] ?? '';
   String get themeColorHex => _settings['primary_color'] ?? '#FF9800';
+  String get backupFolderPath => _settings['backup_folder_path'] ?? '';
+
 
   Color get primaryColor {
     final hex = themeColorHex.replaceAll('#', '');

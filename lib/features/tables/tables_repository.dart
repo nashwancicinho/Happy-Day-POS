@@ -80,4 +80,22 @@ class TablesRepository {
       whereArgs: [id],
     );
   }
+
+  Future<void> updateTablePosition(int id, double posX, double posY, {double? width, double? height, String? shape}) async {
+    final db = await _databaseHelper.database;
+    final Map<String, dynamic> data = {
+      'pos_x': posX,
+      'pos_y': posY,
+    };
+    if (width != null) data['width'] = width;
+    if (height != null) data['height'] = height;
+    if (shape != null) data['shape'] = shape;
+
+    await db.update(
+      'restaurant_tables',
+      data,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

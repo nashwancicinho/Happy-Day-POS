@@ -139,26 +139,26 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
             // 1. TOP LOGO (Custom Image or Preset Icon)
             if (settings.storeLogoPath.isNotEmpty && File(settings.storeLogoPath).existsSync())
               Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
+                padding: const EdgeInsets.only(bottom: 10.0),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: Image.file(
                     File(settings.storeLogoPath),
-                    height: 95,
+                    height: 145,
                     fit: BoxFit.contain,
                   ),
                 ),
               )
             else
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _getLogoIconData(logoIconName),
-                  size: 48,
+                  size: 72,
                   color: AppColors.primary,
                 ),
               ),
@@ -264,9 +264,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
             // ITEMS TABLE HEADER
             Row(
               children: const [
-                Expanded(flex: 3, child: Text('الصنف / المادة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                Expanded(child: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(flex: 2, child: Text('المجموع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.end)),
+                Expanded(flex: 6, child: Text('الصنف / المادة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                Expanded(flex: 2, child: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('المجموع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.end)),
               ],
             ),
             const Divider(height: 8),
@@ -278,7 +278,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 3,
+                      flex: 6,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -288,9 +288,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                         ],
                       ),
                     ),
-                    Expanded(child: Text(item.formattedQuantity, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
+                    Expanded(flex: 2, child: Text(item.formattedQuantity, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
                     Expanded(
-                      flex: 2,
+                      flex: 3,
                       child: Text(
                         '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
                         style: const TextStyle(fontSize: 12),
