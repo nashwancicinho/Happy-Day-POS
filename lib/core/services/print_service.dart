@@ -140,8 +140,15 @@ class PrintService {
     double changeDue = 0.0,
   }) async {
     try {
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+      pw.Font arabicFont;
+      pw.Font arabicFontBold;
+      try {
+        arabicFont = await PdfGoogleFonts.amiriRegular();
+        arabicFontBold = await PdfGoogleFonts.amiriBold();
+      } catch (_) {
+        arabicFont = await PdfGoogleFonts.cairoRegular();
+        arabicFontBold = await PdfGoogleFonts.cairoBold();
+      }
 
       // Load logo image if path exists
       pw.MemoryImage? logoImage;
@@ -222,7 +229,7 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         settings.storeAddress,
-                        style: const pw.TextStyle(fontSize: 9),
+                        style: const pw.TextStyle(fontSize: 9.5),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -230,7 +237,7 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         'هاتف: ${settings.storePhone}',
-                        style: const pw.TextStyle(fontSize: 9),
+                        style: const pw.TextStyle(fontSize: 9.5),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -238,7 +245,7 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         settings.receiptHeader,
-                        style: const pw.TextStyle(fontSize: 9),
+                        style: const pw.TextStyle(fontSize: 9.5),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -251,7 +258,7 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         'طاولة: $cleanTable',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
                         textAlign: pw.TextAlign.center,
                       ),
                     )
@@ -259,7 +266,7 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         'نوع الطلب: $typeText',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -268,17 +275,45 @@ class PrintService {
                   pw.Center(
                     child: pw.Text(
                       'التاريخ: $formattedDate',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
                       textAlign: pw.TextAlign.center,
                     ),
                   ),
                   pw.Center(
                     child: pw.Text(
                       'الوقت: $formattedTime',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
                       textAlign: pw.TextAlign.center,
                     ),
                   ),
+
+                  // Delivery Customer Info Block
+                  if (order.orderType == 'DELIVERY' ||
+                      (order.customerPhone != null && order.customerPhone!.isNotEmpty) ||
+                      (order.customerAddress != null && order.customerAddress!.isNotEmpty)) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(5),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.black, width: 0.8),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('--- بيانات التوصيل والزبون ---', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5), textAlign: pw.TextAlign.center),
+                          if (order.customerName != null && order.customerName!.isNotEmpty)
+                            pw.Text('اسم الزبون: ${order.customerName}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                          if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
+                            pw.Text('هاتف الزبون: ${order.customerPhone}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
+                          if (order.customerAddress != null && order.customerAddress!.isNotEmpty)
+                            pw.Text('عنوان التوصيل: ${order.customerAddress}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   pw.Divider(thickness: 1),
 
                   // 4. Items Table Header
@@ -287,10 +322,10 @@ class PrintService {
                     child: pw.Row(
                       children: [
                         pw.Expanded(
-                          flex: 6,
+                          flex: 7,
                           child: pw.Text(
                             'الصنف / المادة',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
                             textAlign: pw.TextAlign.right,
                           ),
                         ),
@@ -298,7 +333,7 @@ class PrintService {
                           flex: 2,
                           child: pw.Text(
                             'الكمية',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
                             textAlign: pw.TextAlign.center,
                           ),
                         ),
@@ -306,7 +341,7 @@ class PrintService {
                           flex: 3,
                           child: pw.Text(
                             'المجموع',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
                             textAlign: pw.TextAlign.left,
                           ),
                         ),
@@ -322,26 +357,27 @@ class PrintService {
                         : 'صنف #${item.productId}';
                     final pName = rawName.replaceAll(RegExp(r'\s+'), ' ').trim();
                     return pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
+                      padding: const pw.EdgeInsets.symmetric(vertical: 3),
                       child: pw.Row(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Expanded(
-                            flex: 6,
+                            flex: 7,
                             child: pw.Column(
-                              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
                                 pw.Text(
                                   pName,
-                                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
                                   textAlign: pw.TextAlign.right,
                                   softWrap: true,
                                 ),
                                 if (item.notes != null && item.notes!.isNotEmpty)
                                   pw.Text(
                                     'ملاحظة: ${item.notes}',
-                                    style: const pw.TextStyle(fontSize: 7.5),
+                                    style: const pw.TextStyle(fontSize: 8.5),
                                     textAlign: pw.TextAlign.right,
+                                    softWrap: true,
                                   ),
                               ],
                             ),
@@ -350,7 +386,7 @@ class PrintService {
                             flex: 2,
                             child: pw.Text(
                               item.formattedQuantity,
-                              style: const pw.TextStyle(fontSize: 9),
+                              style: const pw.TextStyle(fontSize: 10),
                               textAlign: pw.TextAlign.center,
                             ),
                           ),
@@ -358,7 +394,7 @@ class PrintService {
                             flex: 3,
                             child: pw.Text(
                               '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
-                              style: const pw.TextStyle(fontSize: 9),
+                              style: const pw.TextStyle(fontSize: 10),
                               textAlign: pw.TextAlign.left,
                             ),
                           ),
@@ -372,23 +408,23 @@ class PrintService {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                      pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                      pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11.5)),
+                      pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11.5)),
                     ],
                   ),
                   if (cashPaid > 0) ...[
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9)),
-                        pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9.5)),
+                        pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
                       ],
                     ),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9)),
-                        pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9.5)),
+                        pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
                       ],
                     ),
                   ],
@@ -399,7 +435,7 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         settings.receiptFooter,
-                        style: const pw.TextStyle(fontSize: 9),
+                        style: const pw.TextStyle(fontSize: 9.5),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -436,8 +472,15 @@ class PrintService {
         return true;
       }
 
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+      pw.Font arabicFont;
+      pw.Font arabicFontBold;
+      try {
+        arabicFont = await PdfGoogleFonts.amiriRegular();
+        arabicFontBold = await PdfGoogleFonts.amiriBold();
+      } catch (_) {
+        arabicFont = await PdfGoogleFonts.cairoRegular();
+        arabicFontBold = await PdfGoogleFonts.cairoBold();
+      }
 
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(
