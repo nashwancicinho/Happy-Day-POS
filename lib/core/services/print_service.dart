@@ -236,7 +236,7 @@ class PrintService {
                   if (settings.storePhone.isNotEmpty)
                     pw.Center(
                       child: pw.Text(
-                        'هاتف: ${settings.storePhone}',
+                        settings.storePhone,
                         style: const pw.TextStyle(fontSize: 9.5),
                         textAlign: pw.TextAlign.center,
                       ),
