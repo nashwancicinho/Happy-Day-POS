@@ -16,6 +16,7 @@ import '../products/products_provider.dart';
 import '../purchases/purchases_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
+import '../settings/settings_provider.dart';
 import '../tables/tables_screen.dart';
 import '../users/users_screen.dart';
 import 'home_operation_screen.dart';
