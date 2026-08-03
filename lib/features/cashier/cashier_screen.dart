@@ -1826,6 +1826,8 @@ class _CashierScreenState extends State<CashierScreen> {
 
 
   Widget _buildAroniumQuickActionBar(BuildContext context) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       padding: const EdgeInsets.all(8),
@@ -1845,7 +1847,7 @@ class _CashierScreenState extends State<CashierScreen> {
           // 1. كاش (Cash)
           Expanded(
             child: _aroniumActionButton(
-              label: 'الدفع Cash',
+              label: isEng ? 'Pay Cash 💵' : 'الدفع Cash',
               icon: Icons.payments_rounded,
               color: Colors.green.shade700,
               onTap: () => _submitOrderAndPrint(paymentMethod: 'CASH'),
@@ -1856,7 +1858,7 @@ class _CashierScreenState extends State<CashierScreen> {
           // 2. تعليق الفاتورة (Hold / Park)
           Expanded(
             child: _aroniumActionButton(
-              label: 'تعليق الفاتورة',
+              label: isEng ? 'Hold Order ⏸️' : 'تعليق الفاتورة',
               icon: Icons.pause_circle_filled_rounded,
               color: Colors.deepOrange,
               onTap: _holdOrderOnTable,
@@ -1867,10 +1869,12 @@ class _CashierScreenState extends State<CashierScreen> {
           // 3. خصم (Discount)
           Expanded(
             child: _aroniumActionButton(
-              label: _discountAmount > 0 ? 'خصم (${_discountAmount.toStringAsFixed(0)})' : 'إضافة خصم',
+              label: _discountAmount > 0
+                  ? (isEng ? 'Discount (${_discountAmount.toStringAsFixed(0)})' : 'خصم (${_discountAmount.toStringAsFixed(0)})')
+                  : (isEng ? 'Add Discount' : 'إضافة خصم'),
               icon: Icons.percent_rounded,
               color: Colors.purple.shade700,
-              badge: _discountAmount > 0 ? 'مفعل' : null,
+              badge: _discountAmount > 0 ? (isEng ? 'Active' : 'مفعل') : null,
               onTap: _showDiscountDialog,
             ),
           ),
@@ -1879,7 +1883,7 @@ class _CashierScreenState extends State<CashierScreen> {
           // 4. آجل / ديون (Credit / Debt)
           Expanded(
             child: _aroniumActionButton(
-              label: 'الدفع آجل (ديون)',
+              label: isEng ? 'Credit / Debt 📝' : 'الدفع آجل (ديون)',
               icon: Icons.account_balance_wallet_rounded,
               color: Colors.indigo.shade700,
               onTap: () => _submitOrderAndPrint(paymentMethod: 'CREDIT'),
@@ -1890,7 +1894,7 @@ class _CashierScreenState extends State<CashierScreen> {
           // 5. فتح الدرج (Open Drawer)
           Expanded(
             child: _aroniumActionButton(
-              label: 'فتح الدرج',
+              label: isEng ? 'Open Drawer 🔑' : 'فتح الدرج',
               icon: Icons.meeting_room_rounded,
               color: Colors.teal.shade800,
               onTap: _openCashDrawer,
@@ -1901,7 +1905,7 @@ class _CashierScreenState extends State<CashierScreen> {
           // 6. استرجاع الفواتير (Refund)
           Expanded(
             child: _aroniumActionButton(
-              label: 'استرجاع الفواتير',
+              label: isEng ? 'Refund Receipts ↩️' : 'استرجاع الفواتير',
               icon: Icons.assignment_return_rounded,
               color: Colors.red.shade700,
               onTap: _showRefundDialog,

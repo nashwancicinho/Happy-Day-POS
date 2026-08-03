@@ -171,22 +171,27 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                 ),
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  children: [
-                    _buildDrawerTile(0, Icons.home_outlined, Icons.home, "الرئيسية"),
-                    _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, "الطاولات"),
-                    _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, "الكاشير"),
-                    _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, "الأصناف"),
-                    _buildDrawerTile(4, Icons.category_outlined, Icons.category, "التصنيفات"),
-                    _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, "المخزن"),
-                    _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, "المشتريات والموردين"),
-                    _buildDrawerTile(7, Icons.people_outline, Icons.people, "المستخدمون"),
-                    _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, "سجل الديون"),
-                    _buildDrawerTile(9, Icons.bar_chart_outlined, Icons.bar_chart, "التقارير"),
-                    _buildDrawerTile(10, Icons.settings_outlined, Icons.settings, "الإعدادات"),
-                    _buildDrawerTile(11, Icons.lock_clock_outlined, Icons.lock_clock, "إغلاق اليوم"),
-                  ],
+                child: Consumer<SettingsProvider>(
+                  builder: (context, settings, _) {
+                    final isEng = settings.isEnglish;
+                    return ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEng ? "Home" : "الرئيسية"),
+                        _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEng ? "Tables Map" : "الطاولات"),
+                        _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEng ? "Cashier & POS" : "الكاشير"),
+                        _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, isEng ? "Products" : "الأصناف"),
+                        _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEng ? "Categories" : "التصنيفات"),
+                        _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEng ? "Inventory" : "المخزن"),
+                        _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEng ? "Purchases" : "المشتريات والموردين"),
+                        _buildDrawerTile(7, Icons.people_outline, Icons.people, isEng ? "Users & Roles" : "المستخدمون"),
+                        _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEng ? "Debts Log" : "سجل الديون"),
+                        _buildDrawerTile(9, Icons.bar_chart_outlined, Icons.bar_chart, isEng ? "Reports & Sales" : "التقارير"),
+                        _buildDrawerTile(10, Icons.settings_outlined, Icons.settings, isEng ? "Settings" : "الإعدادات"),
+                        _buildDrawerTile(11, Icons.lock_clock_outlined, Icons.lock_clock, isEng ? "Day Closing" : "إغلاق اليوم"),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
