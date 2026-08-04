@@ -990,17 +990,21 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
         27, 64,                  // ESC @ (Reset/Initialize Printer)
         16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Real-time pulse Pin 2)
         16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Real-time pulse Pin 5)
-        27, 112, 0, 60, 255,     // ESC p 0 (Pin 2, 120ms pulse)
-        27, 112, 48, 60, 255,    // ESC p '0' (Pin 2 ASCII)
-        27, 112, 1, 60, 255,     // ESC p 1 (Pin 5, 120ms pulse)
-        27, 112, 49, 60, 255,    // ESC p '1' (Pin 5 ASCII)
         27, 112, 0, 25, 250,     // ESC p 0 (Pin 2, 50ms pulse)
+        27, 112, 0, 50, 250,     // ESC p 0 (Pin 2, 100ms pulse)
+        27, 112, 0, 100, 250,    // ESC p 0 (Pin 2, 200ms pulse)
         27, 112, 1, 25, 250,     // ESC p 1 (Pin 5, 50ms pulse)
+        27, 112, 1, 50, 250,     // ESC p 1 (Pin 5, 100ms pulse)
+        27, 112, 1, 100, 250,    // ESC p 1 (Pin 5, 200ms pulse)
+        27, 112, 48, 60, 255,    // ESC p '0' (Pin 2 ASCII)
+        27, 112, 49, 60, 255,    // ESC p '1' (Pin 5 ASCII)
         7,                       // BEL (Star Micronics)
         27, 7,                   // ESC BEL
-        ...utf8.encode('DRAWER 0, 25, 250\r\n'),
-        ...utf8.encode('DRAWER 1, 25, 250\r\n'),
-        ...utf8.encode('CASHDRAWER 0, 25, 250\r\n'),
+        ...utf8.encode('\r\nDRAWER 0, 50, 250\r\n'),
+        ...utf8.encode('DRAWER 1, 50, 250\r\n'),
+        ...utf8.encode('CASHDRAWER 0, 50, 250\r\n'),
+        27, 100, 2,              // ESC d 2 (Feed lines to flush print buffer)
+        29, 86, 66, 0,           // GS V 66 0 (Paper Cut & buffer trigger)
       ];
 
       final success = await sendRawBytesToPrinter(
