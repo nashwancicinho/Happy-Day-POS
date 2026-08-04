@@ -99,6 +99,7 @@ class PrintService {
   }) async {
     try {
       final targetPrinter = await findTargetPrinter(printerNameConfig);
+      final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
 
       if (targetPrinter != null) {
         try {
@@ -106,8 +107,8 @@ class PrintService {
             printer: targetPrinter,
             onLayout: (format) async => pdfBytes,
             name: docName,
-            format: PdfPageFormat.roll80,
-            usePrinterSettings: true,
+            format: safeRoll80,
+            usePrinterSettings: false,
           );
           if (success) {
             debugPrint('Successfully printed directly to ${targetPrinter.name}');
@@ -197,10 +198,11 @@ class PrintService {
         ),
       );
 
+      final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          pageFormat: safeRoll80,
+          margin: const pw.EdgeInsets.only(right: 26, left: 14, top: 6, bottom: 6),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
@@ -531,10 +533,11 @@ class PrintService {
           ),
         );
 
+        final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
         pdf.addPage(
           pw.Page(
-            pageFormat: PdfPageFormat.roll80,
-            margin: const pw.EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
+            pageFormat: safeRoll80,
+            margin: const pw.EdgeInsets.only(right: 26, left: 14, top: 6, bottom: 6),
             build: (pw.Context context) {
               return pw.Directionality(
                 textDirection: pw.TextDirection.rtl,
@@ -624,15 +627,16 @@ class PrintService {
         ),
       );
 
+      final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          pageFormat: safeRoll80,
+          margin: const pw.EdgeInsets.only(right: 28, left: 14, top: 6, bottom: 6),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
+                padding: const pw.EdgeInsets.symmetric(horizontal: 2),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
