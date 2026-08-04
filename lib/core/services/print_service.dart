@@ -912,13 +912,29 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
         }
 
         final queueNames = <String>{};
-        if (queueName.isNotEmpty) queueNames.add(queueName);
+        if (queueName.isNotEmpty) {
+          queueNames.add(queueName);
+          queueNames.add(queueName.replaceAll(' ', '_'));
+        }
+
+        // Get exact system CUPS queue names via lpstat -e
+        try {
+          final res = await Process.run('lpstat', ['-e']);
+          if (res.exitCode == 0) {
+            final lines = res.stdout.toString().split('\n');
+            for (var l in lines) {
+              final q = l.trim();
+              if (q.isNotEmpty) queueNames.add(q);
+            }
+          }
+        } catch (_) {}
 
         try {
           final systemPrinters = await Printing.listPrinters();
           for (var p in systemPrinters) {
             if (p.name.isNotEmpty && !p.name.contains('الافتراضية')) {
               queueNames.add(p.name);
+              queueNames.add(p.name.replaceAll(' ', '_'));
             }
           }
         } catch (_) {}
