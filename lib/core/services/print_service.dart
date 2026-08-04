@@ -467,11 +467,19 @@ class PrintService {
       );
 
       final pdfBytes = await pdf.save();
-      return await sendPdfToPrinter(
+      final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
         printerNameConfig: settings.cashierPrinter,
         docName: 'Invoice_${order.id ?? 1}',
       );
+
+      // Trigger cash drawer open signal upon printing receipt
+      openCashDrawer(settings).catchError((e) {
+        debugPrint('Auto open cash drawer error on receipt print: $e');
+        return false;
+      });
+
+      return printResult;
     } catch (e) {
       debugPrint('Error printing receipt: $e');
       return false;
@@ -879,43 +887,52 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
       } catch (_) {}
     }
 
-    // 3. macOS & Linux CUPS Raw Spooling (Skipped for local USB on macOS to avoid raw byte dumping)
+    // 3. macOS & Linux CUPS Raw Spooling via lpr/lp
+    if (Platform.isMacOS || Platform.isLinux) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/drawer_kick.bin');
+        await file.writeAsBytes(bytes);
+
+        ProcessResult result;
+        if (pName.isNotEmpty && pName != 'default') {
+          result = await Process.run('lpr', ['-P', pName, '-o', 'raw', file.path]);
+        } else {
+          result = await Process.run('lpr', ['-o', 'raw', file.path]);
+        }
+        
+        debugPrint('macOS/Linux raw print (lpr) result: exit=${result.exitCode}, out=${result.stdout}, err=${result.stderr}');
+        if (result.exitCode == 0) return true;
+
+        if (pName.isNotEmpty && pName != 'default') {
+          result = await Process.run('lp', ['-d', pName, '-o', 'raw', file.path]);
+        } else {
+          result = await Process.run('lp', ['-o', 'raw', file.path]);
+        }
+        debugPrint('macOS/Linux raw print (lp) result: exit=${result.exitCode}, out=${result.stdout}, err=${result.stderr}');
+        if (result.exitCode == 0) return true;
+      } catch (e) {
+        debugPrint('macOS/Linux raw spool failed: $e');
+      }
+    }
+
     return false;
   }
 
   /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
-      // 1. If cashier printer is an IP network printer, send raw ESC/POS bytes
-      final ipRegex = RegExp(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?$');
-      if (ipRegex.hasMatch(settings.cashierPrinter.trim())) {
-        final List<int> drawerBytes = [
-          27, 64, // ESC @ (Initialize printer)
-          27, 112, 0, 25, 250, // ESC p 0 25 250 (Pin 2)
-          27, 112, 1, 25, 250, // ESC p 1 25 250 (Pin 5)
-        ];
-        return await sendRawBytesToPrinter(
-          bytes: drawerBytes,
-          settings: settings,
-        );
-      }
+      final List<int> drawerBytes = [
+        27, 64, // ESC @ (Initialize printer)
+        27, 112, 0, 25, 250, // ESC p 0 25 250 (Pin 2)
+        27, 112, 1, 25, 250, // ESC p 1 25 250 (Pin 5)
+      ];
 
-      // 2. On WindowsWin32
-      if (Platform.isWindows) {
-        final List<int> drawerBytes = [
-          27, 64,
-          27, 112, 0, 25, 250,
-          27, 112, 1, 25, 250,
-        ];
-        return await sendRawBytesToPrinter(
-          bytes: drawerBytes,
-          settings: settings,
-        );
-      }
-
-      // On macOS USB printers: Avoid sending raw bytes that cause endless paper feeds
-      debugPrint('Cash drawer signal skipped for local macOS USB printer to avoid paper feed issues.');
-      return true;
+      final success = await sendRawBytesToPrinter(
+        bytes: drawerBytes,
+        settings: settings,
+      );
+      return success;
     } catch (e) {
       debugPrint('Error opening cash drawer: $e');
       return false;
