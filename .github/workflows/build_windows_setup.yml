@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -41,8 +44,29 @@ jobs:
       run: |
         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup_script.iss
 
+    - name: Extract version from pubspec.yaml
+      id: get_version
+      shell: bash
+      run: |
+        VER=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+        echo "APP_VERSION=$VER" >> $GITHUB_ENV
+        echo "Version extracted: $VER"
+
     - name: Upload Setup Executable Artifact
       uses: actions/upload-artifact@v4
       with:
         name: HappyDayPOS_Setup_Windows
         path: installer/output/HappyDayPOS_Setup.exe
+
+    - name: Create or Update GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ env.APP_VERSION }}
+        name: Release v${{ env.APP_VERSION }}
+        body: |
+          تحديث جديد تلقائي لبرنامج Happy Day POS
+          الإصدار: v${{ env.APP_VERSION }}
+        files: |
+          installer/output/HappyDayPOS_Setup.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

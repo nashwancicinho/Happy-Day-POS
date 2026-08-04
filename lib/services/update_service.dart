@@ -68,6 +68,30 @@ class UpdateService {
           // Custom JSON format
           return _parseCustomJsonRelease(data, currentVersion);
         }
+      } else if (response.statusCode == 404 && customApiUrl == null) {
+        // Fallback: Read raw pubspec.yaml from GitHub main branch
+        final rawPubspecUrl = 'https://raw.githubusercontent.com/$repo/main/pubspec.yaml';
+        final rawRes = await http.get(Uri.parse(rawPubspecUrl)).timeout(const Duration(seconds: 10));
+        if (rawRes.statusCode == 200) {
+          final lines = rawRes.body.split('\n');
+          for (var line in lines) {
+            final trimmedLine = line.trim();
+            if (trimmedLine.startsWith('version:')) {
+              final rawVer = trimmedLine.split(':').last.trim().replaceAll("'", "").replaceAll('"', "");
+              final cleanLatest = _cleanVersion(rawVer);
+              final cleanCurrent = _cleanVersion(currentVersion);
+              final hasUpdate = _isVersionHigher(cleanLatest, cleanCurrent);
+
+              return AppUpdateInfo(
+                currentVersion: currentVersion,
+                latestVersion: cleanLatest,
+                hasUpdate: hasUpdate,
+                downloadUrl: 'https://github.com/$repo/releases',
+                releaseNotes: 'تحديث جديد متوفر v$cleanLatest على GitHub.',
+              );
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error checking for updates: $e');
