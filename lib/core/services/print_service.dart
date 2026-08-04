@@ -99,7 +99,6 @@ class PrintService {
   }) async {
     try {
       final targetPrinter = await findTargetPrinter(printerNameConfig);
-      final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
 
       if (targetPrinter != null) {
         try {
@@ -107,8 +106,8 @@ class PrintService {
             printer: targetPrinter,
             onLayout: (format) async => pdfBytes,
             name: docName,
-            format: safeRoll80,
-            usePrinterSettings: false,
+            format: PdfPageFormat.roll80,
+            usePrinterSettings: true,
           );
           if (success) {
             debugPrint('Successfully printed directly to ${targetPrinter.name}');
@@ -198,16 +197,15 @@ class PrintService {
         ),
       );
 
-      final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
       pdf.addPage(
         pw.Page(
-          pageFormat: safeRoll80,
-          margin: const pw.EdgeInsets.only(right: 26, left: 14, top: 6, bottom: 6),
+          pageFormat: PdfPageFormat.roll80,
+          margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
+                padding: const pw.EdgeInsets.symmetric(horizontal: 2),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
@@ -533,11 +531,10 @@ class PrintService {
           ),
         );
 
-        final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
         pdf.addPage(
           pw.Page(
-            pageFormat: safeRoll80,
-            margin: const pw.EdgeInsets.only(right: 26, left: 14, top: 6, bottom: 6),
+            pageFormat: PdfPageFormat.roll80,
+            margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             build: (pw.Context context) {
               return pw.Directionality(
                 textDirection: pw.TextDirection.rtl,
@@ -627,11 +624,10 @@ class PrintService {
         ),
       );
 
-      final safeRoll80 = PdfPageFormat(70 * PdfPageFormat.mm, double.infinity);
       pdf.addPage(
         pw.Page(
-          pageFormat: safeRoll80,
-          margin: const pw.EdgeInsets.only(right: 28, left: 14, top: 6, bottom: 6),
+          pageFormat: PdfPageFormat.roll80,
+          margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
@@ -914,25 +910,54 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
           }
         }
 
-        final List<List<String>> commandsToTry = [];
-        if (queueName.isNotEmpty) {
-          commandsToTry.add(['lpr', '-P', queueName, '-o', 'raw', file.path]);
-          commandsToTry.add(['lpr', '-P', queueName, file.path]);
-          commandsToTry.add(['lp', '-d', queueName, '-o', 'raw', file.path]);
-          commandsToTry.add(['lp', '-d', queueName, file.path]);
-        }
-        commandsToTry.add(['lpr', '-o', 'raw', file.path]);
-        commandsToTry.add(['lpr', file.path]);
-        commandsToTry.add(['lp', '-o', 'raw', file.path]);
-        commandsToTry.add(['lp', file.path]);
+        final queueNames = <String>{};
+        if (queueName.isNotEmpty) queueNames.add(queueName);
 
-        for (var cmd in commandsToTry) {
-          final res = await Process.run(cmd[0], cmd.sublist(1));
-          debugPrint('macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}');
-          if (res.exitCode == 0) {
-            return true;
+        try {
+          final systemPrinters = await Printing.listPrinters();
+          for (var p in systemPrinters) {
+            if (p.name.isNotEmpty && !p.name.contains('الافتراضية')) {
+              queueNames.add(p.name);
+            }
+          }
+        } catch (_) {}
+
+        bool anySuccess = false;
+        for (var qName in queueNames) {
+          final List<List<String>> commandsToTry = [
+            ['lpr', '-P', qName, '-o', 'raw', file.path],
+            ['lpr', '-P', qName, file.path],
+            ['lp', '-d', qName, '-o', 'raw', file.path],
+            ['lp', '-d', qName, file.path],
+          ];
+
+          for (var cmd in commandsToTry) {
+            final res = await Process.run(cmd[0], cmd.sublist(1));
+            debugPrint('macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}');
+            if (res.exitCode == 0) {
+              anySuccess = true;
+              break;
+            }
           }
         }
+
+        // Fallback default lpr/lp
+        if (!anySuccess) {
+          for (var cmd in [
+            ['lpr', '-o', 'raw', file.path],
+            ['lpr', file.path],
+            ['lp', '-o', 'raw', file.path],
+            ['lp', file.path],
+          ]) {
+            final res = await Process.run(cmd[0], cmd.sublist(1));
+            if (res.exitCode == 0) {
+              anySuccess = true;
+              break;
+            }
+          }
+        }
+
+        if (anySuccess) return true;
       } catch (e) {
         debugPrint('macOS/Linux raw spool failed: $e');
       }
@@ -941,7 +966,7 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
     return false;
   }
 
-  /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS Cash Drawer Kick)
+  /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & TSPL Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
       final List<int> drawerBytes = [
@@ -956,6 +981,9 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
         27, 112, 1, 25, 250,     // ESC p 1 (Pin 5, 50ms pulse)
         7,                       // BEL (Star Micronics)
         27, 7,                   // ESC BEL
+        ...utf8.encode('DRAWER 0, 25, 250\r\n'),
+        ...utf8.encode('DRAWER 1, 25, 250\r\n'),
+        ...utf8.encode('CASHDRAWER 0, 25, 250\r\n'),
       ];
 
       final success = await sendRawBytesToPrinter(
