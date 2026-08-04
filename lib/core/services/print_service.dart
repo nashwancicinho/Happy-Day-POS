@@ -200,12 +200,12 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.only(left: 10, right: 30, top: 8, bottom: 8),
+          margin: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Padding(
-                padding: const pw.EdgeInsets.only(right: 6, left: 2),
+                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
@@ -467,17 +467,16 @@ class PrintService {
       );
 
       final pdfBytes = await pdf.save();
+      // Trigger cash drawer kick signal before and after PDF print
+      await openCashDrawer(settings);
+
       final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
         printerNameConfig: settings.cashierPrinter,
         docName: 'Invoice_${order.id ?? 1}',
       );
 
-      // Trigger cash drawer open signal upon printing receipt
-      openCashDrawer(settings).catchError((e) {
-        debugPrint('Auto open cash drawer error on receipt print: $e');
-        return false;
-      });
+      await openCashDrawer(settings);
 
       return printResult;
     } catch (e) {
@@ -628,127 +627,135 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          margin: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  // 1. Store & Report Header (Centered)
-                  pw.Center(
-                    child: pw.Text(
-                      settings.storeName,
-                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                      textAlign: pw.TextAlign.center,
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    // 1. Store & Report Header (Centered)
+                    pw.Center(
+                      child: pw.Text(
+                        settings.storeName,
+                        style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 2),
-                  pw.Center(
-                    child: pw.Text(
-                      reportTitle,
-                      style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
-                      textAlign: pw.TextAlign.center,
+                    pw.SizedBox(height: 2),
+                    pw.Center(
+                      child: pw.Text(
+                        reportTitle,
+                        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 2),
-                  pw.Center(
-                    child: pw.Text(
-                      'الفترة: $dateRangeText',
-                      style: const pw.TextStyle(fontSize: 8.5),
-                      textAlign: pw.TextAlign.center,
+                    pw.SizedBox(height: 2),
+                    pw.Center(
+                      child: pw.Text(
+                        'الفترة: $dateRangeText',
+                        style: const pw.TextStyle(fontSize: 8),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
-                  ),
-                  pw.Center(
-                    child: pw.Text(
-                      'المنفذ: $generatedBy | ${DateTime.now().toString().substring(0, 16)}',
-                      style: const pw.TextStyle(fontSize: 8),
-                      textAlign: pw.TextAlign.center,
+                    pw.Center(
+                      child: pw.Text(
+                        'المنفذ: $generatedBy | ${DateTime.now().toString().substring(0, 16)}',
+                        style: const pw.TextStyle(fontSize: 7.5),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
-                  ),
-                  pw.Divider(thickness: 1),
+                    pw.Divider(thickness: 1),
 
-                  // 2. Financial Summary Box (Optimized for 80mm roll)
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(6),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey400),
-                      borderRadius: pw.BorderRadius.circular(6),
-                    ),
-                    child: pw.Column(
-                      children: [
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('إجمالي المبيعات:', style: const pw.TextStyle(fontSize: 9)),
-                            pw.Text('${totalSales.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                    // 2. Financial Summary Box (Centered with safe inner margins)
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey400),
+                        borderRadius: pw.BorderRadius.circular(6),
+                      ),
+                      child: pw.Column(
+                        children: [
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('إجمالي المبيعات:', style: const pw.TextStyle(fontSize: 8.5)),
+                              pw.Text('${totalSales.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                            ],
+                          ),
+                          if (totalExpenses > 0) ...[
+                            pw.SizedBox(height: 2),
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text('إجمالي المصروفات:', style: const pw.TextStyle(fontSize: 8.5)),
+                                pw.Text('${totalExpenses.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                              ],
+                            ),
                           ],
-                        ),
-                        if (totalExpenses > 0) ...[
                           pw.SizedBox(height: 2),
                           pw.Row(
                             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('إجمالي المصروفات:', style: const pw.TextStyle(fontSize: 9)),
-                              pw.Text('${totalExpenses.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                              pw.Text('عدد الفواتير:', style: const pw.TextStyle(fontSize: 8.5)),
+                              pw.Text('$totalOrders فاتورة', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                            ],
+                          ),
+                          pw.Divider(thickness: 0.5),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('صافي الوارد / الربح:', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                              pw.Text('${netProfit.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                             ],
                           ),
                         ],
-                        pw.SizedBox(height: 2),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('عدد الفواتير:', style: const pw.TextStyle(fontSize: 9)),
-                            pw.Text('$totalOrders فاتورة', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                          ],
-                        ),
-                        pw.Divider(thickness: 0.5),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('صافي الوارد / الربح:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                            pw.Text('${netProfit.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 8),
 
-                  // 3. Breakdown Table Title
-                  pw.Center(
-                    child: pw.Text(
-                      tableTitle ?? 'تفاصيل الأصناف المباعة:',
-                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-                      textAlign: pw.TextAlign.center,
+                    // 3. Breakdown Table Title
+                    pw.Center(
+                      child: pw.Text(
+                        tableTitle ?? 'تفاصيل الأصناف المباعة:',
+                        style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
-                  ),
-                  pw.SizedBox(height: 4),
+                    pw.SizedBox(height: 4),
 
-                  // 4. Product Breakdown Table (Thermal roll layout)
-                  pw.TableHelper.fromTextArray(
-                    headers: customHeaders ?? ['اسم الصنف / المنتج', 'الكمية', 'المجموع'],
-                    data: customDataRows ?? productBreakdown.map((p) => [
-                      p['name'].toString(),
-                      '${p['qty']}',
-                      '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
-                    ]).toList(),
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5),
-                    cellStyle: const pw.TextStyle(fontSize: 8.5),
-                    border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-                    headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  ),
-
-                  pw.SizedBox(height: 10),
-                  pw.Divider(thickness: 0.5),
-                  pw.Center(
-                    child: pw.Text(
-                      'نظام HAPPY DAY POS للتقارير',
-                      style: const pw.TextStyle(fontSize: 8),
-                      textAlign: pw.TextAlign.center,
+                    // 4. Product Breakdown Table (Balanced column widths to prevent overflow)
+                    pw.TableHelper.fromTextArray(
+                      headers: customHeaders ?? ['اسم الصنف / المنتج', 'الكمية', 'المجموع'],
+                      data: customDataRows ?? productBreakdown.map((p) => [
+                        p['name'].toString(),
+                        '${p['qty']}',
+                        '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
+                      ]).toList(),
+                      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+                      cellStyle: const pw.TextStyle(fontSize: 8),
+                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      columnWidths: {
+                        0: const pw.FlexColumnWidth(3.2),
+                        1: const pw.FlexColumnWidth(1.2),
+                        2: const pw.FlexColumnWidth(2.2),
+                      },
                     ),
-                  ),
-                ],
+
+                    pw.SizedBox(height: 10),
+                    pw.Divider(thickness: 0.5),
+                    pw.Center(
+                      child: pw.Text(
+                        'نظام HAPPY DAY POS للتقارير',
+                        style: const pw.TextStyle(fontSize: 7.5),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -877,7 +884,7 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
         debugPrint('Windows Win32 spool failed: $e');
       }
 
-      // Windows secondary fallback: cmd copy
+      // Windows secondary fallback: cmd copy /b
       try {
         final tempDir = await getTemporaryDirectory();
         if (pName.isNotEmpty) {
@@ -894,23 +901,34 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
         final file = File('${tempDir.path}/drawer_kick.bin');
         await file.writeAsBytes(bytes);
 
-        ProcessResult result;
-        if (pName.isNotEmpty && pName != 'default') {
-          result = await Process.run('lpr', ['-P', pName, '-o', 'raw', file.path]);
-        } else {
-          result = await Process.run('lpr', ['-o', 'raw', file.path]);
+        String queueName = pName;
+        if (queueName.contains('الافتراضية') || queueName.contains('Default') || queueName.contains('طابعة')) {
+          if (targetPrinter != null && !targetPrinter.name.contains('الافتراضية') && !targetPrinter.name.contains('طابعة')) {
+            queueName = targetPrinter.name;
+          } else {
+            queueName = '';
+          }
         }
-        
-        debugPrint('macOS/Linux raw print (lpr) result: exit=${result.exitCode}, out=${result.stdout}, err=${result.stderr}');
-        if (result.exitCode == 0) return true;
 
-        if (pName.isNotEmpty && pName != 'default') {
-          result = await Process.run('lp', ['-d', pName, '-o', 'raw', file.path]);
-        } else {
-          result = await Process.run('lp', ['-o', 'raw', file.path]);
+        final List<List<String>> commandsToTry = [];
+        if (queueName.isNotEmpty) {
+          commandsToTry.add(['lpr', '-P', queueName, '-o', 'raw', file.path]);
+          commandsToTry.add(['lpr', '-P', queueName, file.path]);
+          commandsToTry.add(['lp', '-d', queueName, '-o', 'raw', file.path]);
+          commandsToTry.add(['lp', '-d', queueName, file.path]);
         }
-        debugPrint('macOS/Linux raw print (lp) result: exit=${result.exitCode}, out=${result.stdout}, err=${result.stderr}');
-        if (result.exitCode == 0) return true;
+        commandsToTry.add(['lpr', '-o', 'raw', file.path]);
+        commandsToTry.add(['lpr', file.path]);
+        commandsToTry.add(['lp', '-o', 'raw', file.path]);
+        commandsToTry.add(['lp', file.path]);
+
+        for (var cmd in commandsToTry) {
+          final res = await Process.run(cmd[0], cmd.sublist(1));
+          debugPrint('macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}');
+          if (res.exitCode == 0) {
+            return true;
+          }
+        }
       } catch (e) {
         debugPrint('macOS/Linux raw spool failed: $e');
       }
@@ -923,9 +941,17 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
       final List<int> drawerBytes = [
-        27, 64, // ESC @ (Initialize printer)
-        27, 112, 0, 25, 250, // ESC p 0 25 250 (Pin 2)
-        27, 112, 1, 25, 250, // ESC p 1 25 250 (Pin 5)
+        27, 64,                  // ESC @ (Reset/Initialize Printer)
+        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Real-time pulse Pin 2)
+        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Real-time pulse Pin 5)
+        27, 112, 0, 60, 255,     // ESC p 0 (Pin 2, 120ms pulse)
+        27, 112, 48, 60, 255,    // ESC p '0' (Pin 2 ASCII)
+        27, 112, 1, 60, 255,     // ESC p 1 (Pin 5, 120ms pulse)
+        27, 112, 49, 60, 255,    // ESC p '1' (Pin 5 ASCII)
+        27, 112, 0, 25, 250,     // ESC p 0 (Pin 2, 50ms pulse)
+        27, 112, 1, 25, 250,     // ESC p 1 (Pin 5, 50ms pulse)
+        7,                       // BEL (Star Micronics)
+        27, 7,                   // ESC BEL
       ];
 
       final success = await sendRawBytesToPrinter(

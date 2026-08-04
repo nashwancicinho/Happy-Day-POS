@@ -8,7 +8,9 @@ import 'package:provider/provider.dart';
 import '../../core/services/print_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
+import '../../core/widgets/update_dialog.dart';
 import '../../database/database_helper.dart';
+import '../../services/update_service.dart';
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import '../categories/categories_provider.dart';
@@ -45,6 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   List<Printer> _systemPrinters = [];
   bool _isLoadingPrinters = false;
+  bool _isCheckingUpdate = false;
+  String _currentAppVersion = '1.0.0';
 
   final List<Map<String, dynamic>> _logoPresets = [
     {'name': 'storefront', 'label': 'محل / متجر', 'labelEn': 'Store / Shop', 'icon': Icons.storefront_rounded},
@@ -75,7 +79,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSystemPrinters();
+      _loadCurrentVersion();
     });
+  }
+
+  Future<void> _loadCurrentVersion() async {
+    final ver = await UpdateService.getCurrentVersion();
+    if (mounted) {
+      setState(() {
+        _currentAppVersion = ver;
+      });
+    }
+  }
+
+  Future<void> _checkForUpdatesManually() async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    setState(() {
+      _isCheckingUpdate = true;
+    });
+    try {
+      final updateInfo = await UpdateService.checkForUpdates();
+      if (!mounted) return;
+      setState(() {
+        _isCheckingUpdate = false;
+      });
+
+      if (updateInfo.hasUpdate) {
+        UpdateDialog.show(context, updateInfo);
+      } else {
+        TopNotification.show(
+          context,
+          message: isEng
+              ? 'You are running the latest version (v${updateInfo.currentVersion})'
+              : 'أنت تستخدم أحدث إصدار من البرنامج (v${updateInfo.currentVersion})',
+          type: TopNotificationType.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCheckingUpdate = false;
+        });
+        TopNotification.show(
+          context,
+          message: isEng ? 'Failed to check for updates' : 'فشل الفحص عن التحديثات',
+          type: TopNotificationType.error,
+        );
+      }
+    }
   }
 
   Future<void> _loadSystemPrinters() async {
@@ -1396,52 +1447,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 18),
 
-                        // Cashier Printer Field with Selection Dialog & Test Drawer button
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _cashierPrinterController,
-                                decoration: InputDecoration(
-                                  labelText: isEng ? 'Invoice & Cashier Main Printer' : 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
-                                  prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
-                                    tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                                    onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
-                                  ),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                  helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
-                                ),
-                              ),
+                        // Cashier Printer Field with Selection Dialog
+                        TextField(
+                          controller: _cashierPrinterController,
+                          decoration: InputDecoration(
+                            labelText: isEng ? 'Invoice & Cashier Main Printer' : 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
+                            prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
+                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                              onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
                             ),
-                            const SizedBox(width: 10),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal.shade700,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                icon: const Icon(Icons.vpn_key_outlined, color: Colors.white, size: 20),
-                                label: Text(isEng ? 'Test Drawer 🔑' : 'اختبار فتح الدرج 🔑', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                onPressed: () async {
-                                  final settings = context.read<SettingsProvider>();
-                                  TopNotification.showInfo(context, isEng ? '🔑 Sending cash drawer kick signal...' : '🔑 جاري اختار فتح درج النقدية...');
-                                  final success = await PrintService.openCashDrawer(settings);
-                                  if (context.mounted) {
-                                    if (success) {
-                                      TopNotification.showSuccess(context, isEng ? '🎉 Cash drawer kick signal sent successfully! 💵' : '🎉 تم إرسال إشارة فتح الدرج بنجاح! 💵');
-                                    } else {
-                                      TopNotification.showWarning(context, isEng ? '⚠️ Failed to connect printer. Verify printer selection and RJ11 cable connection.' : '⚠️ فشل الاتصال بالطابعة. تحقق من اختيار الطابعة الصحيحة وتوصيل كابل الدرج (RJ11).');
-                                    }
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                            helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
+                          ),
                         ),
 
                         const SizedBox(height: 20),
@@ -1547,6 +1566,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             labelText: isEng ? 'Receipt Bottom Footer Message' : 'رسالة الختام أسفل الفاتورة',
                             prefixIcon: const Icon(Icons.notes),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // System Updates Card
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const CircleAvatar(
+                              backgroundColor: Color(0xFFFF9800),
+                              child: Icon(Icons.system_update_rounded, color: Colors.white),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isEng ? 'Software Updates' : 'تحديثات النظام والبرنامج',
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isEng
+                                        ? 'Current Version: v$_currentAppVersion'
+                                        : 'الإصدار الحالي المثبت: v$_currentAppVersion',
+                                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 28),
+                        Text(
+                          isEng
+                              ? 'Check for new updates online to install new features and improvements.'
+                              : 'يمكنك الفحص عن التحديثات الجديدة عبر الإنترنت لتنزيل أحدث المميزات والإصلاحات تلقائياً.',
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _isCheckingUpdate ? null : _checkForUpdatesManually,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFF9800),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            icon: _isCheckingUpdate
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.sync_rounded),
+                            label: Text(
+                              _isCheckingUpdate
+                                  ? (isEng ? 'Checking for updates...' : 'جاري الفحص...')
+                                  : (isEng ? 'Check for Updates Now 🔄' : 'فحص وجود تحديثات الآن 🔄'),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],

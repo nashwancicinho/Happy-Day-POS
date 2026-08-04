@@ -25,6 +25,8 @@ import '../settings/sync_qr_widget.dart';
 import '../waiter/waiter_connect_screen.dart';
 import '../tables/tables_provider.dart';
 import '../orders/orders_provider.dart';
+import '../../services/update_service.dart';
+import '../../core/widgets/update_dialog.dart';
 
 class DashboardLayout extends StatefulWidget {
   const DashboardLayout({super.key});
@@ -50,6 +52,19 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       if (mounted) {
         context.read<TablesProvider>().loadTables();
         context.read<OrdersProvider>().loadOrders();
+      }
+    });
+
+    // Silent check for updates on startup
+    Future.delayed(const Duration(seconds: 3), () async {
+      if (!mounted) return;
+      try {
+        final updateInfo = await UpdateService.checkForUpdates();
+        if (updateInfo.hasUpdate && mounted) {
+          UpdateDialog.show(context, updateInfo);
+        }
+      } catch (e) {
+        debugPrint('Silent update check error: $e');
       }
     });
   }
