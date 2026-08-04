@@ -201,7 +201,7 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          margin: const pw.EdgeInsets.only(right: 34, left: 16, top: 6, bottom: 6),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
@@ -535,7 +535,7 @@ class PrintService {
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.roll80,
-            margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            margin: const pw.EdgeInsets.only(right: 34, left: 16, top: 6, bottom: 6),
             build: (pw.Context context) {
               return pw.Directionality(
                 textDirection: pw.TextDirection.rtl,
@@ -628,7 +628,7 @@ class PrintService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          margin: const pw.EdgeInsets.only(right: 34, left: 16, top: 6, bottom: 6),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
