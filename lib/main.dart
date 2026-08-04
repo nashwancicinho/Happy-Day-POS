@@ -21,9 +21,18 @@ import 'features/waiter/waiter_connect_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('Global Flutter Error: ${details.exception}');
+  };
+
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+    try {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    } catch (e) {
+      debugPrint('sqfliteFfiInit error: $e');
+    }
   }
 
   runApp(const HappyDayPOS());
@@ -40,31 +49,31 @@ class HappyDayPOS extends StatelessWidget {
           create: (_) => AuthProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => TablesProvider()..loadTables(),
+          create: (_) => TablesProvider()..loadTables().catchError((e) => debugPrint('Tables load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => CategoriesProvider()..loadCategories(),
+          create: (_) => CategoriesProvider()..loadCategories().catchError((e) => debugPrint('Categories load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => ProductsProvider()..loadProducts(),
+          create: (_) => ProductsProvider()..loadProducts().catchError((e) => debugPrint('Products load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => OrdersProvider()..loadOrders(),
+          create: (_) => OrdersProvider()..loadOrders().catchError((e) => debugPrint('Orders load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => ShiftsProvider()..loadCurrentShift(),
+          create: (_) => ShiftsProvider()..loadCurrentShift().catchError((e) => debugPrint('Shifts load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => CustomersProvider()..loadCustomers(),
+          create: (_) => CustomersProvider()..loadCustomers().catchError((e) => debugPrint('Customers load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => PurchasesProvider()..loadAllData(),
+          create: (_) => PurchasesProvider()..loadAllData().catchError((e) => debugPrint('Purchases load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => SettingsProvider()..loadSettings(),
+          create: (_) => SettingsProvider()..loadSettings().catchError((e) => debugPrint('Settings load error: $e')),
         ),
         ChangeNotifierProvider(
-          create: (_) => TreasuryProvider()..loadTreasuryRecords(),
+          create: (_) => TreasuryProvider()..loadTreasuryRecords().catchError((e) => debugPrint('Treasury load error: $e')),
         ),
       ],
       child: Consumer<SettingsProvider>(
