@@ -13,6 +13,7 @@ class ProductModel {
   final double minStock;
   final double taxRate;
   final String? image;
+  final String? color;
   final bool isAvailable;
   final bool printToKitchen; // Send item to kitchen printer KOT
   final String? kitchenPrinter; // Specific target kitchen printer name
@@ -32,6 +33,7 @@ class ProductModel {
     this.minStock = 5.0,
     this.taxRate = 0.0,
     this.image,
+    this.color,
     this.isAvailable = true,
     this.printToKitchen = true,
     this.kitchenPrinter,
@@ -55,6 +57,9 @@ class ProductModel {
     double? minStock,
     double? taxRate,
     String? image,
+    bool clearImage = false,
+    String? color,
+    bool clearColor = false,
     bool? isAvailable,
     bool? printToKitchen,
     String? kitchenPrinter,
@@ -73,12 +78,14 @@ class ProductModel {
       trackStock: trackStock ?? this.trackStock,
       minStock: minStock ?? this.minStock,
       taxRate: taxRate ?? this.taxRate,
-      image: image ?? this.image,
+      image: clearImage ? null : (image ?? this.image),
+      color: clearColor ? null : (color ?? this.color),
       isAvailable: isAvailable ?? this.isAvailable,
       printToKitchen: printToKitchen ?? this.printToKitchen,
       kitchenPrinter: kitchenPrinter ?? this.kitchenPrinter,
     );
   }
+
 
   Map<String, dynamic> toMap() {
     return {
@@ -96,6 +103,7 @@ class ProductModel {
       'min_stock': minStock,
       'tax_rate': taxRate,
       'image': image,
+      'color': color,
       'is_available': isAvailable ? 1 : 0,
       'print_to_kitchen': printToKitchen ? 1 : 0,
       'kitchen_printer': kitchenPrinter,
@@ -118,9 +126,11 @@ class ProductModel {
       minStock: (map['min_stock'] as num? ?? 5.0).toDouble(),
       taxRate: (map['tax_rate'] as num? ?? 0.0).toDouble(),
       image: map['image'] as String?,
+      color: map['color'] as String?,
       isAvailable: (map['is_available'] as int? ?? 1) == 1,
       printToKitchen: (map['print_to_kitchen'] as int? ?? 1) == 1,
       kitchenPrinter: map['kitchen_printer'] as String?,
     );
   }
+
 }

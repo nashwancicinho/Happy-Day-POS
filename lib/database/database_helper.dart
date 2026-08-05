@@ -38,10 +38,6 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-    }
     final path = await getAppDatabaseFilePath();
 
     return await openDatabase(
@@ -51,6 +47,7 @@ class DatabaseHelper {
       onUpgrade: _onUpgrade,
     );
   }
+
 
   Future<void> _addColumnIfMissing(Database db, String table, String column, String typeWithDefault) async {
     try {
@@ -84,7 +81,9 @@ class DatabaseHelper {
       }
     } catch (_) {}
 
+    await _addColumnIfMissing(db, 'users', 'permissions', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'customer_phone', 'TEXT');
+
     await _addColumnIfMissing(db, 'orders', 'customer_address', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'cashier_name', 'TEXT');
     await _addColumnIfMissing(db, 'order_items', 'print_to_kitchen', 'INTEGER DEFAULT 1');
@@ -100,7 +99,10 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'products', 'kitchen_printer', 'TEXT');
     await _addColumnIfMissing(db, 'order_items', 'kitchen_printer', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'color', 'TEXT');
+    await _addColumnIfMissing(db, 'categories', 'color', 'TEXT');
+    await _addColumnIfMissing(db, 'categories', 'image', 'TEXT');
     await _addColumnIfMissing(db, 'restaurant_tables', 'pos_x', 'REAL DEFAULT -1.0');
+
     await _addColumnIfMissing(db, 'restaurant_tables', 'pos_y', 'REAL DEFAULT -1.0');
     await _addColumnIfMissing(db, 'restaurant_tables', 'width', 'REAL DEFAULT 120.0');
     await _addColumnIfMissing(db, 'restaurant_tables', 'height', 'REAL DEFAULT 120.0');

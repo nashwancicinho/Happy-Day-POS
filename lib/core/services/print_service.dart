@@ -983,28 +983,28 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
     return false;
   }
 
-  /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & TSPL Cash Drawer Kick)
+  /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & Star & TSPL Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
       final List<int> drawerBytes = [
-        27, 64,                  // ESC @ (Reset/Initialize Printer)
-        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Real-time pulse Pin 2)
-        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Real-time pulse Pin 5)
-        27, 112, 0, 25, 250,     // ESC p 0 (Pin 2, 50ms pulse)
-        27, 112, 0, 50, 250,     // ESC p 0 (Pin 2, 100ms pulse)
-        27, 112, 0, 100, 250,    // ESC p 0 (Pin 2, 200ms pulse)
-        27, 112, 1, 25, 250,     // ESC p 1 (Pin 5, 50ms pulse)
-        27, 112, 1, 50, 250,     // ESC p 1 (Pin 5, 100ms pulse)
-        27, 112, 1, 100, 250,    // ESC p 1 (Pin 5, 200ms pulse)
-        27, 112, 48, 60, 255,    // ESC p '0' (Pin 2 ASCII)
-        27, 112, 49, 60, 255,    // ESC p '1' (Pin 5 ASCII)
-        7,                       // BEL (Star Micronics)
-        27, 7,                   // ESC BEL
-        ...utf8.encode('\r\nDRAWER 0, 50, 250\r\n'),
-        ...utf8.encode('DRAWER 1, 50, 250\r\n'),
-        ...utf8.encode('CASHDRAWER 0, 50, 250\r\n'),
-        27, 100, 2,              // ESC d 2 (Feed lines to flush print buffer)
-        29, 86, 66, 0,           // GS V 66 0 (Paper Cut & buffer trigger)
+        // 1. DLE DC4 Real-time pulse commands (Pin 2 & Pin 5) - executes instantly on thermal printers
+        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time)
+        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time)
+        
+        // 2. Standard ESC p 0 (Pin 2, 100ms pulse, 250ms off)
+        27, 112, 0, 50, 250,
+        27, 112, 48, 50, 250,    // ASCII '0'
+
+        // 3. Standard ESC p 1 (Pin 5, 100ms pulse, 250ms off)
+        27, 112, 1, 50, 250,
+        27, 112, 49, 50, 250,    // ASCII '1'
+
+        // 4. Star Micronics & Citizen BEL pulses
+        7,
+        27, 7, 10, 50, 7,
+
+        // 5. Line feeds to flush byte buffer
+        10, 10, 10,
       ];
 
       final success = await sendRawBytesToPrinter(
@@ -1017,6 +1017,7 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
       return false;
     }
   }
+
 
   /// طباعة ملصق الباركود المخصص للصنف على طابعة ملصقات الباركود
   static Future<bool> printBarcodeLabel({

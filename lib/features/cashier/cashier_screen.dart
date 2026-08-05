@@ -1,10 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/services/print_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/customize_item_appearance_dialog.dart';
+import '../../core/widgets/manager_auth_dialog.dart';
 import '../../core/widgets/top_notification.dart';
+import '../../models/category.dart';
 import '../../models/customer.dart';
+
 import '../../models/order.dart';
 import '../../models/order_item.dart';
 import '../../models/product.dart';
@@ -18,6 +23,8 @@ import '../settings/settings_provider.dart';
 import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import 'widgets/refund_dialog.dart';
+
+
 
 class CashierScreen extends StatefulWidget {
   final RestaurantTable? selectedTable;
@@ -625,6 +632,28 @@ class _CashierScreenState extends State<CashierScreen> {
                               return;
                             }
 
+                            if (product.allowPriceChange && priceVal != product.price) {
+                              final authProvider = context.read<AuthProvider>();
+                              if (!authProvider.hasPermission(context, 'perm_cashier_allow_price_change')) {
+                                ManagerAuthDialog.show(
+                                  context,
+                                  title: 'إذن تعديل السعر 🔒',
+                                  reason: 'تغيير وتعديل سعر المادة في السلة يتطلب إذن موافقة المدير',
+                                ).then((authorized) {
+                                  if (authorized) {
+                                    Navigator.pop(ctx);
+                                    _addItemToCartWithQtyAndPrice(
+                                      product: product,
+                                      quantity: qtyVal,
+                                      price: priceVal,
+                                      notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
+                                    );
+                                  }
+                                });
+                                return;
+                              }
+                            }
+
                             Navigator.pop(ctx);
                             _addItemToCartWithQtyAndPrice(
                               product: product,
@@ -632,6 +661,7 @@ class _CashierScreenState extends State<CashierScreen> {
                               price: priceVal,
                               notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
                             );
+
                           },
                         ),
                       ],
@@ -777,11 +807,22 @@ class _CashierScreenState extends State<CashierScreen> {
     });
   }
 
-  void _removeFromCart(int index) {
+  Future<void> _removeFromCart(int index) async {
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.hasPermission(context, 'perm_cashier_allow_delete_item')) {
+      final item = _cart[index];
+      final authorized = await ManagerAuthDialog.show(
+        context,
+        title: 'إذن حذف مادة من السلة 🔒',
+        reason: 'حذف المادة (${item.productName}) من السلة يتطلب إذن موافقة المدير',
+      );
+      if (!authorized) return;
+    }
     setState(() {
       _cart.removeAt(index);
     });
   }
+
 
   void _clearCart() {
     setState(() {
@@ -810,6 +851,9 @@ class _CashierScreenState extends State<CashierScreen> {
     final ordersProvider = context.read<OrdersProvider>();
     final settingsProvider = context.read<SettingsProvider>();
 
+    // Calculate new/delta items for kitchen printing before saving
+    final kitchenDeltaItems = await ordersProvider.getKitchenDeltaItems(_existingOrderId, _cart);
+
     final orderId = await ordersProvider.holdTableOrder(
       existingOrderId: _existingOrderId,
       tableId: tableId,
@@ -828,12 +872,11 @@ class _CashierScreenState extends State<CashierScreen> {
       createdAt: DateTime.now().toIso8601String(),
     );
 
-    // Trigger actual Kitchen Order Ticket print for items with printToKitchen == true
-    final kitchenItems = _cart.where((item) => item.printToKitchen).toList();
-    if (kitchenItems.isNotEmpty) {
+    // Trigger actual Kitchen Order Ticket print ONLY for new/incremental delta items
+    if (kitchenDeltaItems.isNotEmpty) {
       PrintService.printKitchenTicket(
         order: heldOrder,
-        items: _cart,
+        items: kitchenDeltaItems,
         settings: settingsProvider,
         tableName: widget.selectedTable?.name ?? 'طاولة $tableId',
       ).catchError((e) {
@@ -848,13 +891,14 @@ class _CashierScreenState extends State<CashierScreen> {
 
     TopNotification.showSuccess(
       context,
-      kitchenItems.isNotEmpty
-          ? '🍳 تم تعليق الفاتورة وإرسال وطباعة ${kitchenItems.length} صنف على طابعة المطبخ [$kitchenPrinter] بنجاح!'
+      kitchenDeltaItems.isNotEmpty
+          ? '🍳 تم تعليق الفاتورة وإرسال وطباعة ${kitchenDeltaItems.length} صنف جديد على طابعة المطبخ [$kitchenPrinter] بنجاح!'
           : '📌 تم تعليق الفاتورة وحفظها للطاولة بنجاح!',
     );
 
     _finishOrderFlowNavigation();
   }
+
 
   void _resetToInitialCashierState() {
     _clearCart();
@@ -872,7 +916,18 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   Future<void> _cancelOrderAndGoHome() async {
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.hasPermission(context, 'perm_cashier_allow_cancel_order')) {
+      final authorized = await ManagerAuthDialog.show(
+        context,
+        title: 'إذن إلغاء الفاتورة 🔒',
+        reason: 'إلغاء الفاتورة بالكامل وإخلاء الطاولة يتطلب إذن موافقة المدير',
+      );
+      if (!authorized) return;
+    }
+
     final confirm = await showDialog<bool>(
+
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -935,7 +990,18 @@ class _CashierScreenState extends State<CashierScreen> {
     String? customerAddress;
 
     if (paymentMethod == 'CREDIT') {
+      final authProvider = context.read<AuthProvider>();
+      if (!authProvider.hasPermission(context, 'perm_cashier_allow_debt_sale')) {
+        final authorized = await ManagerAuthDialog.show(
+          context,
+          title: 'إذن البيع بالآجل 🔒',
+          reason: 'إكمال عملية البيع بالآجل والديون يتطلب موافقة وإذن مدير النظام',
+        );
+        if (!authorized) return;
+      }
+
       final creditDetails = await _promptCreditCustomerDetails();
+
       if (creditDetails == null) return; // User cancelled
       customerName = creditDetails['name'];
       customerPhone = creditDetails['phone'];
@@ -943,8 +1009,8 @@ class _CashierScreenState extends State<CashierScreen> {
       if (!mounted) return;
       final ordersProvider = context.read<OrdersProvider>();
       final customersProvider = context.read<CustomersProvider>();
-      final authProvider = context.read<AuthProvider>();
       final shiftsProvider = context.read<ShiftsProvider>();
+
 
       final orderId = await ordersProvider.checkoutCreditOrder(
         existingOrderId: _existingOrderId,
@@ -1068,13 +1134,12 @@ class _CashierScreenState extends State<CashierScreen> {
       return false;
     });
 
-    // 2. Open Cash Drawer automatically on Cash payment
-    if (paymentMethod == 'CASH') {
-      PrintService.openCashDrawer(settingsProvider).catchError((e) {
-        debugPrint('Auto open cash drawer error: $e');
-        return false;
-      });
-    }
+    // 2. Open Cash Drawer automatically on completing order / receipt print
+    PrintService.openCashDrawer(settingsProvider).catchError((e) {
+      debugPrint('Auto open cash drawer error: $e');
+      return false;
+    });
+
 
     if (!mounted) return;
     TopNotification.showSuccess(
@@ -1579,7 +1644,18 @@ class _CashierScreenState extends State<CashierScreen> {
       return;
     }
 
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.hasPermission(context, 'perm_cashier_allow_discount')) {
+      final authorized = await ManagerAuthDialog.show(
+        context,
+        title: 'إذن تطبيق الخصم 🔒',
+        reason: 'تطبيق خصم على الفاتورة يتطلب موافقة وإذن مدير النظام',
+      );
+      if (!authorized) return;
+    }
+
     final currencySym = context.read<SettingsProvider>().currencySymbol;
+
     final discountController = TextEditingController(
       text: _discountAmount > 0 ? _discountAmount.toStringAsFixed(0) : '',
     );
@@ -2311,7 +2387,58 @@ class _CashierScreenState extends State<CashierScreen> {
     return match.name;
   }
 
+  Color? _parseColor(String? hexString) {
+    if (hexString == null || hexString.isEmpty) return null;
+    try {
+      final buffer = StringBuffer();
+      if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+      buffer.write(hexString.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _customizeCategoryAppearance(BuildContext context, CategoryModel category) async {
+    final result = await CustomizeItemAppearanceDialog.show(
+      context,
+      itemName: category.name,
+      initialImage: category.image,
+      initialColor: category.color,
+    );
+    if (result != null && mounted) {
+      final updated = category.copyWith(
+        image: result['image'],
+        clearImage: result['image'] == null,
+        color: result['color'],
+        clearColor: result['color'] == null,
+      );
+      await context.read<CategoriesProvider>().updateCategory(updated);
+      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر تصنيف (${category.name}) بنجاح!');
+    }
+  }
+
+  Future<void> _customizeProductAppearance(BuildContext context, ProductModel product) async {
+    final result = await CustomizeItemAppearanceDialog.show(
+      context,
+      itemName: product.name,
+      initialImage: product.image,
+      initialColor: product.color,
+    );
+    if (result != null && mounted) {
+      final updated = product.copyWith(
+        image: result['image'],
+        clearImage: result['image'] == null,
+        color: result['color'],
+        clearColor: result['color'] == null,
+      );
+      await context.read<ProductsProvider>().updateProduct(updated);
+      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر مادة (${product.name}) بنجاح!');
+    }
+  }
+
   // 1. Grid View for Categories
+
   Widget _buildCategoriesGrid(
     BuildContext context,
     CategoriesProvider categoriesProvider,
@@ -2337,76 +2464,107 @@ class _CashierScreenState extends State<CashierScreen> {
       itemBuilder: (context, index) {
         final category = categories[index];
         final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
+        final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
+        final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
+        final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
+        final textColor = isDarkBg ? Colors.white : Colors.black87;
+        final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
+        final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
 
         return Card(
           elevation: 3,
+          color: hasImage ? Colors.black : bgColor,
+          clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           child: InkWell(
+
             borderRadius: BorderRadius.circular(14),
             onTap: () {
               productsProvider.selectCategory(category.id);
             },
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: LinearGradient(
-                  colors: [Colors.orange.shade50, Colors.white],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                        child: Icon(
-                          _getCategoryIcon(category.name),
-                          size: 20,
-                          color: AppColors.primary,
-                        ),
+            onSecondaryTap: () => _customizeCategoryAppearance(context, category),
+            onLongPress: () => _customizeCategoryAppearance(context, category),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        gradient: (category.color == null && !hasImage)
+                            ? LinearGradient(
+                                colors: [Colors.orange.shade50, Colors.white],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              )
+                            : null,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        category.name,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Image.file(
+                        File(category.image!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
                       ),
-                      const SizedBox(height: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                    ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                    ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Center(
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                category.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: badgeBg,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: badgeTextColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
         );
+
+
       },
+
     );
   }
 
@@ -2499,88 +2657,110 @@ class _CashierScreenState extends State<CashierScreen> {
         }
 
         final product = products[index - 1];
-        return InkWell(
-          onTap: () => _addToCart(product),
-          child: Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(
-                color: product.isAvailable ? Colors.transparent : Colors.red.shade200,
-              ),
+        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
+        final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
+        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
+        final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
+
+        return Card(
+          elevation: 3,
+          color: hasImage ? Colors.black : bgColor,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: product.isAvailable ? Colors.transparent : Colors.red.shade200,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                color: product.isAvailable ? Colors.white : Colors.grey.shade100,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: product.isAvailable ? AppColors.primary.withValues(alpha: 0.1) : Colors.grey.shade200,
-                        child: Icon(
-                          Icons.restaurant_menu,
-                          size: 20,
-                          color: product.isAvailable ? AppColors.primary : Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        product.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: product.isAvailable ? Colors.black87 : Colors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${product.price.toStringAsFixed(0)} $_currencySymbol',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (product.isWeighted || product.allowPriceChange) ...[
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (product.isWeighted)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.shade50,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text('⚖️ موزونة', style: TextStyle(fontSize: 8, color: Colors.purple, fontWeight: FontWeight.bold)),
-                              ),
-                            if (product.allowPriceChange)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text('🏷️ سعر متغير', style: TextStyle(fontSize: 8, color: Colors.blue, fontWeight: FontWeight.bold)),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ],
+          ),
+          child: InkWell(
+
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _addToCart(product),
+            onSecondaryTap: () => _customizeProductAppearance(context, product),
+            onLongPress: () => _customizeProductAppearance(context, product),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(color: bgColor),
                   ),
-                ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Image.file(
+                        File(product.image!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+                      ),
+                    ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                    ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Center(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                product.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: textColor,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                                style: TextStyle(
+                                  color: priceColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (product.isWeighted || product.allowPriceChange) ...[
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (product.isWeighted)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple.shade50,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('⚖️ موزونة', style: TextStyle(fontSize: 8, color: Colors.purple, fontWeight: FontWeight.bold)),
+                                      ),
+                                    if (product.allowPriceChange)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade50,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('🏷️ سعر متغير', style: TextStyle(fontSize: 8, color: Colors.blue, fontWeight: FontWeight.bold)),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2588,6 +2768,9 @@ class _CashierScreenState extends State<CashierScreen> {
       },
     );
   }
+
+
+
 
   Future<void> _confirmCancelTableOrder(BuildContext context) async {
     if (widget.selectedTable?.id == null) return;

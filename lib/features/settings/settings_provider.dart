@@ -68,6 +68,52 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const Map<String, bool> defaultCashierPermissions = {
+    'perm_cashier_access_day_closing': true,
+    'perm_cashier_access_debts': true,
+    'perm_cashier_access_reports': false,
+    'perm_cashier_access_products': false,
+    'perm_cashier_access_categories': false,
+    'perm_cashier_access_inventory': false,
+    'perm_cashier_access_purchases': false,
+    'perm_cashier_access_settings': false,
+    'perm_cashier_allow_discount': true,
+    'perm_cashier_allow_price_change': false,
+    'perm_cashier_allow_delete_item': true,
+    'perm_cashier_allow_cancel_order': true,
+    'perm_cashier_allow_debt_sale': true,
+    'perm_cashier_allow_settle_debt': false,
+    'perm_cashier_allow_cash_trans': false,
+    'perm_cashier_view_profit_reports': false,
+  };
+
+  bool getCashierPermission(String key, {bool? defaultVal}) {
+    final fallback = defaultVal ?? defaultCashierPermissions[key] ?? true;
+    final valStr = _settings[key];
+    if (valStr == null) return fallback;
+    return valStr.toLowerCase() == 'true' || valStr == '1';
+  }
+
+  Future<void> setCashierPermission(String key, bool value) async {
+    await updateSetting(key, value.toString());
+  }
+
+  Future<void> setAllCashierPermissions(bool value) async {
+    final Map<String, String> newMap = {};
+    for (final k in defaultCashierPermissions.keys) {
+      newMap[k] = value.toString();
+    }
+    await updateAllSettings(newMap);
+  }
+
+  Future<void> resetCashierPermissionsToDefault() async {
+    final Map<String, String> newMap = {};
+    for (final entry in defaultCashierPermissions.entries) {
+      newMap[entry.key] = entry.value.toString();
+    }
+    await updateAllSettings(newMap);
+  }
+
   Future<bool> performAutoBackup({bool isClosingDay = false}) async {
     try {
       final freq = autoBackupFrequency;
@@ -90,3 +136,4 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 }
+

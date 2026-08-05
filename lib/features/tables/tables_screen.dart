@@ -7,8 +7,8 @@ import '../../models/restaurant_table.dart';
 import '../cashier/cashier_screen.dart';
 import '../orders/orders_provider.dart';
 import '../settings/settings_provider.dart';
-import '../settings/sync_qr_widget.dart';
 import 'floor_plan_canvas.dart';
+
 import 'tables_provider.dart';
 
 class TablesScreen extends StatefulWidget {
@@ -223,28 +223,8 @@ class _TablesScreenState extends State<TablesScreen> {
       appBar: AppBar(
         title: Text(isEng ? "Table Management & Hall Sales" : "إدارة الطاولات ومبيعات الصالة"),
         centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const SyncQrDialog(),
-                );
-              },
-              icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
-              label: Text(isEng ? 'Sync Waiter 📱' : 'ربط النادل 📱', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 2,
-              ),
-            ),
-          ),
-        ],
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,

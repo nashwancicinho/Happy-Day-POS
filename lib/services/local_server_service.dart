@@ -281,6 +281,9 @@ class LocalServerService extends ChangeNotifier {
     final repo = OrdersRepository();
     final existingOrder = await repo.getOpenOrderByTable(tableId);
 
+    // Calculate delta kitchen items before saving
+    final kitchenDeltaItems = await repo.getKitchenDeltaItems(existingOrder?.id, items);
+
     final orderId = await repo.saveOrUpdateTableOrder(
       existingOrderId: existingOrder?.id,
       tableId: tableId,
@@ -290,40 +293,40 @@ class LocalServerService extends ChangeNotifier {
       cashierName: waiterName,
     );
 
-    // Automatic Kitchen Order Ticket Print
-    try {
-      final tableMaps = await db.query('restaurant_tables', where: 'id = ?', whereArgs: [tableId]);
-      final tableName = tableMaps.isNotEmpty ? tableMaps.first['name'] as String : 'طاولة $tableId';
+    // Automatic Kitchen Order Ticket Print for delta items
+    if (kitchenDeltaItems.isNotEmpty) {
+      try {
+        final tableMaps = await db.query('restaurant_tables', where: 'id = ?', whereArgs: [tableId]);
+        final tableName = tableMaps.isNotEmpty ? tableMaps.first['name'] as String : 'طاولة $tableId';
 
-      final heldOrder = OrderModel(
-        id: orderId,
-        tableId: tableId,
-        orderType: 'DINE_IN',
-        total: total,
-        status: 'OPEN',
-        createdAt: DateTime.now().toIso8601String(),
-      );
+        final heldOrder = OrderModel(
+          id: orderId,
+          tableId: tableId,
+          orderType: 'DINE_IN',
+          total: total,
+          status: 'OPEN',
+          createdAt: DateTime.now().toIso8601String(),
+        );
 
-      final settingsRepo = SettingsRepository();
-      final allSettingsMap = await settingsRepo.getAllSettings();
-      final settingsProvider = SettingsProvider();
-      await settingsProvider.updateAllSettings(allSettingsMap);
+        final settingsRepo = SettingsRepository();
+        final allSettingsMap = await settingsRepo.getAllSettings();
+        final settingsProvider = SettingsProvider();
+        await settingsProvider.updateAllSettings(allSettingsMap);
 
-      final kitchenItems = items.where((i) => i.printToKitchen).toList();
-      if (kitchenItems.isNotEmpty) {
         PrintService.printKitchenTicket(
           order: heldOrder,
-          items: items,
+          items: kitchenDeltaItems,
           settings: settingsProvider,
           tableName: tableName,
         ).catchError((e) {
           debugPrint('Kitchen print error on server order save: $e');
           return false;
         });
+      } catch (e) {
+        debugPrint('Auto kitchen print error in server: $e');
       }
-    } catch (e) {
-      debugPrint('Auto kitchen print error in server: $e');
     }
+
 
     // Notify WebSocket clients
     _broadcastEvent({'type': 'TABLE_UPDATED', 'table_id': tableId, 'order_id': orderId});

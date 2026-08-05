@@ -22,11 +22,13 @@ import '../users/users_screen.dart';
 import 'home_operation_screen.dart';
 import '../../services/local_server_service.dart';
 import '../settings/sync_qr_widget.dart';
-import '../waiter/waiter_connect_screen.dart';
 import '../tables/tables_provider.dart';
 import '../orders/orders_provider.dart';
 import '../../services/update_service.dart';
 import '../../core/widgets/update_dialog.dart';
+import '../../core/widgets/manager_auth_dialog.dart';
+
+
 
 class DashboardLayout extends StatefulWidget {
   const DashboardLayout({super.key});
@@ -323,9 +325,38 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     );
   }
 
+  String? _getPermissionKeyForIndex(int index) {
+    switch (index) {
+      case 3:
+        return 'perm_cashier_access_products';
+      case 4:
+        return 'perm_cashier_access_categories';
+      case 5:
+        return 'perm_cashier_access_inventory';
+      case 6:
+        return 'perm_cashier_access_purchases';
+      case 7:
+        return 'perm_cashier_access_settings';
+      case 8:
+        return 'perm_cashier_access_debts';
+      case 9:
+        return 'perm_cashier_access_reports';
+      case 10:
+        return 'perm_cashier_access_settings';
+      case 11:
+        return 'perm_cashier_access_day_closing';
+      default:
+        return null;
+    }
+  }
+
   Widget _buildDrawerTile(int index, IconData icon, IconData selectedIcon, String label) {
     final isSelected = selectedIndex == index;
     final primaryColor = Theme.of(context).primaryColor;
+    final authProvider = context.watch<AuthProvider>();
+    final permKey = _getPermissionKeyForIndex(index);
+    final isCashier = !authProvider.isManager;
+    final isRestricted = isCashier && permKey != null && !authProvider.hasPermission(context, permKey);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -335,18 +366,28 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         selectedTileColor: primaryColor.withValues(alpha: 0.12),
         leading: Icon(
           isSelected ? selectedIcon : icon,
-          color: isSelected ? primaryColor : Colors.grey[700],
+          color: isRestricted ? Colors.grey[400] : (isSelected ? primaryColor : Colors.grey[700]),
         ),
         title: Text(
           label,
           style: TextStyle(
             fontSize: 15,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? primaryColor : Colors.black87,
+            color: isRestricted ? Colors.grey[500] : (isSelected ? primaryColor : Colors.black87),
           ),
         ),
-        onTap: () {
+        trailing: isRestricted ? const Icon(Icons.lock_outline, size: 18, color: Colors.orange) : null,
+        onTap: () async {
           Navigator.pop(context);
+          if (isRestricted) {
+            final authorized = await ManagerAuthDialog.show(
+              context,
+              title: 'إذن مدير النظام مطلوب 🔒',
+              reason: 'الدخول إلى شاشة ($label) محصورة أو تتطلب موافقة وإذن المدير',
+            );
+            if (!authorized) return;
+          }
+
           context.read<ProductsProvider>().selectCategory(null);
           context.read<ProductsProvider>().setSearchQuery('');
           setState(() {
@@ -356,6 +397,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       ),
     );
   }
+
 
   void _confirmLogout(BuildContext parentContext, AuthProvider authProvider) {
     final isEng = parentContext.read<SettingsProvider>().isEnglish;

@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
+import '../settings/settings_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
@@ -17,6 +20,41 @@ class AuthProvider extends ChangeNotifier {
   bool get isManager => _currentUser?.role == 'مدير';
   String get currentUserName => _currentUser?.username ?? 'غير مسجل';
   String get currentUserRole => _currentUser?.role ?? 'زائر';
+
+  bool hasPermission(BuildContext context, String permKey) {
+
+    if (_currentUser == null) return false;
+    if (isManager) return true;
+    if (_currentUser!.permissions != null && _currentUser!.permissions!.containsKey(permKey)) {
+      return _currentUser!.permissions![permKey]!;
+    }
+    final settings = context.read<SettingsProvider>();
+    return settings.getCashierPermission(permKey);
+  }
+
+  Future<bool> updateUserPermissions(int userId, Map<String, bool>? permissions) async {
+    try {
+      final db = await _dbHelper.database;
+      final permJson = permissions != null ? jsonEncode(permissions) : null;
+      await db.update(
+        'users',
+        {'permissions': permJson},
+        where: 'id = ?',
+        whereArgs: [userId],
+      );
+      await loadUsers();
+      if (_currentUser?.id == userId) {
+        _currentUser = _currentUser?.copyWith(permissions: permissions);
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Update user permissions error: $e');
+      return false;
+    }
+  }
+
+
 
   AuthProvider() {
     loadUsers();

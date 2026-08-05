@@ -23,6 +23,7 @@ import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
 import 'settings_provider.dart';
 
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -1058,6 +1059,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 20),
 
                 // Section -1: Database Backup & Restore Card
+
                 _buildBackupRestoreSection(context, settings),
 
                 const SizedBox(height: 20),

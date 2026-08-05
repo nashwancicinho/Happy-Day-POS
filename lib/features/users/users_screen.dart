@@ -6,9 +6,44 @@ import '../../core/widgets/top_notification.dart';
 import '../../models/user.dart';
 import '../auth/auth_provider.dart';
 import '../settings/settings_provider.dart';
+import '../settings/cashier_permissions_card.dart';
 
 class UsersScreen extends StatelessWidget {
   const UsersScreen({super.key});
+
+  void _showCashierPermissionsDialog(BuildContext context, {int? targetUserId}) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 750, maxHeight: 750),
+          child: Column(
+            children: [
+              AppBar(
+                title: Text(context.read<SettingsProvider>().isEnglish ? 'Cashier Permissions Settings' : 'تخصيص وإعطاء الصلاحيات للكاشير'),
+                centerTitle: true,
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(dialogCtx),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: CashierPermissionsCard(targetUserId: targetUserId),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +119,26 @@ class UsersScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (authProvider.isManager) ...[
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _showCashierPermissionsDialog(context),
+                      icon: const Icon(Icons.tune, color: Colors.white, size: 18),
+                      label: Text(
+                        isEng ? 'Cashier Rights ⚙️' : 'تخصيص صلاحيات الكاشير ⚙️',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
+
 
             const SizedBox(height: 20),
 
@@ -161,12 +213,28 @@ class UsersScreen extends StatelessWidget {
                                     color: user.isManager ? Colors.purple.shade900 : Colors.blue.shade900,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                if (authProvider.isManager && user.role == 'كاشير') ...[
+                                  const SizedBox(width: 8),
+                                  OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () => _showCashierPermissionsDialog(context, targetUserId: user.id),
+                                    icon: const Icon(Icons.tune, size: 16),
+                                    label: Text(
+                                      isEng ? 'Rights ⚙️' : 'الصلاحيات ⚙️',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(width: 8),
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                                   tooltip: isEng ? 'Delete User' : 'مسح اسم المستخدم',
                                   onPressed: () => _handleDeleteUser(context, authProvider, user),
                                 ),
+
                               ],
                             ),
                           ),

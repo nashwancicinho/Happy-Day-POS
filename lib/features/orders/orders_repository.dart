@@ -433,6 +433,42 @@ class OrdersRepository {
     }).toList();
   }
 
+  /// يرجع العناصر الجديدة فقط (الزيادة بالكمية أو الأصناف المضافة حديثاً) لطباعة المطبخ
+  Future<List<OrderItemModel>> getKitchenDeltaItems(int? existingOrderId, List<OrderItemModel> newItems) async {
+    final List<OrderItemModel> kitchenItems = newItems.where((i) => i.printToKitchen).toList();
+    if (kitchenItems.isEmpty) return [];
+
+    if (existingOrderId == null) {
+      return kitchenItems;
+    }
+
+    final oldItems = await getOrderItems(existingOrderId);
+    if (oldItems.isEmpty) {
+      return kitchenItems;
+    }
+
+    final List<OrderItemModel> deltaItems = [];
+
+    for (final newItem in kitchenItems) {
+      final oldMatches = oldItems.where(
+        (o) => o.productId == newItem.productId && (o.price - newItem.price).abs() < 0.01,
+      );
+
+      double oldQty = 0.0;
+      if (oldMatches.isNotEmpty) {
+        oldQty = oldMatches.fold(0.0, (sum, o) => sum + o.quantity);
+      }
+
+      final deltaQty = newItem.quantity - oldQty;
+      if (deltaQty > 0.001) {
+        deltaItems.add(newItem.copyWith(quantity: deltaQty));
+      }
+    }
+
+    return deltaItems;
+  }
+
+
   Future<void> completeOrder(int orderId, int? tableId) async {
     final db = await _databaseHelper.database;
     await db.transaction((txn) async {

@@ -66,6 +66,11 @@ class OrdersProvider extends ChangeNotifier {
     return await _repository.getOpenOrderByTable(tableId);
   }
 
+  Future<List<OrderItemModel>> getKitchenDeltaItems(int? existingOrderId, List<OrderItemModel> newItems) async {
+    return await _repository.getKitchenDeltaItems(existingOrderId, newItems);
+  }
+
+
   Future<int> holdTableOrder({
     int? existingOrderId,
     required int tableId,

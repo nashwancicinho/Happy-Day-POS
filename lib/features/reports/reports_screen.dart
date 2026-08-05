@@ -612,8 +612,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final primaryColor = Theme.of(context).primaryColor;
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final isSelected = _selectedReportType == typeKey;
-    final isManager = context.watch<AuthProvider>().isManager;
-    final isDisabled = isManagerOnly && !isManager;
+    final authProvider = context.watch<AuthProvider>();
+    final canViewProfitReports = authProvider.hasPermission(context, 'perm_cashier_view_profit_reports');
+    final isDisabled = isManagerOnly && !canViewProfitReports;
+
 
     return ChoiceChip(
       avatar: Icon(
