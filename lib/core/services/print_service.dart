@@ -16,7 +16,9 @@ class PrintService {
   static Future<List<Printer>> getSystemPrinters() async {
     try {
       final printers = await Printing.listPrinters();
-      debugPrint('Total discovered system printers via native plugin: ${printers.length}');
+      debugPrint(
+        'Total discovered system printers via native plugin: ${printers.length}',
+      );
       return printers;
     } catch (e) {
       debugPrint('Error listing system printers via Printing package: $e');
@@ -39,12 +41,25 @@ class PrintService {
     // 1. Check if name has text inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
     final matchInParen = RegExp(r'\((.*?)\)').firstMatch(rawName);
     if (matchInParen != null) {
-      final inside = matchInParen.group(1)!.trim().toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+      final inside = matchInParen
+          .group(1)!
+          .trim()
+          .toLowerCase()
+          .replaceAll('_', ' ')
+          .replaceAll('-', ' ');
       if (inside.isNotEmpty && inside != 'default printer') {
         final parenMatch = printers.where((p) {
-          final pName = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-          final pUrl = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-          return pName.contains(inside) || pUrl.contains(inside) || inside.contains(pName);
+          final pName = p.name
+              .toLowerCase()
+              .replaceAll('_', ' ')
+              .replaceAll('-', ' ');
+          final pUrl = p.url
+              .toLowerCase()
+              .replaceAll('_', ' ')
+              .replaceAll('-', ' ');
+          return pName.contains(inside) ||
+              pUrl.contains(inside) ||
+              inside.contains(pName);
         }).firstOrNull;
         if (parenMatch != null) return parenMatch;
       }
@@ -52,7 +67,10 @@ class PrintService {
 
     // 2. Strip common Arabic prefixes to leave clean printer model name
     String cleanName = rawName
-        .replaceAll(RegExp(r'طابعة\s*الكاشير\s*الرئيسية', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(r'طابعة\s*الكاشير\s*الرئيسية', caseSensitive: false),
+          '',
+        )
         .replaceAll(RegExp(r'طابعة\s*الكاشير', caseSensitive: false), '')
         .replaceAll(RegExp(r'طابعة\s*المطبخ', caseSensitive: false), '')
         .replaceAll(RegExp(r'طابعة\s*التقارير', caseSensitive: false), '')
@@ -66,33 +84,66 @@ class PrintService {
 
     if (cleanName.isNotEmpty) {
       final match = printers.where((p) {
-        final pName = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-        final pUrl = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-        return pName == cleanName || pName.contains(cleanName) || cleanName.contains(pName) || pUrl.contains(cleanName);
+        final pName = p.name
+            .toLowerCase()
+            .replaceAll('_', ' ')
+            .replaceAll('-', ' ');
+        final pUrl = p.url
+            .toLowerCase()
+            .replaceAll('_', ' ')
+            .replaceAll('-', ' ');
+        return pName == cleanName ||
+            pName.contains(cleanName) ||
+            cleanName.contains(pName) ||
+            pUrl.contains(cleanName);
       }).firstOrNull;
       if (match != null) return match;
     }
 
     // 3. Exact match on raw string
-    final exact = printers.where((p) =>
-      p.name.toLowerCase() == rawLower ||
-      p.url.toLowerCase() == rawLower
-    ).firstOrNull;
+    final exact = printers
+        .where(
+          (p) =>
+              p.name.toLowerCase() == rawLower ||
+              p.url.toLowerCase() == rawLower,
+        )
+        .firstOrNull;
     if (exact != null) return exact;
 
     // 4. Substring match on raw string
     final cleanTrimmed = rawLower.replaceAll('_', ' ').replaceAll('-', ' ');
     final matchPartial = printers.where((p) {
-      final pNameLower = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-      final pUrlLower = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+      final pNameLower = p.name
+          .toLowerCase()
+          .replaceAll('_', ' ')
+          .replaceAll('-', ' ');
+      final pUrlLower = p.url
+          .toLowerCase()
+          .replaceAll('_', ' ')
+          .replaceAll('-', ' ');
       return cleanTrimmed.contains(pNameLower) ||
-             pNameLower.contains(cleanTrimmed) ||
-             pUrlLower.contains(cleanTrimmed);
+          pNameLower.contains(cleanTrimmed) ||
+          pUrlLower.contains(cleanTrimmed);
     }).firstOrNull;
     if (matchPartial != null) return matchPartial;
 
     // 5. Smart auto-detect thermal / receipt / label printer models
-    final thermalKeywords = ['xprinter', 'xp-', '365b', '420b', 'pos', 'receipt', 'thermal', 'tsc', 'epson', 'star', 'gprinter', 'bixolon', 'citizen', 'sam4s'];
+    final thermalKeywords = [
+      'xprinter',
+      'xp-',
+      '365b',
+      '420b',
+      'pos',
+      'receipt',
+      'thermal',
+      'tsc',
+      'epson',
+      'star',
+      'gprinter',
+      'bixolon',
+      'citizen',
+      'sam4s',
+    ];
     final thermalPrinter = printers.where((p) {
       final name = p.name.toLowerCase();
       final url = p.url.toLowerCase();
@@ -128,11 +179,15 @@ class PrintService {
             usePrinterSettings: true,
           );
           if (success) {
-            debugPrint('Successfully printed directly to ${targetPrinter.name}');
+            debugPrint(
+              'Successfully printed directly to ${targetPrinter.name}',
+            );
             return true;
           }
         } catch (e) {
-          debugPrint('Printing.directPrintPdf failed on ${targetPrinter.name}: $e');
+          debugPrint(
+            'Printing.directPrintPdf failed on ${targetPrinter.name}: $e',
+          );
         }
       }
 
@@ -187,7 +242,8 @@ class PrintService {
       String formattedTime = '';
       try {
         final dt = DateTime.parse(order.createdAt);
-        formattedDate = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+        formattedDate =
+            '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
         final hourStr = dt.hour.toString().padLeft(2, '0');
         final minStr = dt.minute.toString().padLeft(2, '0');
         final secStr = dt.second.toString().padLeft(2, '0');
@@ -209,16 +265,18 @@ class PrintService {
       if (order.orderType == 'DELIVERY') typeText = 'توصيل دليفري';
 
       final pdf = pw.Document(
-        theme: pw.ThemeData.withFont(
-          base: arabicFont,
-          bold: arabicFontBold,
-        ),
+        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.only(right: 34, left: 16, top: 6, bottom: 6),
+          margin: const pw.EdgeInsets.only(
+            right: 34,
+            left: 16,
+            top: 6,
+            bottom: 6,
+          ),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
@@ -241,7 +299,10 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         settings.storeName,
-                        style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontSize: 16,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -278,7 +339,10 @@ class PrintService {
                       pw.Center(
                         child: pw.Text(
                           'طاولة: $cleanTable',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
                           textAlign: pw.TextAlign.center,
                         ),
                       )
@@ -286,7 +350,10 @@ class PrintService {
                       pw.Center(
                         child: pw.Text(
                           'نوع الطلب: $typeText',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
                           textAlign: pw.TextAlign.center,
                         ),
                       ),
@@ -297,34 +364,81 @@ class PrintService {
                       child: pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('التاريخ: $formattedDate', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                          pw.Text('الوقت: $formattedTime', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                          pw.Text(
+                            'التاريخ: $formattedDate',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 9.5,
+                            ),
+                          ),
+                          pw.Text(
+                            'الوقت: $formattedTime',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 9.5,
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
                     // Delivery Customer Info Block
                     if (order.orderType == 'DELIVERY' ||
-                        (order.customerPhone != null && order.customerPhone!.isNotEmpty) ||
-                        (order.customerAddress != null && order.customerAddress!.isNotEmpty)) ...[
+                        (order.customerPhone != null &&
+                            order.customerPhone!.isNotEmpty) ||
+                        (order.customerAddress != null &&
+                            order.customerAddress!.isNotEmpty)) ...[
                       pw.SizedBox(height: 4),
                       pw.Container(
                         width: double.infinity,
                         padding: const pw.EdgeInsets.all(5),
                         decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.black, width: 0.8),
-                          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                          border: pw.Border.all(
+                            color: PdfColors.black,
+                            width: 0.8,
+                          ),
+                          borderRadius: const pw.BorderRadius.all(
+                            pw.Radius.circular(4),
+                          ),
                         ),
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
-                            pw.Text('--- بيانات التوصيل والزبون ---', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5), textAlign: pw.TextAlign.center),
-                            if (order.customerName != null && order.customerName!.isNotEmpty)
-                              pw.Text('اسم الزبون: ${order.customerName}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                            if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
-                              pw.Text('هاتف الزبون: ${order.customerPhone}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
-                            if (order.customerAddress != null && order.customerAddress!.isNotEmpty)
-                              pw.Text('عنوان التوصيل: ${order.customerAddress}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5)),
+                            pw.Text(
+                              '--- بيانات التوصيل والزبون ---',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 9.5,
+                              ),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                            if (order.customerName != null &&
+                                order.customerName!.isNotEmpty)
+                              pw.Text(
+                                'اسم الزبون: ${order.customerName}',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            if (order.customerPhone != null &&
+                                order.customerPhone!.isNotEmpty)
+                              pw.Text(
+                                'هاتف الزبون: ${order.customerPhone}',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                            if (order.customerAddress != null &&
+                                order.customerAddress!.isNotEmpty)
+                              pw.Text(
+                                'عنوان التوصيل: ${order.customerAddress}',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10.5,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -334,14 +448,20 @@ class PrintService {
 
                     // 4. Items Table Header
                     pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                      padding: const pw.EdgeInsets.symmetric(
+                        vertical: 2,
+                        horizontal: 2,
+                      ),
                       child: pw.Row(
                         children: [
                           pw.Expanded(
                             flex: 9,
                             child: pw.Text(
                               'الصنف / المادة',
-                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 10,
+                              ),
                               textAlign: pw.TextAlign.right,
                             ),
                           ),
@@ -349,7 +469,10 @@ class PrintService {
                             flex: 3,
                             child: pw.Text(
                               'الكمية',
-                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 10,
+                              ),
                               textAlign: pw.TextAlign.center,
                             ),
                           ),
@@ -357,7 +480,10 @@ class PrintService {
                             flex: 8,
                             child: pw.Text(
                               'المجموع',
-                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 10,
+                              ),
                               textAlign: pw.TextAlign.left,
                             ),
                           ),
@@ -368,12 +494,19 @@ class PrintService {
 
                     // 5. Items Rows
                     ...items.map((item) {
-                      final rawName = (item.productName != null && item.productName!.isNotEmpty)
+                      final rawName =
+                          (item.productName != null &&
+                              item.productName!.isNotEmpty)
                           ? item.productName!
                           : 'صنف #${item.productId}';
-                      final pName = rawName.replaceAll(RegExp(r'\s+'), ' ').trim();
+                      final pName = rawName
+                          .replaceAll(RegExp(r'\s+'), ' ')
+                          .trim();
                       return pw.Padding(
-                        padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+                        padding: const pw.EdgeInsets.symmetric(
+                          vertical: 3,
+                          horizontal: 2,
+                        ),
                         child: pw.Row(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
@@ -381,7 +514,10 @@ class PrintService {
                               flex: 9,
                               child: pw.Text(
                                 pName,
-                                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                style: pw.TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
                                 textAlign: pw.TextAlign.right,
                                 softWrap: true,
                               ),
@@ -398,7 +534,10 @@ class PrintService {
                               flex: 8,
                               child: pw.Text(
                                 '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
-                                style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold),
+                                style: pw.TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
                                 textAlign: pw.TextAlign.left,
                                 maxLines: 1,
                               ),
@@ -410,14 +549,28 @@ class PrintService {
                     pw.Divider(thickness: 1),
 
                     // 6. Summary
-                    if (order.discountAmount > 0 || (order.subtotal > order.total && order.subtotal > 0)) ...[
+                    if (order.discountAmount > 0 ||
+                        (order.subtotal > order.total &&
+                            order.subtotal > 0)) ...[
                       pw.Padding(
                         padding: const pw.EdgeInsets.symmetric(horizontal: 2),
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('المجموع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                            pw.Text('${(order.subtotal > 0 ? order.subtotal : (order.total + order.discountAmount)).toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                            pw.Text(
+                              'المجموع:',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 9.5,
+                              ),
+                            ),
+                            pw.Text(
+                              '${(order.subtotal > 0 ? order.subtotal : (order.total + order.discountAmount)).toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 9.5,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -426,8 +579,20 @@ class PrintService {
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('الخصم:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                            pw.Text('-${order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                            pw.Text(
+                              'الخصم:',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 9.5,
+                              ),
+                            ),
+                            pw.Text(
+                              '-${order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 9.5,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -436,8 +601,20 @@ class PrintService {
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('الصافي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                            pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                            pw.Text(
+                              'الصافي:',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            pw.Text(
+                              '${order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -447,8 +624,20 @@ class PrintService {
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                            pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                            pw.Text(
+                              'الإجمالي الكلي:',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            pw.Text(
+                              '${order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -459,8 +648,14 @@ class PrintService {
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('المدفوع:', style: const pw.TextStyle(fontSize: 9.5)),
-                            pw.Text('${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
+                            pw.Text(
+                              'المدفوع:',
+                              style: const pw.TextStyle(fontSize: 9.5),
+                            ),
+                            pw.Text(
+                              '${cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: const pw.TextStyle(fontSize: 9.5),
+                            ),
                           ],
                         ),
                       ),
@@ -469,8 +664,14 @@ class PrintService {
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('المتبقي:', style: const pw.TextStyle(fontSize: 9.5)),
-                            pw.Text('${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 9.5)),
+                            pw.Text(
+                              'المتبقي:',
+                              style: const pw.TextStyle(fontSize: 9.5),
+                            ),
+                            pw.Text(
+                              '${changeDue.toStringAsFixed(0)} ${settings.currencySymbol}',
+                              style: const pw.TextStyle(fontSize: 9.5),
+                            ),
                           ],
                         ),
                       ),
@@ -534,7 +735,9 @@ class PrintService {
     try {
       final kitchenItems = items.where((item) => item.printToKitchen).toList();
       if (kitchenItems.isEmpty) {
-        debugPrint('No items in this order have printToKitchen enabled. Skipping kitchen printing.');
+        debugPrint(
+          'No items in this order have printToKitchen enabled. Skipping kitchen printing.',
+        );
         return true;
       }
 
@@ -551,7 +754,8 @@ class PrintService {
       // Group items by target kitchen printer
       final Map<String, List<OrderItemModel>> itemsByPrinter = {};
       for (var item in kitchenItems) {
-        final targetPrinter = (item.kitchenPrinter != null && item.kitchenPrinter!.isNotEmpty)
+        final targetPrinter =
+            (item.kitchenPrinter != null && item.kitchenPrinter!.isNotEmpty)
             ? item.kitchenPrinter!
             : settings.kitchenPrinter;
         itemsByPrinter.putIfAbsent(targetPrinter, () => []).add(item);
@@ -564,16 +768,18 @@ class PrintService {
         final printerGroupItems = entry.value;
 
         final pdf = pw.Document(
-          theme: pw.ThemeData.withFont(
-            base: arabicFont,
-            bold: arabicFontBold,
-          ),
+          theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
         );
 
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.roll80,
-            margin: const pw.EdgeInsets.only(right: 34, left: 16, top: 6, bottom: 6),
+            margin: const pw.EdgeInsets.only(
+              right: 34,
+              left: 16,
+              top: 6,
+              bottom: 6,
+            ),
             build: (pw.Context context) {
               return pw.Directionality(
                 textDirection: pw.TextDirection.rtl,
@@ -581,14 +787,35 @@ class PrintService {
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Center(
-                      child: pw.Text('*** أمر مطبخ (KOT) ***', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                      child: pw.Text(
+                        '*** أمر مطبخ (KOT) ***',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
                     pw.Center(
-                      child: pw.Text('طلب #${order.id ?? 1} - ${order.orderType}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                      child: pw.Text(
+                        'طلب #${order.id ?? 1} - ${order.orderType}',
+                        style: pw.TextStyle(
+                          fontSize: 11,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     ),
                     if (tableName != null)
                       pw.Center(
-                        child: pw.Text('طاولة: $tableName', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                        child: pw.Text(
+                          'طاولة: $tableName',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                        ),
                       ),
                     pw.Divider(thickness: 1),
 
@@ -598,14 +825,33 @@ class PrintService {
                         child: pw.Row(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
-                            pw.Text('[ ${item.formattedQuantity} × ] ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                            pw.Text(
+                              '[ ${item.formattedQuantity} × ] ',
+                              style: pw.TextStyle(
+                                fontSize: 12,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
                             pw.Expanded(
                               child: pw.Column(
                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                                 children: [
-                                  pw.Text(item.productName ?? '', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                                  if (item.notes != null && item.notes!.isNotEmpty)
-                                    pw.Text('ملاحظة المطبخ: ${item.notes}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                                  pw.Text(
+                                    item.productName ?? '',
+                                    style: pw.TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: pw.FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (item.notes != null &&
+                                      item.notes!.isNotEmpty)
+                                    pw.Text(
+                                      'ملاحظة المطبخ: ${item.notes}',
+                                      style: pw.TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: pw.FontWeight.bold,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -659,16 +905,18 @@ class PrintService {
       final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
       final pdf = pw.Document(
-        theme: pw.ThemeData.withFont(
-          base: arabicFont,
-          bold: arabicFontBold,
-        ),
+        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
       );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.only(right: 34, left: 16, top: 6, bottom: 6),
+          margin: const pw.EdgeInsets.only(
+            right: 34,
+            left: 16,
+            top: 6,
+            bottom: 6,
+          ),
           build: (pw.Context context) {
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
@@ -681,7 +929,10 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         settings.storeName,
-                        style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontSize: 15,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -689,7 +940,10 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         reportTitle,
-                        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -705,7 +959,10 @@ class PrintService {
                       pw.Center(
                         child: pw.Text(
                           'تاريخ أول فاتورة: $firstInvoiceTime',
-                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                          style: pw.TextStyle(
+                            fontSize: 8,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                           textAlign: pw.TextAlign.center,
                         ),
                       ),
@@ -713,7 +970,10 @@ class PrintService {
                       pw.Center(
                         child: pw.Text(
                           'إغلاق اليوم: $dayClosingTime',
-                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                          style: pw.TextStyle(
+                            fontSize: 8,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                           textAlign: pw.TextAlign.center,
                         ),
                       ),
@@ -728,7 +988,10 @@ class PrintService {
 
                     // 2. Financial Summary Box (Centered with safe inner margins)
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      padding: const pw.EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       decoration: pw.BoxDecoration(
                         border: pw.Border.all(color: PdfColors.grey400),
                         borderRadius: pw.BorderRadius.circular(6),
@@ -736,36 +999,79 @@ class PrintService {
                       child: pw.Column(
                         children: [
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('إجمالي المبيعات:', style: const pw.TextStyle(fontSize: 8.5)),
-                              pw.Text('${totalSales.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                              pw.Text(
+                                'إجمالي المبيعات:',
+                                style: const pw.TextStyle(fontSize: 8.5),
+                              ),
+                              pw.Text(
+                                '${totalSales.toStringAsFixed(0)} ${settings.currencySymbol}',
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           if (totalExpenses > 0) ...[
                             pw.SizedBox(height: 2),
                             pw.Row(
-                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment:
+                                  pw.MainAxisAlignment.spaceBetween,
                               children: [
-                                pw.Text('إجمالي المصروفات:', style: const pw.TextStyle(fontSize: 8.5)),
-                                pw.Text('${totalExpenses.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                                pw.Text(
+                                  'إجمالي المصروفات:',
+                                  style: const pw.TextStyle(fontSize: 8.5),
+                                ),
+                                pw.Text(
+                                  '${totalExpenses.toStringAsFixed(0)} ${settings.currencySymbol}',
+                                  style: pw.TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
                           pw.SizedBox(height: 2),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('عدد الفواتير:', style: const pw.TextStyle(fontSize: 8.5)),
-                              pw.Text('$totalOrders فاتورة', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                              pw.Text(
+                                'عدد الفواتير:',
+                                style: const pw.TextStyle(fontSize: 8.5),
+                              ),
+                              pw.Text(
+                                '$totalOrders فاتورة',
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           pw.Divider(thickness: 0.5),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('صافي الوارد / الربح:', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                              pw.Text('${netProfit.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                              pw.Text(
+                                'صافي الوارد / الربح:',
+                                style: pw.TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.Text(
+                                '${netProfit.toStringAsFixed(0)} ${settings.currencySymbol}',
+                                style: pw.TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -777,7 +1083,10 @@ class PrintService {
                     pw.Center(
                       child: pw.Text(
                         tableTitle ?? 'تفاصيل الأصناف المباعة:',
-                        style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -785,16 +1094,32 @@ class PrintService {
 
                     // 4. Product Breakdown Table (Balanced column widths to prevent overflow)
                     pw.TableHelper.fromTextArray(
-                      headers: customHeaders ?? ['اسم الصنف / المنتج', 'الكمية', 'المجموع'],
-                      data: customDataRows ?? productBreakdown.map((p) => [
-                        p['name'].toString(),
-                        '${p['qty']}',
-                        '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
-                      ]).toList(),
-                      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+                      headers:
+                          customHeaders ??
+                          ['اسم الصنف / المنتج', 'الكمية', 'المجموع'],
+                      data:
+                          customDataRows ??
+                          productBreakdown
+                              .map(
+                                (p) => [
+                                  p['name'].toString(),
+                                  '${p['qty']}',
+                                  '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
+                                ],
+                              )
+                              .toList(),
+                      headerStyle: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 8,
+                      ),
                       cellStyle: const pw.TextStyle(fontSize: 8),
-                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-                      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      border: pw.TableBorder.all(
+                        color: PdfColors.grey300,
+                        width: 0.5,
+                      ),
+                      headerDecoration: const pw.BoxDecoration(
+                        color: PdfColors.grey200,
+                      ),
                       columnWidths: {
                         0: const pw.FlexColumnWidth(3.2),
                         1: const pw.FlexColumnWidth(1.2),
@@ -839,13 +1164,19 @@ class PrintService {
     final printerNameConfig = settings.cashierPrinter;
 
     // 1. Check if config is a network IP address (e.g. 192.168.1.200 or 192.168.1.200:9100)
-    final ipRegex = RegExp(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?$');
+    final ipRegex = RegExp(
+      r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?$',
+    );
     final match = ipRegex.firstMatch(printerNameConfig.trim());
     if (match != null) {
       try {
         final host = match.group(1)!;
         final port = int.tryParse(match.group(2) ?? '9100') ?? 9100;
-        final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 3));
+        final socket = await Socket.connect(
+          host,
+          port,
+          timeout: const Duration(seconds: 3),
+        );
         socket.add(bytes);
         await socket.flush();
         await socket.close();
@@ -870,7 +1201,8 @@ class PrintService {
         final escapedPrinter = pName.replaceAll("'", "''");
         final rawConfig = printerNameConfig.trim().replaceAll("'", "''");
 
-        final psScript = '''
+        final psScript =
+            '''
 \$printerNameConfig = '$rawConfig'
 \$resolvedPrinter = '$escapedPrinter'
 \$filePath = '$escapedPath'
@@ -970,9 +1302,18 @@ Write-Output "False"
         final psFile = File('${tempDir.path}\\send_raw_drawer.ps1');
         await psFile.writeAsString(psScript);
 
-        final result = await Process.run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', psFile.path]);
-        debugPrint('Windows PowerShell raw spool result: exit=${result.exitCode}, out=${result.stdout}');
-        if (result.exitCode == 0 && result.stdout.toString().trim().toLowerCase() == 'true') {
+        final result = await Process.run('powershell', [
+          '-NoProfile',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          psFile.path,
+        ]);
+        debugPrint(
+          'Windows PowerShell raw spool result: exit=${result.exitCode}, out=${result.stdout}',
+        );
+        if (result.exitCode == 0 &&
+            result.stdout.toString().trim().toLowerCase() == 'true') {
           return true;
         }
       } catch (e) {
@@ -983,7 +1324,13 @@ Write-Output "False"
       try {
         final tempDir = await getTemporaryDirectory();
         if (pName.isNotEmpty) {
-          final result = await Process.run('cmd', ['/c', 'copy', '/b', '${tempDir.path}\\drawer_kick.bin', '"$pName"']);
+          final result = await Process.run('cmd', [
+            '/c',
+            'copy',
+            '/b',
+            '${tempDir.path}\\drawer_kick.bin',
+            '"$pName"',
+          ]);
           if (result.exitCode == 0) return true;
         }
       } catch (_) {}
@@ -997,8 +1344,12 @@ Write-Output "False"
         await file.writeAsBytes(bytes);
 
         String queueName = pName;
-        if (queueName.contains('الافتراضية') || queueName.contains('Default') || queueName.contains('طابعة')) {
-          if (targetPrinter != null && !targetPrinter.name.contains('الافتراضية') && !targetPrinter.name.contains('طابعة')) {
+        if (queueName.contains('الافتراضية') ||
+            queueName.contains('Default') ||
+            queueName.contains('طابعة')) {
+          if (targetPrinter != null &&
+              !targetPrinter.name.contains('الافتراضية') &&
+              !targetPrinter.name.contains('طابعة')) {
             queueName = targetPrinter.name;
           } else {
             queueName = '';
@@ -1044,7 +1395,9 @@ Write-Output "False"
 
           for (var cmd in commandsToTry) {
             final res = await Process.run(cmd[0], cmd.sublist(1));
-            debugPrint('macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}');
+            debugPrint(
+              'macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}',
+            );
             if (res.exitCode == 0) {
               anySuccess = true;
               break;
@@ -1080,30 +1433,7 @@ Write-Output "False"
   /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & Star & TSPL Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
-      final List<int> drawerBytes = [
-        // 1. Standard ESC p 0 (Pin 2, 100ms pulse, 250ms off)
-        27, 112, 0, 50, 250,
-        27, 112, 48, 50, 250,    // ASCII '0'
-        27, 112, 0, 25, 250,
-
-        // 2. Standard ESC p 1 (Pin 5, 100ms pulse, 250ms off)
-        27, 112, 1, 50, 250,
-        27, 112, 49, 50, 250,    // ASCII '1'
-        27, 112, 1, 25, 250,
-
-        // 3. DLE DC4 Real-time pulse commands (Pin 2 & Pin 5)
-        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time)
-        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time)
-
-        // 4. Star Micronics & Citizen & FS p 1 0
-        7,                       // BEL
-        27, 7, 10, 50, 7,
-        28, 112, 1, 0,
-        27, 30,
-
-        // 5. Line feeds to flush byte buffer
-        10, 10, 10,
-      ];
+      final List<int> drawerBytes = [0x1B, 0x70, 0x00, 0x19, 0xFA];
 
       final success = await sendRawBytesToPrinter(
         bytes: drawerBytes,
@@ -1116,7 +1446,6 @@ Write-Output "False"
     }
   }
 
-
   /// طباعة ملصق الباركود المخصص للصنف على طابعة ملصقات الباركود
   static Future<bool> printBarcodeLabel({
     required ProductModel product,
@@ -1127,19 +1456,20 @@ Write-Output "False"
       final arabicFont = await PdfGoogleFonts.cairoRegular();
       final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
-      final barcodeData = (product.barcode != null && product.barcode!.isNotEmpty)
+      final barcodeData =
+          (product.barcode != null && product.barcode!.isNotEmpty)
           ? product.barcode!
           : product.id.toString().padLeft(6, '0');
 
       final pdf = pw.Document(
-        theme: pw.ThemeData.withFont(
-          base: arabicFont,
-          bold: arabicFontBold,
-        ),
+        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
       );
 
       // Label Page Format: 50mm x 30mm standard label sticker
-      const labelFormat = PdfPageFormat(50 * PdfPageFormat.mm, 30 * PdfPageFormat.mm);
+      const labelFormat = PdfPageFormat(
+        50 * PdfPageFormat.mm,
+        30 * PdfPageFormat.mm,
+      );
 
       for (int i = 0; i < labelCount; i++) {
         pdf.addPage(
@@ -1155,13 +1485,19 @@ Write-Output "False"
                   children: [
                     pw.Text(
                       settings.storeName,
-                      style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                        fontSize: 7,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                       textAlign: pw.TextAlign.center,
                     ),
                     pw.SizedBox(height: 1),
                     pw.Text(
                       product.name,
-                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                       textAlign: pw.TextAlign.center,
                     ),
                     pw.SizedBox(height: 1),
@@ -1176,7 +1512,10 @@ Write-Output "False"
                     pw.SizedBox(height: 1),
                     pw.Text(
                       'السعر: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}',
-                      style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                       textAlign: pw.TextAlign.center,
                     ),
                   ],
