@@ -1433,7 +1433,27 @@ Write-Output "False"
   /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & Star & TSPL Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
-      final List<int> drawerBytes = [0x1B, 0x70, 0x00, 0x19, 0xFA];
+      final List<int> drawerBytes = [
+        // 1. Standard ESC p 0 (Pin 2: 100ms pulse, 250ms off)
+        27, 112, 0, 50, 250,
+        27, 112, 48, 50, 250,    // ASCII '0'
+
+        // 2. Standard ESC p 1 (Pin 5: 100ms pulse, 250ms off)
+        27, 112, 1, 50, 250,
+        27, 112, 49, 50, 250,    // ASCII '1'
+
+        // 3. DLE DC4 Real-time pulse commands for Xprinter (Pin 2 & Pin 5)
+        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time pulse)
+        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time pulse)
+
+        // 4. Star Micronics & Citizen & FS pulse
+        7,                       // BEL pulse
+        27, 7, 10, 50, 7,
+        28, 112, 1, 0,
+
+        // 5. Line feeds to flush byte buffer on Xprinter
+        10, 10, 10,
+      ];
 
       final success = await sendRawBytesToPrinter(
         bytes: drawerBytes,
