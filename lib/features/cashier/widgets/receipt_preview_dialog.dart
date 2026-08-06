@@ -467,18 +467,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
     }
   }
 
-  String _paymentMethodLabel(String method) {
-    switch (method) {
-      case 'CASH':
-        return 'نقداً (كاش)';
-      case 'CARD':
-        return 'بطاقة (شبكة)';
-      case 'CREDIT':
-        return 'آجل (ذمم)';
-      default:
-        return method;
-    }
-  }
+
 
   String _formatDateOnly(String isoString) {
     try {

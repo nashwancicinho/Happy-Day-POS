@@ -123,7 +123,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
           // Summary Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: const Color(0xFF1F2937).withOpacity(0.5),
+            color: const Color(0xFF1F2937).withValues(alpha: 0.5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -178,7 +178,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 side: BorderSide(
-                                  color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981).withOpacity(0.5),
+                                  color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981).withValues(alpha: 0.5),
                                   width: 2,
                                 ),
                               ),
@@ -216,7 +216,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: (isBusy ? Colors.orangeAccent : const Color(0xFF10B981)).withOpacity(0.2),
+                                              color: (isBusy ? Colors.orangeAccent : const Color(0xFF10B981)).withValues(alpha: 0.2),
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Text(

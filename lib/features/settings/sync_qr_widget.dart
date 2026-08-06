@@ -48,7 +48,7 @@ class _SyncQrDialogState extends State<SyncQrDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.2),
+              color: const Color(0xFF10B981).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.wifi_tethering_rounded, color: Color(0xFF10B981), size: 28),
@@ -71,9 +71,9 @@ class _SyncQrDialogState extends State<SyncQrDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: (isRunning ? const Color(0xFF10B981) : Colors.redAccent).withOpacity(0.15),
+                color: (isRunning ? const Color(0xFF10B981) : Colors.redAccent).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: (isRunning ? const Color(0xFF10B981) : Colors.redAccent).withOpacity(0.4)),
+                border: Border.all(color: (isRunning ? const Color(0xFF10B981) : Colors.redAccent).withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [

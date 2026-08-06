@@ -119,7 +119,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<SupplierModel>(
-                                    value: suppliers.where((s) => s.id == _selectedSupplier?.id).firstOrNull,
+                                    initialValue: suppliers.where((s) => s.id == _selectedSupplier?.id).firstOrNull,
                                     decoration: InputDecoration(
                                       labelText: isEng ? 'Select Supplier *' : 'اختر المورد *',
                                       prefixIcon: const Icon(Icons.business),
@@ -232,7 +232,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                     Expanded(
                                       flex: 4,
                                       child: DropdownButtonFormField<ProductModel?>(
-                                        value: _items[i].selectedProduct,
+                                        initialValue: _items[i].selectedProduct,
                                         decoration: InputDecoration(
                                           isDense: true,
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -435,7 +435,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _paymentMethod,
+                              initialValue: _paymentMethod,
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Payment Method' : 'طريقة الدفع',
                                 prefixIcon: const Icon(Icons.payment),
@@ -542,19 +542,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                       );
 
                       final provider = context.read<PurchasesProvider>();
+                      final dialogCtx = context;
                       final success = await provider.addPurchaseInvoice(
                         invoice: invoice,
                         updateInventory: _updateInventory,
                       );
 
-                      if (mounted) {
-                        Navigator.pop(context);
-                        if (success) {
-                          TopNotification.showSuccess(context, isEng ? '🎉 Purchase invoice saved and accounts updated successfully!' : '🎉 تم حفظ فاتورة المشتريات وتحديث الحسابات بنجاح!');
-                        } else {
-                          TopNotification.showWarning(context, isEng ? '⚠️ Error saving invoice.' : '⚠️حدث خطأ أثناء حفظ الفاتورة.');
-                        }
+                      if (!mounted) return;
+                      if (success) {
+                        TopNotification.showSuccess(dialogCtx, isEng ? '🎉 Purchase invoice saved and accounts updated successfully!' : '🎉 تم حفظ فاتورة المشتريات وتحديث الحسابات بنجاح!');
+                      } else {
+                        TopNotification.showWarning(dialogCtx, isEng ? '⚠️ Error saving invoice.' : '⚠️حدث خطأ أثناء حفظ الفاتورة.');
                       }
+                      Navigator.pop(dialogCtx);
                     },
                   ),
                 ],

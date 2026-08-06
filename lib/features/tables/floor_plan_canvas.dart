@@ -50,9 +50,6 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final canvasWidth = constraints.maxWidth > 1400 ? constraints.maxWidth : 1400.0;
-        final canvasHeight = constraints.maxHeight > 900 ? constraints.maxHeight : 900.0;
-
         return Stack(
           children: [
             // Interactive Canvas Area with Zoom / Pan capability
@@ -448,32 +445,5 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
         ),
       ),
     );
-  }
-}
-
-// Custom Grid Lines Painter for Floor Plan Background
-class _FloorGridPainter extends CustomPainter {
-  final double gridSize;
-  final bool isDesignMode;
-
-  _FloorGridPainter({required this.gridSize, required this.isDesignMode});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = isDesignMode ? Colors.purple.withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.08)
-      ..strokeWidth = 1.0;
-
-    for (double x = 0; x < size.width; x += gridSize) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += gridSize) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _FloorGridPainter oldDelegate) {
-    return oldDelegate.isDesignMode != isDesignMode || oldDelegate.gridSize != gridSize;
   }
 }

@@ -640,7 +640,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   title: 'إذن تعديل السعر 🔒',
                                   reason: 'تغيير وتعديل سعر المادة في السلة يتطلب إذن موافقة المدير',
                                 ).then((authorized) {
-                                  if (authorized) {
+                                  if (authorized && ctx.mounted) {
                                     Navigator.pop(ctx);
                                     _addItemToCartWithQtyAndPrice(
                                       product: product,
@@ -926,7 +926,11 @@ class _CashierScreenState extends State<CashierScreen> {
         reason: 'إلغاء الفاتورة بالكامل وإخلاء الطاولة يتطلب إذن موافقة المدير',
       );
       if (!authorized) return;
+      if (!mounted) return;
     }
+
+    final ordersProvider = context.read<OrdersProvider>();
+    final tablesProvider = context.read<TablesProvider>();
 
     final confirm = await showDialog<bool>(
 
@@ -964,8 +968,8 @@ class _CashierScreenState extends State<CashierScreen> {
     if (confirm == true) {
       if (widget.selectedTable?.id != null) {
         final tableId = widget.selectedTable!.id!;
-        await context.read<OrdersProvider>().cancelTableOrder(tableId);
-        await context.read<TablesProvider>().loadTables();
+        await ordersProvider.cancelTableOrder(tableId);
+        await tablesProvider.loadTables();
       }
 
       if (mounted) {
@@ -1650,6 +1654,7 @@ class _CashierScreenState extends State<CashierScreen> {
       return;
     }
 
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
     final authProvider = context.read<AuthProvider>();
     if (!authProvider.hasPermission(context, 'perm_cashier_allow_discount')) {
       final authorized = await ManagerAuthDialog.show(
@@ -1658,9 +1663,8 @@ class _CashierScreenState extends State<CashierScreen> {
         reason: 'تطبيق خصم على الفاتورة يتطلب موافقة وإذن مدير النظام',
       );
       if (!authorized) return;
+      if (!mounted) return;
     }
-
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
 
     final discountController = TextEditingController(
       text: _discountAmount > 0 ? _discountAmount.toStringAsFixed(0) : '',
@@ -2435,6 +2439,7 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   Future<void> _customizeCategoryAppearance(BuildContext context, CategoryModel category) async {
+    final categoriesProvider = context.read<CategoriesProvider>();
     final result = await CustomizeItemAppearanceDialog.show(
       context,
       itemName: category.name,
@@ -2448,12 +2453,15 @@ class _CashierScreenState extends State<CashierScreen> {
         color: result['color'],
         clearColor: result['color'] == null,
       );
-      await context.read<CategoriesProvider>().updateCategory(updated);
-      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر تصنيف (${category.name}) بنجاح!');
+      await categoriesProvider.updateCategory(updated);
+      if (mounted) {
+        TopNotification.showSuccess(context, '🎨 تم تحديث مظهر تصنيف (${category.name}) بنجاح!');
+      }
     }
   }
 
   Future<void> _customizeProductAppearance(BuildContext context, ProductModel product) async {
+    final productsProvider = context.read<ProductsProvider>();
     final result = await CustomizeItemAppearanceDialog.show(
       context,
       itemName: product.name,
@@ -2467,8 +2475,10 @@ class _CashierScreenState extends State<CashierScreen> {
         color: result['color'],
         clearColor: result['color'] == null,
       );
-      await context.read<ProductsProvider>().updateProduct(updated);
-      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر مادة (${product.name}) بنجاح!');
+      await productsProvider.updateProduct(updated);
+      if (mounted) {
+        TopNotification.showSuccess(context, '🎨 تم تحديث مظهر مادة (${product.name}) بنجاح!');
+      }
     }
   }
 
@@ -2603,18 +2613,7 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
-  IconData _getCategoryIcon(String name) {
-    if (name.contains('حلويات') || name.contains('كيك') || name.contains('بقلاوة')) {
-      return Icons.cake;
-    } else if (name.contains('مشروبات') || name.contains('عصير') || name.contains('قهوة')) {
-      return Icons.local_cafe;
-    } else if (name.contains('وجبات') || name.contains('برغر') || name.contains('بيتزا')) {
-      return Icons.fastfood;
-    } else if (name.contains('مقبلات') || name.contains('سلاطة')) {
-      return Icons.restaurant_menu;
-    }
-    return Icons.category;
-  }
+
 
   // 2. Grid View for Items/Products
   Widget _buildItemsGrid(BuildContext context, ProductsProvider productsProvider) {
@@ -2802,57 +2801,5 @@ class _CashierScreenState extends State<CashierScreen> {
         );
       },
     );
-  }
-
-
-
-
-  Future<void> _confirmCancelTableOrder(BuildContext context) async {
-    if (widget.selectedTable?.id == null) return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 8),
-            Text('تأكيد إلغاء الفاتورة', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text('هل أنت تأكد من رغبتك في إلغاء فاتورة ${widget.selectedTable!.name} وإخلاء الطاولة بالكامل؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: const Text('نعم، إلغاء الفاتورة وإخلاء الطاولة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      final tableId = widget.selectedTable!.id!;
-      final ordersProvider = context.read<OrdersProvider>();
-      final tablesProvider = context.read<TablesProvider>();
-
-      await ordersProvider.cancelTableOrder(tableId);
-      await tablesProvider.loadTables();
-
-      if (mounted) {
-        setState(() {
-          _cart.clear();
-          _existingOrderId = null;
-        });
-
-        TopNotification.showSuccess(context, 'تم إلغاء فاتورة ${widget.selectedTable!.name} وإخلاء الطاولة بنجاح ❌');
-        Navigator.pop(context);
-      }
-    }
   }
 }

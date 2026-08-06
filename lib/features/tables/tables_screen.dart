@@ -21,7 +21,7 @@ class TablesScreen extends StatefulWidget {
 class _TablesScreenState extends State<TablesScreen> {
   bool _isDeleteMode = false;
   bool _isDesignMode = false;
-  bool _isFloorPlanView = true;
+  final bool _isFloorPlanView = true;
 
   @override
   void initState() {
@@ -762,7 +762,7 @@ class _TablesScreenState extends State<TablesScreen> {
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<RestaurantTable>(
-                value: selectedTargetTable,
+                initialValue: selectedTargetTable,
                 decoration: InputDecoration(
                   labelText: 'الطاولة الهدف *',
                   prefixIcon: const Icon(Icons.table_restaurant, color: Colors.orange),

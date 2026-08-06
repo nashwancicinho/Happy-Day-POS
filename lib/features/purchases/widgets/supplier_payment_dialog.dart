@@ -122,7 +122,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               const SizedBox(height: 14),
 
               DropdownButtonFormField<String>(
-                value: _paymentMethod,
+                initialValue: _paymentMethod,
                 decoration: InputDecoration(
                   labelText: isEng ? 'Payment Method' : 'طريقة الدفع',
                   prefixIcon: const Icon(Icons.payment),
@@ -167,8 +167,9 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
           ),
           onPressed: () async {
             if (!_formKey.currentState!.validate()) return;
+            final dialogCtx = context;
             final amount = double.parse(_amountController.text.trim());
-            final provider = context.read<PurchasesProvider>();
+            final provider = dialogCtx.read<PurchasesProvider>();
 
             final success = await provider.paySupplierDebt(
               supplierId: widget.supplier.id!,
@@ -178,22 +179,21 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               notes: _notesController.text.trim(),
             );
 
-            if (mounted) {
-              Navigator.pop(context);
-              if (success) {
-                TopNotification.showSuccess(
-                  context,
-                  isEng
-                      ? '🎉 Paid ${amount.toStringAsFixed(0)} $currencySymbol to supplier (${widget.supplier.name}) successfully!'
-                      : '🎉 تم تسديد مبلغ ${amount.toStringAsFixed(0)} $currencySymbol للمورد (${widget.supplier.name}) وتسجيل الصرف بنجاح!',
-                );
-              } else {
-                TopNotification.showWarning(
-                  context,
-                  isEng ? '⚠️ Error recording payment operation.' : '⚠️ حدث خطأ أثناء تسجيل عملية الدفع.',
-                );
-              }
+            if (!mounted) return;
+            if (success) {
+              TopNotification.showSuccess(
+                dialogCtx,
+                isEng
+                    ? '🎉 Paid ${amount.toStringAsFixed(0)} $currencySymbol to supplier (${widget.supplier.name}) successfully!'
+                    : '🎉 تم تسديد مبلغ ${amount.toStringAsFixed(0)} $currencySymbol للمورد (${widget.supplier.name}) وتسجيل الصرف بنجاح!',
+              );
+            } else {
+              TopNotification.showWarning(
+                dialogCtx,
+                isEng ? '⚠️ Error recording payment operation.' : '⚠️ حدث خطأ أثناء تسجيل عملية الدفع.',
+              );
             }
+            Navigator.pop(dialogCtx);
           },
         ),
       ],

@@ -386,6 +386,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               reason: 'الدخول إلى شاشة ($label) محصورة أو تتطلب موافقة وإذن المدير',
             );
             if (!authorized) return;
+            if (!mounted) return;
           }
 
           context.read<ProductsProvider>().selectCategory(null);

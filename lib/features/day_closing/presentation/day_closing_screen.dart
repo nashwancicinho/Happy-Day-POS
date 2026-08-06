@@ -467,6 +467,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     }
 
                     final nowIso = DateTime.now().toIso8601String();
+                    final settingsProvider = context.read<SettingsProvider>();
                     final todayStr = nowIso.substring(0, 10);
 
                     // 1. Save treasury record
@@ -482,6 +483,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     await treasuryProvider.saveTreasuryRecord(treasuryRecord);
 
                     // 2. Close current shift & Open new clean shift
+
                     if (shiftsProvider.currentShift != null) {
                       await shiftsProvider.closeShift(incomeVal);
                     }
@@ -491,7 +493,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     ordersProvider.resetTodaySession(nowIso);
 
                     // 4. Perform Automatic Backup to selected folder on Day Closing
-                    final settingsProvider = context.read<SettingsProvider>();
                     final autoBackupSuccess = await settingsProvider.performAutoBackup(isClosingDay: true);
 
                     if (!ctx.mounted) return;

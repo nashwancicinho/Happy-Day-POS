@@ -114,12 +114,12 @@ class _WaiterUserLoginScreenState extends State<WaiterUserLoginScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 )
               ],
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Form(
               key: _formKey,
@@ -130,9 +130,9 @@ class _WaiterUserLoginScreenState extends State<WaiterUserLoginScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.15),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -171,7 +171,7 @@ class _WaiterUserLoginScreenState extends State<WaiterUserLoginScreen> {
                           children: [
                             if (_cashierUsers.isNotEmpty) ...[
                               DropdownButtonFormField<String>(
-                                value: _cashierUsers.any((u) => u['username'] == _usernameController.text)
+                                initialValue: _cashierUsers.any((u) => u['username'] == _usernameController.text)
                                     ? _usernameController.text
                                     : _cashierUsers.first['username'] as String,
                                 dropdownColor: const Color(0xFF374151),
@@ -239,9 +239,9 @@ class _WaiterUserLoginScreenState extends State<WaiterUserLoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.15),
+                        color: Colors.red.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [

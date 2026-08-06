@@ -608,6 +608,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (confirm != true) return;
+      if (!mounted) return;
 
       TopNotification.showInfo(context, '⌛ جاري استعادة قاعدة البيانات وتحديث النظام...');
       await DatabaseHelper.instance.restoreDatabase(file.path);
