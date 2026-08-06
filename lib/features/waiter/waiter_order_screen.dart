@@ -29,10 +29,6 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
   // Order items map for the CURRENT unsent round: productId -> Map with product info, quantity, notes
   final Map<int, Map<String, dynamic>> _selectedItems = {};
 
-  // Previously saved items on this table (for display / reference)
-  List<Map<String, dynamic>> _existingOrderItems = [];
-  double _existingOrderTotal = 0.0;
-
   bool _isLoading = true;
   bool _isSending = false;
   final TextEditingController _orderNotesController = TextEditingController();
@@ -49,18 +45,6 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
     try {
       final categories = await widget.apiClient.getCategories();
       final products = await widget.apiClient.getProducts();
-
-      // Check if table has an active order on POS Cashier
-      final existingOrderData = await widget.apiClient.getTableOrder(widget.tableId);
-
-      if (existingOrderData != null && existingOrderData['items'] != null) {
-        final rawItems = existingOrderData['items'] as List<dynamic>;
-        _existingOrderItems = rawItems.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-        _existingOrderTotal = (existingOrderData['order']?['total'] as num? ?? 0.0).toDouble();
-        if (_existingOrderTotal == 0.0) {
-          _existingOrderTotal = _existingOrderItems.fold(0.0, (sum, i) => sum + ((i['price'] as num).toDouble() * (i['quantity'] as num).toDouble()));
-        }
-      }
 
       if (mounted) {
         setState(() {
@@ -230,87 +214,7 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
     );
   }
 
-  void _showPreviousOrderItemsBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1F2937),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.receipt_long, color: Color(0xFF10B981), size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        'الفاتورة المحفوظة بالطاولة (${widget.tableName})',
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const Divider(color: Colors.grey),
-              const SizedBox(height: 6),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _existingOrderItems.length,
-                  itemBuilder: (context, idx) {
-                    final item = _existingOrderItems[idx];
-                    final pName = item['product_name'] as String? ?? 'صنف ${item['product_id']}';
-                    final qty = (item['quantity'] as num).toDouble();
-                    final price = (item['price'] as num).toDouble();
-                    final notes = item['notes'] as String?;
 
-                    return ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(pName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                      subtitle: notes != null && notes.isNotEmpty
-                          ? Text('📝 $notes', style: const TextStyle(color: Colors.amber, fontSize: 11))
-                          : null,
-                      trailing: Text(
-                        '${qty.toInt()} × ${price.toStringAsFixed(0)} د.ع',
-                        style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const Divider(color: Colors.grey),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('مجموع الفاتورة المحفوظة:', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                    Text(
-                      '${_existingOrderTotal.toStringAsFixed(0)} د.ع',
-                      style: const TextStyle(color: Color(0xFF10B981), fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   double _calculateTotal() {
     double total = 0;
@@ -467,43 +371,6 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
           : Column(
               children: [
-                if (_existingOrderItems.isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade900.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.5), width: 1),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline, color: Colors.amberAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'طلب سابق محفوظ بالكاشير (${_existingOrderItems.length} أصناف - ${_existingOrderTotal.toStringAsFixed(0)} د.ع)',
-                            style: const TextStyle(color: Colors.amberAccent, fontSize: 11.5, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: _showPreviousOrderItemsBottomSheet,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade700,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'عرض الفاتورة',
-                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
                 // Category Filter Tabs
                 Container(
                   height: 50,
