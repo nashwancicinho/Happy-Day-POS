@@ -22,6 +22,7 @@ import '../products/products_provider.dart';
 import '../settings/settings_provider.dart';
 import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
+import '../../services/local_server_service.dart';
 import 'widgets/refund_dialog.dart';
 
 
@@ -56,6 +57,7 @@ class _CashierScreenState extends State<CashierScreen> {
     if (widget.selectedTable != null) {
       _loadTableOrder();
     }
+    LocalServerService.instance.addListener(_onServerTableOrderUpdated);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ProductsProvider>().selectCategory(null);
@@ -63,6 +65,18 @@ class _CashierScreenState extends State<CashierScreen> {
         context.read<CustomersProvider>().loadCustomers();
       }
     });
+  }
+
+  void _onServerTableOrderUpdated() {
+    if (mounted && widget.selectedTable != null) {
+      _loadTableOrder();
+    }
+  }
+
+  @override
+  void dispose() {
+    LocalServerService.instance.removeListener(_onServerTableOrderUpdated);
+    super.dispose();
   }
 
   Future<void> _loadTableOrder() async {

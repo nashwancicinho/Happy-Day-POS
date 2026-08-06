@@ -354,8 +354,9 @@ class LocalServerService extends ChangeNotifier {
     // Notify WebSocket clients
     _broadcastEvent({'type': 'TABLE_UPDATED', 'table_id': tableId, 'order_id': orderId});
 
-    // Notify Cashier Local App Callback
+    // Notify Cashier Local App Callback & Listeners
     _onTableOrderUpdated?.call();
+    notifyListeners();
 
     await _jsonResponse(request.response, {
       'success': true,

@@ -126,19 +126,40 @@ class OrdersRepository {
 
     return await db.transaction((txn) async {
       int orderId;
+      List<OrderItemModel> finalItems = List.from(items);
 
       if (existingOrderId != null) {
         orderId = existingOrderId;
+
+        // Fetch existing items in DB to prevent losing any mobile waiter additions
+        final dbItemsRows = await txn.query('order_items', where: 'order_id = ?', whereArgs: [orderId]);
+        final dbItems = dbItemsRows.map((e) => OrderItemModel.fromMap(e)).toList();
+
+        for (final dbItem in dbItems) {
+          final idx = finalItems.indexWhere((e) =>
+            e.productId == dbItem.productId && (e.notes ?? '').trim() == (dbItem.notes ?? '').trim()
+          );
+          if (idx < 0) {
+            finalItems.add(dbItem);
+          } else {
+            if (dbItem.quantity > finalItems[idx].quantity) {
+              finalItems[idx] = finalItems[idx].copyWith(quantity: dbItem.quantity);
+            }
+          }
+        }
+
+        final calculatedTotal = finalItems.fold(0.0, (sum, i) => sum + (i.price * i.quantity));
+        final calcSubtotal = calculatedTotal + discountAmount;
+
         await txn.update(
           'orders',
           {
-            'subtotal': subtotal > 0 ? subtotal : total + discountAmount,
+            'subtotal': subtotal > 0 ? subtotal : calcSubtotal,
             'discount_amount': discountAmount,
-            'total': total,
+            'total': calculatedTotal,
             'status': status,
             'cashier_name': cashierName,
             'shift_id': shiftId,
-            'created_at': DateTime.now().toIso8601String(),
           },
           where: 'id = ?',
           whereArgs: [orderId],
@@ -159,7 +180,7 @@ class OrdersRepository {
         orderId = await txn.insert('orders', newOrder.toMap());
       }
 
-      for (final item in items) {
+      for (final item in finalItems) {
         final itemWithOrderId = item.copyWith(orderId: orderId);
         await txn.insert('order_items', itemWithOrderId.toMap());
       }
