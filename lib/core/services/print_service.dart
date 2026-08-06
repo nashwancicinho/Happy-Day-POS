@@ -379,23 +379,11 @@ class PrintService {
                           children: [
                             pw.Expanded(
                               flex: 9,
-                              child: pw.Column(
-                                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                children: [
-                                  pw.Text(
-                                    pName,
-                                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-                                    textAlign: pw.TextAlign.right,
-                                    softWrap: true,
-                                  ),
-                                  if (item.notes != null && item.notes!.isNotEmpty)
-                                    pw.Text(
-                                      'ملاحظة: ${item.notes}',
-                                      style: const pw.TextStyle(fontSize: 8.5),
-                                      textAlign: pw.TextAlign.right,
-                                      softWrap: true,
-                                    ),
-                                ],
+                              child: pw.Text(
+                                pName,
+                                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                textAlign: pw.TextAlign.right,
+                                softWrap: true,
                               ),
                             ),
                             pw.Expanded(

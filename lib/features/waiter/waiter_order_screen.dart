@@ -111,7 +111,19 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
   Future<void> _showItemNoteDialog(int productId, String productName) async {
     final existingNote = (_selectedItems[productId]?['notes'] as String?) ?? '';
     final noteController = TextEditingController(text: existingNote);
-    final quickNotes = ['بدون بصل', 'بدون ثوم', 'زيادة شطة', 'بدون مخلل', 'مستوي كلياً', 'بدون ملح', 'سفري', 'وسط'];
+    final quickNotes = [
+      'بدون بصل',
+      'بدون خس',
+      'بدون طماطم',
+      'بدون ثوم',
+      'بدون مخلل',
+      'بدون صوص',
+      'بدون ملح',
+      'زيادة صوص',
+      'حار / شطة',
+      'مستوي كلياً',
+      'سفري',
+    ];
 
     await showDialog(
       context: context,
@@ -132,58 +144,77 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: noteController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'اكتب ملاحظتك الخاصة للمطبخ هنا...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF111827),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('اختيار ملاحظات سريعة:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: quickNotes.map((qn) {
+                    final isSelected = noteController.text.contains(qn);
+                    return FilterChip(
+                      selected: isSelected,
+                      selectedColor: const Color(0xFF10B981),
+                      checkmarkColor: Colors.white,
+                      backgroundColor: const Color(0xFF374151),
+                      label: Text(
+                        qn,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.white70,
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      onSelected: (bool selected) {
+                        setDialogState(() {
+                          if (selected) {
+                            if (noteController.text.isEmpty) {
+                              noteController.text = qn;
+                            } else if (!noteController.text.contains(qn)) {
+                              noteController.text += ' ، $qn';
+                            }
+                          } else {
+                            final parts = noteController.text.split(' ، ').where((p) => p.trim() != qn).toList();
+                            noteController.text = parts.join(' ، ');
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              const Text('خيارات سريعة:', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: quickNotes.map((qn) {
-                  return ActionChip(
-                    backgroundColor: const Color(0xFF374151),
-                    label: Text(qn, style: const TextStyle(color: Colors.white, fontSize: 11)),
-                    onPressed: () {
-                      setDialogState(() {
-                        if (noteController.text.isEmpty) {
-                          noteController.text = qn;
-                        } else if (!noteController.text.contains(qn)) {
-                          noteController.text += ' ، $qn';
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ],
+                const SizedBox(height: 16),
+                const Text('كتابة ملاحظة خاصة إضافية (يدوياً):', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: noteController,
+                  onChanged: (_) => setDialogState(() {}),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'اكتب تفاصيل إضافية يدوياً هنا...',
+                    hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                    filled: true,
+                    fillColor: const Color(0xFF111827),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
           ),
           actions: [
             if (noteController.text.isNotEmpty)
-              TextButton(
+              TextButton.icon(
                 onPressed: () {
-                  setState(() {
-                    if (_selectedItems.containsKey(productId)) {
-                      _selectedItems[productId]!['notes'] = '';
-                    }
+                  setDialogState(() {
+                    noteController.clear();
                   });
-                  Navigator.pop(ctx);
                 },
-                child: const Text('حذف الملاحظة', style: TextStyle(color: Colors.redAccent)),
+                icon: const Icon(Icons.clear, color: Colors.redAccent, size: 18),
+                label: const Text('مسح', style: TextStyle(color: Colors.redAccent)),
               ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),

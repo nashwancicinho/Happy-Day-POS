@@ -279,14 +279,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                   children: [
                     Expanded(
                       flex: 6,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.productName ?? 'صنف', style: const TextStyle(fontSize: 12)),
-                          if (item.notes != null && item.notes!.isNotEmpty)
-                            Text('ملاحظة: ${item.notes}', style: const TextStyle(fontSize: 10, color: Colors.red)),
-                        ],
-                      ),
+                      child: Text(item.productName ?? 'صنف', style: const TextStyle(fontSize: 12)),
                     ),
                     Expanded(flex: 2, child: Text(item.formattedQuantity, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
                     Expanded(
@@ -417,19 +410,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                     children: [
                       Text('[ ${item.formattedQuantity} × ] ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            if (item.notes != null && item.notes!.isNotEmpty)
-                              Container(
-                                margin: const EdgeInsets.only(top: 4),
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(4)),
-                                child: Text('ملاحظة المطبخ: ${item.notes}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                              ),
-                          ],
-                        ),
+                        child: Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                     ],
                   ),
