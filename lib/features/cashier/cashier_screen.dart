@@ -2083,39 +2083,49 @@ class _CashierScreenState extends State<CashierScreen> {
               : 'الكاشير نقطة البيع',
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _orderType,
-                dropdownColor: AppColors.primary,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                items: const [
-                  DropdownMenuItem(value: 'TAKEAWAY', child: Text('سفري')),
-                  DropdownMenuItem(value: 'DINE_IN', child: Text('طاولة')),
-                  DropdownMenuItem(value: 'DELIVERY', child: Text('توصيل')),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _orderType = val;
-                    });
-                  }
-                },
+          if (widget.selectedTable != null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Text(
+                  'طاولة: ${widget.selectedTable!.name}',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            )
+          else
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: (_orderType == 'TAKEAWAY' || _orderType == 'DELIVERY') ? _orderType : 'TAKEAWAY',
+                  dropdownColor: AppColors.primary,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  items: const [
+                    DropdownMenuItem(value: 'TAKEAWAY', child: Text('سفري')),
+                    DropdownMenuItem(value: 'DELIVERY', child: Text('توصيل')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _orderType = val;
+                      });
+                    }
+                  },
+                ),
               ),
             ),
-          ),
-          IconButton(
-            tooltip: isEng ? 'Refund & Returns Management' : 'إدارة استرجاع الفواتير والمواد',
-            icon: const Icon(Icons.assignment_return_rounded, color: Colors.white),
-            onPressed: _showRefundDialog,
-          ),
           const SizedBox(width: 8),
         ],
       ),
