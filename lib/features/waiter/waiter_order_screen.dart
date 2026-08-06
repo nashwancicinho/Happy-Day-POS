@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/waiter_api_client.dart';
 
 class WaiterOrderScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
 
   // Order items map for the CURRENT unsent round: productId -> Map with product info, quantity, notes
   final Map<int, Map<String, dynamic>> _selectedItems = {};
+  List<String> _userQuickNotes = [];
 
   bool _isLoading = true;
   bool _isSending = false;
@@ -37,6 +39,73 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
   void initState() {
     super.initState();
     _loadInitialData();
+    _loadCustomQuickNotes();
+  }
+
+  Future<void> _loadCustomQuickNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final notes = prefs.getStringList('user_custom_quick_notes');
+    if (notes != null && mounted) {
+      setState(() {
+        _userQuickNotes = notes;
+      });
+    }
+  }
+
+  Future<void> _saveCustomQuickNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('user_custom_quick_notes', _userQuickNotes);
+  }
+
+  Future<void> _showAddQuickNoteDialog(StateSetter setParentState) async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F2937),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.add_comment, color: Color(0xFF10B981), size: 24),
+            SizedBox(width: 8),
+            Text('إضافة اختصار جديد', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'اكتب الاختصار (مثال: بدون خس، كتشب، حار...)...',
+            hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+            filled: true,
+            fillColor: const Color(0xFF111827),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text.isNotEmpty && !_userQuickNotes.contains(text)) {
+                setState(() {
+                  _userQuickNotes.add(text);
+                });
+                setParentState(() {});
+                await _saveCustomQuickNotes();
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('حفظ الاختصار', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadInitialData() async {
@@ -85,8 +154,8 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
         _selectedItems[pid]!['quantity'] = (_selectedItems[pid]!['quantity'] as double) + 1.0;
       } else {
         _selectedItems[pid] = {
-          'product_id': pid,
-          'product_name': name,
+          'id': pid,
+          'name': name,
           'price': price,
           'quantity': 1.0,
           'notes': '',
@@ -111,24 +180,11 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
   Future<void> _showItemNoteDialog(int productId, String productName) async {
     final existingNote = (_selectedItems[productId]?['notes'] as String?) ?? '';
     final noteController = TextEditingController(text: existingNote);
-    final quickNotes = [
-      'بدون بصل',
-      'بدون خس',
-      'بدون طماطم',
-      'بدون ثوم',
-      'بدون مخلل',
-      'بدون صوص',
-      'بدون ملح',
-      'زيادة صوص',
-      'حار / شطة',
-      'مستوي كلياً',
-      'سفري',
-    ];
 
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1F2937),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
@@ -149,43 +205,92 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('اختيار ملاحظات سريعة:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: quickNotes.map((qn) {
-                    final isSelected = noteController.text.contains(qn);
-                    return FilterChip(
-                      selected: isSelected,
-                      selectedColor: const Color(0xFF10B981),
-                      checkmarkColor: Colors.white,
-                      backgroundColor: const Color(0xFF374151),
-                      label: Text(
-                        qn,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('اختصارات الملاحظات الخاصة بك:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                    InkWell(
+                      onTap: () => _showAddQuickNoteDialog(setDialogState),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF10B981)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.add, color: Color(0xFF10B981), size: 14),
+                            SizedBox(width: 4),
+                            Text('إضافة اختصار', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold)),
+                          ],
                         ),
                       ),
-                      onSelected: (bool selected) {
-                        setDialogState(() {
-                          if (selected) {
-                            if (noteController.text.isEmpty) {
-                              noteController.text = qn;
-                            } else if (!noteController.text.contains(qn)) {
-                              noteController.text += ' ، $qn';
-                            }
-                          } else {
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (_userQuickNotes.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111827),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'لا توجد اختصارات سريعة محفوظة حالياً.\nاضغط على (+ إضافة اختصار) بالأعلى لإضافة اختصاراتك الخاصة.',
+                      style: TextStyle(color: Colors.grey, fontSize: 11.5, height: 1.4),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _userQuickNotes.map((qn) {
+                      final isSelected = noteController.text.contains(qn);
+                      return InputChip(
+                        selected: isSelected,
+                        selectedColor: const Color(0xFF10B981),
+                        checkmarkColor: Colors.white,
+                        backgroundColor: const Color(0xFF374151),
+                        deleteIcon: const Icon(Icons.close, size: 14, color: Colors.grey),
+                        onDeleted: () async {
+                          setState(() {
+                            _userQuickNotes.remove(qn);
+                          });
+                          setDialogState(() {
                             final parts = noteController.text.split(' ، ').where((p) => p.trim() != qn).toList();
                             noteController.text = parts.join(' ، ');
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
+                          });
+                          await _saveCustomQuickNotes();
+                        },
+                        label: Text(
+                          qn,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        onSelected: (bool selected) {
+                          setDialogState(() {
+                            if (selected) {
+                              if (noteController.text.isEmpty) {
+                                noteController.text = qn;
+                              } else if (!noteController.text.contains(qn)) {
+                                noteController.text += ' ، $qn';
+                              }
+                            } else {
+                              final parts = noteController.text.split(' ، ').where((p) => p.trim() != qn).toList();
+                              noteController.text = parts.join(' ، ');
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
                 const SizedBox(height: 16),
                 const Text('كتابة ملاحظة خاصة إضافية (يدوياً):', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
@@ -217,7 +322,7 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
                 label: const Text('مسح', style: TextStyle(color: Colors.redAccent)),
               ),
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => Navigator.pop(dialogCtx),
               child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton.icon(
@@ -234,7 +339,7 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
                     }
                   }
                 });
-                Navigator.pop(ctx);
+                Navigator.pop(dialogCtx);
               },
               icon: const Icon(Icons.check, color: Colors.white, size: 18),
               label: const Text('حفظ الملاحظة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -244,8 +349,6 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
       ),
     );
   }
-
-
 
   double _calculateTotal() {
     double total = 0;
