@@ -281,14 +281,37 @@ class LocalServerService extends ChangeNotifier {
     final repo = OrdersRepository();
     final existingOrder = await repo.getOpenOrderByTable(tableId);
 
-    // Calculate delta kitchen items before saving
-    final kitchenDeltaItems = await repo.getKitchenDeltaItems(existingOrder?.id, items);
+    List<OrderItemModel> combinedItems = List.from(items);
+    double combinedTotal = total;
+
+    if (existingOrder != null) {
+      final existingItems = await repo.getOrderItems(existingOrder.id!);
+      final List<OrderItemModel> merged = List.from(existingItems);
+
+      for (final newItem in items) {
+        final idx = merged.indexWhere((e) =>
+          e.productId == newItem.productId && (e.notes ?? '').trim() == (newItem.notes ?? '').trim()
+        );
+        if (idx >= 0) {
+          final oldItem = merged[idx];
+          merged[idx] = oldItem.copyWith(quantity: oldItem.quantity + newItem.quantity);
+        } else {
+          merged.add(newItem);
+        }
+      }
+
+      combinedItems = merged;
+      combinedTotal = combinedItems.fold(0.0, (sum, i) => sum + (i.price * i.quantity));
+    }
+
+    // Kitchen delta items: the newly sent items from this mobile round
+    final List<OrderItemModel> kitchenDeltaItems = items.where((i) => i.printToKitchen).toList();
 
     final orderId = await repo.saveOrUpdateTableOrder(
       existingOrderId: existingOrder?.id,
       tableId: tableId,
-      items: items,
-      total: total,
+      items: combinedItems,
+      total: combinedTotal,
       status: 'OPEN',
       cashierName: waiterName,
     );
@@ -303,7 +326,7 @@ class LocalServerService extends ChangeNotifier {
           id: orderId,
           tableId: tableId,
           orderType: 'DINE_IN',
-          total: total,
+          total: combinedTotal,
           status: 'OPEN',
           createdAt: DateTime.now().toIso8601String(),
         );
