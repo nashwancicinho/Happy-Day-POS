@@ -126,24 +126,41 @@ class OrdersRepository {
 
     return await db.transaction((txn) async {
       int orderId;
-      List<OrderItemModel> finalItems = List.from(items);
 
-      if (existingOrderId != null) {
-        orderId = existingOrderId;
+      // Find ALL open orders for this table to prevent duplicate open order records
+      final openOrdersRows = await txn.rawQuery('''
+        SELECT id FROM orders
+        WHERE table_id = ? AND status IN ('OPEN', 'SUSPENDED')
+        ORDER BY id ASC
+      ''', [tableId]);
 
-        // Fetch existing items in DB to prevent losing any mobile waiter additions
-        final dbItemsRows = await txn.query('order_items', where: 'order_id = ?', whereArgs: [orderId]);
-        final dbItems = dbItemsRows.map((e) => OrderItemModel.fromMap(e)).toList();
+      final List<int> openOrderIds = openOrdersRows.map((r) => r['id'] as int).toList();
 
-        for (final dbItem in dbItems) {
-          final idx = finalItems.indexWhere((e) =>
-            e.productId == dbItem.productId && (e.notes ?? '').trim() == (dbItem.notes ?? '').trim()
-          );
-          if (idx < 0) {
-            finalItems.add(dbItem);
-          } else {
-            if (dbItem.quantity > finalItems[idx].quantity) {
-              finalItems[idx] = finalItems[idx].copyWith(quantity: dbItem.quantity);
+      if (existingOrderId != null && !openOrderIds.contains(existingOrderId)) {
+        openOrderIds.add(existingOrderId);
+      }
+
+      final List<OrderItemModel> finalItems = List.from(items);
+
+      if (openOrderIds.isNotEmpty) {
+        // Use the earliest open order as the main active order
+        orderId = openOrderIds.first;
+
+        // Fetch ALL existing items across any open order for this table
+        for (final oid in openOrderIds) {
+          final dbItemsRows = await txn.query('order_items', where: 'order_id = ?', whereArgs: [oid]);
+          final dbItems = dbItemsRows.map((e) => OrderItemModel.fromMap(e)).toList();
+
+          for (final dbItem in dbItems) {
+            final idx = finalItems.indexWhere((e) =>
+              e.productId == dbItem.productId && (e.notes ?? '').trim() == (dbItem.notes ?? '').trim()
+            );
+            if (idx < 0) {
+              finalItems.add(dbItem);
+            } else {
+              if (dbItem.quantity > finalItems[idx].quantity) {
+                finalItems[idx] = finalItems[idx].copyWith(quantity: dbItem.quantity);
+              }
             }
           }
         }
@@ -151,6 +168,7 @@ class OrdersRepository {
         final calculatedTotal = finalItems.fold(0.0, (sum, i) => sum + (i.price * i.quantity));
         final calcSubtotal = calculatedTotal + discountAmount;
 
+        // Update the primary order
         await txn.update(
           'orders',
           {
@@ -164,8 +182,21 @@ class OrdersRepository {
           where: 'id = ?',
           whereArgs: [orderId],
         );
-        await txn.delete('order_items', where: 'order_id = ?', whereArgs: [orderId]);
+
+        // Delete order_items from ALL open orders for this table
+        for (final oid in openOrderIds) {
+          await txn.delete('order_items', where: 'order_id = ?', whereArgs: [oid]);
+        }
+
+        // Clean up any duplicate open order rows
+        if (openOrderIds.length > 1) {
+          final duplicateIds = openOrderIds.sublist(1);
+          for (final dupId in duplicateIds) {
+            await txn.delete('orders', where: 'id = ?', whereArgs: [dupId]);
+          }
+        }
       } else {
+        // No open order exists yet for this table, create a new one
         final newOrder = OrderModel(
           tableId: tableId,
           shiftId: shiftId,
@@ -180,12 +211,13 @@ class OrdersRepository {
         orderId = await txn.insert('orders', newOrder.toMap());
       }
 
+      // Insert all merged final items under the primary order
       for (final item in finalItems) {
         final itemWithOrderId = item.copyWith(orderId: orderId);
         await txn.insert('order_items', itemWithOrderId.toMap());
       }
 
-      // Mark table as occupied
+      // Mark table as occupied (status = 1)
       await txn.update(
         'restaurant_tables',
         {'status': 1},
