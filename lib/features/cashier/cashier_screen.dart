@@ -2446,7 +2446,8 @@ class _CashierScreenState extends State<CashierScreen> {
       initialImage: category.image,
       initialColor: category.color,
     );
-    if (result != null && mounted) {
+    if (!context.mounted) return;
+    if (result != null) {
       final updated = category.copyWith(
         image: result['image'],
         clearImage: result['image'] == null,
@@ -2454,9 +2455,8 @@ class _CashierScreenState extends State<CashierScreen> {
         clearColor: result['color'] == null,
       );
       await categoriesProvider.updateCategory(updated);
-      if (mounted) {
-        TopNotification.showSuccess(context, '🎨 تم تحديث مظهر تصنيف (${category.name}) بنجاح!');
-      }
+      if (!context.mounted) return;
+      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر تصنيف (${category.name}) بنجاح!');
     }
   }
 
@@ -2468,7 +2468,8 @@ class _CashierScreenState extends State<CashierScreen> {
       initialImage: product.image,
       initialColor: product.color,
     );
-    if (result != null && mounted) {
+    if (!context.mounted) return;
+    if (result != null) {
       final updated = product.copyWith(
         image: result['image'],
         clearImage: result['image'] == null,
@@ -2476,9 +2477,8 @@ class _CashierScreenState extends State<CashierScreen> {
         clearColor: result['color'] == null,
       );
       await productsProvider.updateProduct(updated);
-      if (mounted) {
-        TopNotification.showSuccess(context, '🎨 تم تحديث مظهر مادة (${product.name}) بنجاح!');
-      }
+      if (!context.mounted) return;
+      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر مادة (${product.name}) بنجاح!');
     }
   }
 

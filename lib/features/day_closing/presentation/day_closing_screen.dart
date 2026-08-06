@@ -390,6 +390,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     final ordersProvider = context.read<OrdersProvider>();
                     final treasuryProvider = context.read<TreasuryProvider>();
                     final shiftsProvider = context.read<ShiftsProvider>();
+                    final settingsProvider = context.read<SettingsProvider>();
 
                     await tablesProvider.loadTables();
                     await ordersProvider.loadOrders();
@@ -467,7 +468,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     }
 
                     final nowIso = DateTime.now().toIso8601String();
-                    final settingsProvider = context.read<SettingsProvider>();
                     final todayStr = nowIso.substring(0, 10);
 
                     // 1. Save treasury record
@@ -497,7 +497,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
 
                     if (!ctx.mounted) return;
                     Navigator.of(ctx).pop();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
 
                     TopNotification.showSuccess(
                       context,

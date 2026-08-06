@@ -146,8 +146,7 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
           ),
           onPressed: () async {
             if (!_formKey.currentState!.validate()) return;
-            final dialogCtx = context;
-            final provider = dialogCtx.read<PurchasesProvider>();
+            final provider = context.read<PurchasesProvider>();
             final initialDebt = double.tryParse(_initialDebtController.text.trim()) ?? 0.0;
 
             if (isEditing) {
@@ -158,9 +157,9 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                 notes: _notesController.text.trim(),
               );
               await provider.updateSupplier(updated);
-              if (!mounted) return;
-              TopNotification.showSuccess(dialogCtx, isEng ? '🎉 Supplier updated successfully.' : '🎉 تم تحديث بيانات المورد بنجاح.');
-              Navigator.pop(dialogCtx);
+              if (!context.mounted) return;
+              TopNotification.showSuccess(context, isEng ? '🎉 Supplier updated successfully.' : '🎉 تم تحديث بيانات المورد بنجاح.');
+              Navigator.pop(context);
             } else {
               final newSupplier = SupplierModel(
                 name: _nameController.text.trim(),
@@ -170,9 +169,9 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                 balance: initialDebt,
               );
               await provider.addSupplier(newSupplier);
-              if (!mounted) return;
-              TopNotification.showSuccess(dialogCtx, isEng ? '🎉 New supplier added successfully!' : '🎉 تمت إضافة المورد الجديد بنجاح!');
-              Navigator.pop(dialogCtx);
+              if (!context.mounted) return;
+              TopNotification.showSuccess(context, isEng ? '🎉 New supplier added successfully!' : '🎉 تمت إضافة المورد الجديد بنجاح!');
+              Navigator.pop(context);
             }
           },
         ),

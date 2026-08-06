@@ -167,9 +167,8 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
           ),
           onPressed: () async {
             if (!_formKey.currentState!.validate()) return;
-            final dialogCtx = context;
             final amount = double.parse(_amountController.text.trim());
-            final provider = dialogCtx.read<PurchasesProvider>();
+            final provider = context.read<PurchasesProvider>();
 
             final success = await provider.paySupplierDebt(
               supplierId: widget.supplier.id!,
@@ -179,21 +178,21 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               notes: _notesController.text.trim(),
             );
 
-            if (!mounted) return;
+            if (!context.mounted) return;
             if (success) {
               TopNotification.showSuccess(
-                dialogCtx,
+                context,
                 isEng
                     ? '🎉 Paid ${amount.toStringAsFixed(0)} $currencySymbol to supplier (${widget.supplier.name}) successfully!'
                     : '🎉 تم تسديد مبلغ ${amount.toStringAsFixed(0)} $currencySymbol للمورد (${widget.supplier.name}) وتسجيل الصرف بنجاح!',
               );
             } else {
               TopNotification.showWarning(
-                dialogCtx,
+                context,
                 isEng ? '⚠️ Error recording payment operation.' : '⚠️ حدث خطأ أثناء تسجيل عملية الدفع.',
               );
             }
-            Navigator.pop(dialogCtx);
+            Navigator.pop(context);
           },
         ),
       ],

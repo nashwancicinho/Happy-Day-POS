@@ -542,19 +542,18 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                       );
 
                       final provider = context.read<PurchasesProvider>();
-                      final dialogCtx = context;
                       final success = await provider.addPurchaseInvoice(
                         invoice: invoice,
                         updateInventory: _updateInventory,
                       );
 
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       if (success) {
-                        TopNotification.showSuccess(dialogCtx, isEng ? '🎉 Purchase invoice saved and accounts updated successfully!' : '🎉 تم حفظ فاتورة المشتريات وتحديث الحسابات بنجاح!');
+                        TopNotification.showSuccess(context, isEng ? '🎉 Purchase invoice saved and accounts updated successfully!' : '🎉 تم حفظ فاتورة المشتريات وتحديث الحسابات بنجاح!');
                       } else {
-                        TopNotification.showWarning(dialogCtx, isEng ? '⚠️ Error saving invoice.' : '⚠️حدث خطأ أثناء حفظ الفاتورة.');
+                        TopNotification.showWarning(context, isEng ? '⚠️ Error saving invoice.' : '⚠️حدث خطأ أثناء حفظ الفاتورة.');
                       }
-                      Navigator.pop(dialogCtx);
+                      Navigator.pop(context);
                     },
                   ),
                 ],
