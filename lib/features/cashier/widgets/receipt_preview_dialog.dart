@@ -305,18 +305,35 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
             const Divider(thickness: 1.5, color: Colors.black87),
 
             // FINANCIAL SUMMARY
-            _receiptSumRow('المجموع الجزئي:', '${widget.order.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}'),
-            if (widget.order.discountAmount > 0)
-              _receiptSumRow('الخصم:', '-${widget.order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}'),
-            if (widget.order.taxAmount > 0)
-              _receiptSumRow('الضريبة:', '+${widget.order.taxAmount.toStringAsFixed(0)} ${settings.currencySymbol}'),
-            const Divider(height: 10),
-            _receiptSumRow(
-              'الإجمالي الكلي:',
-              '${widget.order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
-              isBold: true,
-              fontSize: 15,
-            ),
+            if (widget.order.discountAmount > 0 || (widget.order.subtotal > widget.order.total && widget.order.subtotal > 0)) ...[
+              _receiptSumRow(
+                'المجموع:',
+                '${(widget.order.subtotal > 0 ? widget.order.subtotal : (widget.order.total + widget.order.discountAmount)).toStringAsFixed(0)} ${settings.currencySymbol}',
+              ),
+              _receiptSumRow(
+                'الخصم:',
+                '-${widget.order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}',
+              ),
+              if (widget.order.taxAmount > 0)
+                _receiptSumRow(
+                  'الضريبة:',
+                  '+${widget.order.taxAmount.toStringAsFixed(0)} ${settings.currencySymbol}',
+                ),
+              const Divider(height: 10),
+              _receiptSumRow(
+                'الصافي:',
+                '${widget.order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
+                isBold: true,
+                fontSize: 15,
+              ),
+            ] else ...[
+              _receiptSumRow(
+                'الإجمالي الكلي:',
+                '${widget.order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
+                isBold: true,
+                fontSize: 15,
+              ),
+            ],
 
             if (widget.order.paymentMethod == 'CASH' && widget.cashPaid > 0) ...[
               const SizedBox(height: 4),

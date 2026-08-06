@@ -858,6 +858,8 @@ class _CashierScreenState extends State<CashierScreen> {
       existingOrderId: _existingOrderId,
       tableId: tableId,
       items: _cart,
+      subtotal: _subtotalAmount,
+      discountAmount: _discountAmount,
       total: _totalAmount,
       status: 'OPEN',
     );
@@ -1021,6 +1023,8 @@ class _CashierScreenState extends State<CashierScreen> {
         shiftId: shiftsProvider.currentShift?.id,
         orderType: _orderType,
         items: _cart,
+        subtotal: _subtotalAmount,
+        discountAmount: _discountAmount,
         total: _totalAmount,
       );
 
@@ -1102,6 +1106,8 @@ class _CashierScreenState extends State<CashierScreen> {
       paymentMethod: paymentMethod,
       orderType: _orderType,
       items: _cart,
+      subtotal: _subtotalAmount,
+      discountAmount: _discountAmount,
       total: _totalAmount,
     );
 
@@ -2340,16 +2346,45 @@ class _CashierScreenState extends State<CashierScreen> {
                       const Divider(height: 20),
 
                       // Order Total Details
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          Text(
-                            '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
-                          ),
-                        ],
-                      ),
+                      if (_discountAmount > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(isEng ? 'Net Total:' : 'الصافي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(
+                              '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(
+                              '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ],
 
                       const SizedBox(height: 16),
 

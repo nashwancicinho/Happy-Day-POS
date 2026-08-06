@@ -116,6 +116,8 @@ class OrdersRepository {
     required int tableId,
     required List<OrderItemModel> items,
     required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
     String status = 'OPEN',
     String? cashierName,
     int? shiftId,
@@ -130,6 +132,8 @@ class OrdersRepository {
         await txn.update(
           'orders',
           {
+            'subtotal': subtotal > 0 ? subtotal : total + discountAmount,
+            'discount_amount': discountAmount,
             'total': total,
             'status': status,
             'cashier_name': cashierName,
@@ -146,6 +150,8 @@ class OrdersRepository {
           shiftId: shiftId,
           cashierName: cashierName,
           orderType: 'DINE_IN',
+          subtotal: subtotal > 0 ? subtotal : total + discountAmount,
+          discountAmount: discountAmount,
           total: total,
           status: status,
           createdAt: DateTime.now().toIso8601String(),
@@ -181,6 +187,8 @@ class OrdersRepository {
     required String orderType,
     required List<OrderItemModel> items,
     required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
   }) async {
     final db = await _databaseHelper.database;
 
@@ -192,6 +200,8 @@ class OrdersRepository {
         await txn.update(
           'orders',
           {
+            'subtotal': subtotal > 0 ? subtotal : total + discountAmount,
+            'discount_amount': discountAmount,
             'total': total,
             'status': 'COMPLETED',
             'payment_method': paymentMethod,
@@ -214,6 +224,8 @@ class OrdersRepository {
           paymentMethod: paymentMethod,
           customerPhone: customerPhone,
           customerAddress: customerAddress,
+          subtotal: subtotal > 0 ? subtotal : total + discountAmount,
+          discountAmount: discountAmount,
           total: total,
           status: 'COMPLETED',
           createdAt: DateTime.now().toIso8601String(),
@@ -257,6 +269,8 @@ class OrdersRepository {
     required String orderType,
     required List<OrderItemModel> items,
     required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
   }) async {
     final db = await _databaseHelper.database;
 
@@ -269,6 +283,8 @@ class OrdersRepository {
         await txn.update(
           'orders',
           {
+            'subtotal': subtotal > 0 ? subtotal : total + discountAmount,
+            'discount_amount': discountAmount,
             'total': total,
             'status': 'CREDIT',
             'payment_method': 'CREDIT',
@@ -292,6 +308,8 @@ class OrdersRepository {
           status: 'CREDIT',
           notes: notesStr,
           customerPhone: debtorPhone,
+          subtotal: subtotal > 0 ? subtotal : total + discountAmount,
+          discountAmount: discountAmount,
           total: total,
           createdAt: DateTime.now().toIso8601String(),
         );
@@ -734,6 +752,82 @@ class OrdersRepository {
     }).toList();
   }
 
+  Future<SessionPeriodInfo> getSessionPeriodInfo({
+    String? datePrefix,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final db = await _databaseHelper.database;
+    String whereClause = "WHERE status = 'COMPLETED'";
+    List<dynamic> whereArgs = [];
+
+    if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
+      whereClause += " AND DATE(created_at) >= DATE(?) AND DATE(created_at) <= DATE(?)";
+      whereArgs.add(fromDate);
+      whereArgs.add(toDate);
+    } else if (datePrefix != null && datePrefix.isNotEmpty) {
+      whereClause += " AND created_at LIKE ?";
+      whereArgs.add('$datePrefix%');
+    }
+
+    final firstOrderMap = await db.rawQuery('''
+      SELECT created_at FROM orders
+      $whereClause
+      ORDER BY id ASC
+      LIMIT 1
+    ''', whereArgs);
+
+    String? firstOrderTime;
+    if (firstOrderMap.isNotEmpty && firstOrderMap.first['created_at'] != null) {
+      firstOrderTime = firstOrderMap.first['created_at'] as String;
+    }
+
+    String treasuryWhere = "";
+    List<dynamic> treasuryArgs = [];
+    if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
+      treasuryWhere = "WHERE DATE(date) >= DATE(?) AND DATE(date) <= DATE(?)";
+      treasuryArgs.add(fromDate);
+      treasuryArgs.add(toDate);
+    } else if (datePrefix != null && datePrefix.isNotEmpty) {
+      treasuryWhere = "WHERE date LIKE ?";
+      treasuryArgs.add('$datePrefix%');
+    }
+
+    final treasuryMap = await db.rawQuery('''
+      SELECT created_at, closed_by FROM daily_treasury
+      $treasuryWhere
+      ORDER BY id DESC
+      LIMIT 1
+    ''', treasuryArgs);
+
+    String? closingTime;
+    String? closedBy;
+    bool isClosed = false;
+
+    if (treasuryMap.isNotEmpty && treasuryMap.first['created_at'] != null) {
+      closingTime = treasuryMap.first['created_at'] as String;
+      closedBy = treasuryMap.first['closed_by'] as String?;
+      isClosed = true;
+    } else {
+      final lastOrderMap = await db.rawQuery('''
+        SELECT created_at FROM orders
+        $whereClause
+        ORDER BY id DESC
+        LIMIT 1
+      ''', whereArgs);
+      if (lastOrderMap.isNotEmpty && lastOrderMap.first['created_at'] != null) {
+        closingTime = lastOrderMap.first['created_at'] as String;
+      }
+    }
+
+    return SessionPeriodInfo(
+      firstOrderTime: firstOrderTime,
+      closingTime: closingTime,
+      closedBy: closedBy,
+      isClosed: isClosed,
+    );
+  }
+
   /// تحويل الفاتورة المفتوحة من طاولة إلى طاولة أخرى (دمج الأصناف إذا كانت الطاولة المستقبلة مشغولة)
   Future<bool> transferTableOrder({
     required int sourceTableId,
@@ -927,4 +1021,18 @@ class OrdersRepository {
       return true;
     });
   }
+}
+
+class SessionPeriodInfo {
+  final String? firstOrderTime;
+  final String? closingTime;
+  final String? closedBy;
+  final bool isClosed;
+
+  const SessionPeriodInfo({
+    this.firstOrderTime,
+    this.closingTime,
+    this.closedBy,
+    this.isClosed = false,
+  });
 }

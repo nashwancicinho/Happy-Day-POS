@@ -76,6 +76,8 @@ class OrdersProvider extends ChangeNotifier {
     required int tableId,
     required List<OrderItemModel> items,
     required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
     String status = 'OPEN',
     String? cashierName,
     int? shiftId,
@@ -85,6 +87,8 @@ class OrdersProvider extends ChangeNotifier {
       tableId: tableId,
       items: items,
       total: total,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
       status: status,
       cashierName: cashierName,
       shiftId: shiftId,
@@ -104,6 +108,8 @@ class OrdersProvider extends ChangeNotifier {
     required String orderType,
     required List<OrderItemModel> items,
     required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
   }) async {
     final orderId = await _repository.checkoutAndCompleteOrder(
       existingOrderId: existingOrderId,
@@ -116,6 +122,8 @@ class OrdersProvider extends ChangeNotifier {
       orderType: orderType,
       items: items,
       total: total,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
     );
     await loadOrders();
     return orderId;
@@ -131,6 +139,8 @@ class OrdersProvider extends ChangeNotifier {
     required String orderType,
     required List<OrderItemModel> items,
     required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
   }) async {
     final orderId = await _repository.checkoutCreditOrder(
       existingOrderId: existingOrderId,
@@ -142,6 +152,8 @@ class OrdersProvider extends ChangeNotifier {
       orderType: orderType,
       items: items,
       total: total,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
     );
     await loadOrders();
     return orderId;
@@ -280,5 +292,17 @@ class OrdersProvider extends ChangeNotifier {
       await loadOrders();
     }
     return success;
+  }
+
+  Future<SessionPeriodInfo> getSessionPeriodInfo({
+    String? datePrefix,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    return await _repository.getSessionPeriodInfo(
+      datePrefix: datePrefix,
+      fromDate: fromDate,
+      toDate: toDate,
+    );
   }
 }

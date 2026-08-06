@@ -130,6 +130,112 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
     });
   }
 
+  Future<void> _showItemNoteDialog(int productId, String productName) async {
+    final existingNote = (_selectedItems[productId]?['notes'] as String?) ?? '';
+    final noteController = TextEditingController(text: existingNote);
+    final quickNotes = ['بدون بصل', 'بدون ثوم', 'زيادة شطة', 'بدون مخلل', 'مستوي كلياً', 'بدون ملح', 'سفري', 'وسط'];
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1F2937),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.edit_note, color: Color(0xFF10B981), size: 28),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'ملاحظة المطبخ: $productName',
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: noteController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'اكتب ملاحظتك الخاصة للمطبخ هنا...',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: const Color(0xFF111827),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              const Text('خيارات سريعة:', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: quickNotes.map((qn) {
+                  return ActionChip(
+                    backgroundColor: const Color(0xFF374151),
+                    label: Text(qn, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    onPressed: () {
+                      setDialogState(() {
+                        if (noteController.text.isEmpty) {
+                          noteController.text = qn;
+                        } else if (!noteController.text.contains(qn)) {
+                          noteController.text += ' ، $qn';
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            if (noteController.text.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    if (_selectedItems.containsKey(productId)) {
+                      _selectedItems[productId]!['notes'] = '';
+                    }
+                  });
+                  Navigator.pop(ctx);
+                },
+                child: const Text('حذف الملاحظة', style: TextStyle(color: Colors.redAccent)),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+              onPressed: () {
+                setState(() {
+                  if (_selectedItems.containsKey(productId)) {
+                    _selectedItems[productId]!['notes'] = noteController.text.trim();
+                  } else {
+                    final product = _allProducts.firstWhere((p) => p['id'] == productId, orElse: () => {});
+                    if (product.isNotEmpty) {
+                      _addItem(product);
+                      _selectedItems[productId]!['notes'] = noteController.text.trim();
+                    }
+                  }
+                });
+                Navigator.pop(ctx);
+              },
+              icon: const Icon(Icons.check, color: Colors.white, size: 18),
+              label: const Text('حفظ الملاحظة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   double _calculateTotal() {
     double total = 0;
     _selectedItems.forEach((_, item) {
@@ -355,6 +461,8 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
                       final price = (product['price'] as num).toDouble();
                       final currentQty = (_selectedItems[pid]?['quantity'] as double?) ?? 0;
 
+                      final itemNote = (_selectedItems[pid]?['notes'] as String?) ?? '';
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
@@ -370,49 +478,84 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
                             name,
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
                           ),
-                          subtitle: Text(
-                            '${price.toStringAsFixed(0)} د.ع',
-                            style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold),
-                          ),
-                          trailing: currentQty == 0
-                              ? ElevatedButton.icon(
-                                  onPressed: () => _addItem(product),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text('إضافة'),
-                                )
-                              : Container(
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${price.toStringAsFixed(0)} د.ع',
+                                style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold),
+                              ),
+                              if (itemNote.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF374151),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.amber.shade900.withValues(alpha: 0.35),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.amber.shade600, width: 0.8),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.remove, color: Colors.redAccent, size: 18),
-                                        onPressed: () => _removeItem(pid),
-                                      ),
-                                      Text(
-                                        '${currentQty.toInt()}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.add, color: Color(0xFF10B981), size: 18),
-                                        onPressed: () => _addItem(product),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    '📝 ملاحظة: $itemNote',
+                                    style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ),
+                              ],
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (currentQty > 0)
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit_note,
+                                    color: itemNote.isNotEmpty ? Colors.amber : Colors.white70,
+                                    size: 26,
+                                  ),
+                                  tooltip: 'إضافة/تعديل ملاحظة المطبخ',
+                                  onPressed: () => _showItemNoteDialog(pid, name),
+                                ),
+                              currentQty == 0
+                                  ? ElevatedButton.icon(
+                                      onPressed: () => _addItem(product),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF10B981),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      icon: const Icon(Icons.add, size: 16),
+                                      label: const Text('إضافة'),
+                                    )
+                                  : Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF374151),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.remove, color: Colors.redAccent, size: 18),
+                                            onPressed: () => _removeItem(pid),
+                                          ),
+                                          Text(
+                                            '${currentQty.toInt()}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.add, color: Color(0xFF10B981), size: 18),
+                                            onPressed: () => _addItem(product),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -426,7 +569,7 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
                     color: const Color(0xFF1F2937),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -4)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, -4)),
                     ],
                   ),
                   child: SafeArea(

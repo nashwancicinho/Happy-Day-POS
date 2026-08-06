@@ -30,65 +30,83 @@ class PrintService {
     final printers = await getSystemPrinters();
     if (printers.isEmpty) return null;
 
-    final trimmed = printerName.trim();
-    if (trimmed.isEmpty) {
+    final rawName = printerName.trim();
+    if (rawName.isEmpty) {
       return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
     }
 
-    final trimmedLower = trimmed.toLowerCase();
-    final cleanTrimmed = trimmedLower.replaceAll('_', ' ').replaceAll('-', ' ');
+    final rawLower = rawName.toLowerCase();
 
-    // 1. Exact match on printer name or url
-    final exact = printers.where((p) =>
-      p.name.toLowerCase() == trimmedLower ||
-      p.url.toLowerCase() == trimmedLower
-    ).firstOrNull;
-    if (exact != null) return exact;
-
-    // 2. Match inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
-    final matchInParen = RegExp(r'\((.*?)\)').firstMatch(trimmed);
+    // 1. Check if name has text inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
+    final matchInParen = RegExp(r'\((.*?)\)').firstMatch(rawName);
     if (matchInParen != null) {
       final inside = matchInParen.group(1)!.trim().toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-      if (inside.isNotEmpty && inside != 'pos-80' && inside != 'kot-kitchen' && inside != 'default printer') {
+      if (inside.isNotEmpty && inside != 'default printer') {
         final parenMatch = printers.where((p) {
           final pName = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
           final pUrl = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
-          return pName.contains(inside) || pUrl.contains(inside);
+          return pName.contains(inside) || pUrl.contains(inside) || inside.contains(pName);
         }).firstOrNull;
         if (parenMatch != null) return parenMatch;
       }
     }
 
-    // 3. Partial substring match (ignoring underscores/dashes)
-    final matches = printers.where((p) {
+    // 2. Strip common Arabic prefixes to leave clean printer model name
+    String cleanName = rawName
+        .replaceAll(RegExp(r'طابعة\s*الكاشير\s*الرئيسية', caseSensitive: false), '')
+        .replaceAll(RegExp(r'طابعة\s*الكاشير', caseSensitive: false), '')
+        .replaceAll(RegExp(r'طابعة\s*المطبخ', caseSensitive: false), '')
+        .replaceAll(RegExp(r'طابعة\s*التقارير', caseSensitive: false), '')
+        .replaceAll(RegExp(r'طابعة', caseSensitive: false), '')
+        .replaceAll(RegExp(r'الرئيسية', caseSensitive: false), '')
+        .replaceAll(RegExp(r'[\(\)]'), '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('_', ' ')
+        .replaceAll('-', ' ');
+
+    if (cleanName.isNotEmpty) {
+      final match = printers.where((p) {
+        final pName = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+        final pUrl = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+        return pName == cleanName || pName.contains(cleanName) || cleanName.contains(pName) || pUrl.contains(cleanName);
+      }).firstOrNull;
+      if (match != null) return match;
+    }
+
+    // 3. Exact match on raw string
+    final exact = printers.where((p) =>
+      p.name.toLowerCase() == rawLower ||
+      p.url.toLowerCase() == rawLower
+    ).firstOrNull;
+    if (exact != null) return exact;
+
+    // 4. Substring match on raw string
+    final cleanTrimmed = rawLower.replaceAll('_', ' ').replaceAll('-', ' ');
+    final matchPartial = printers.where((p) {
       final pNameLower = p.name.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
       final pUrlLower = p.url.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
       return cleanTrimmed.contains(pNameLower) ||
              pNameLower.contains(cleanTrimmed) ||
              pUrlLower.contains(cleanTrimmed);
-    }).toList();
+    }).firstOrNull;
+    if (matchPartial != null) return matchPartial;
 
-    if (matches.isNotEmpty) {
-      return matches.where((p) => p.isDefault).firstOrNull ?? matches.first;
-    }
-
-    // 4. Smart auto-detect thermal / receipt / label printer models (e.g. Xprinter, XP-, 365B, POS, Receipt)
-    final thermalKeywords = ['xprinter', 'xp-', '365b', '420b', 'pos', 'receipt', 'thermal', 'tsc', 'epson', 'star', 'gprinter'];
-    final thermalPrinters = printers.where((p) {
+    // 5. Smart auto-detect thermal / receipt / label printer models
+    final thermalKeywords = ['xprinter', 'xp-', '365b', '420b', 'pos', 'receipt', 'thermal', 'tsc', 'epson', 'star', 'gprinter', 'bixolon', 'citizen', 'sam4s'];
+    final thermalPrinter = printers.where((p) {
       final name = p.name.toLowerCase();
       final url = p.url.toLowerCase();
       return thermalKeywords.any((kw) => name.contains(kw) || url.contains(kw));
-    }).toList();
-    if (thermalPrinters.isNotEmpty) {
-      return thermalPrinters.where((p) => p.isDefault).firstOrNull ?? thermalPrinters.first;
-    }
+    }).firstOrNull;
+    if (thermalPrinter != null) return thermalPrinter;
 
-    // 5. Check explicitly if user requested default printer
-    if (trimmedLower.contains('الافتراضية') || trimmedLower.contains('default')) {
+    // 6. Check explicitly if user requested default printer
+    if (rawLower.contains('الافتراضية') || rawLower.contains('default')) {
       return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
     }
 
-    // 6. Fallback to default printer or first available printer
+    // 7. Fallback to default printer or first available printer
     return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
   }
 
@@ -405,16 +423,49 @@ class PrintService {
                     pw.Divider(thickness: 1),
 
                     // 6. Summary
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 2),
-                      child: pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                          pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                        ],
+                    if (order.discountAmount > 0 || (order.subtotal > order.total && order.subtotal > 0)) ...[
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('المجموع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                            pw.Text('${(order.subtotal > 0 ? order.subtotal : (order.total + order.discountAmount)).toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                          ],
+                        ),
                       ),
-                    ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('الخصم:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                            pw.Text('-${order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                          ],
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('الصافي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                            pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 2),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('الإجمالي الكلي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                            pw.Text('${order.total.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (cashPaid > 0) ...[
                       pw.Padding(
                         padding: const pw.EdgeInsets.symmetric(horizontal: 2),
@@ -567,7 +618,7 @@ class PrintService {
                                 children: [
                                   pw.Text(item.productName ?? '', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                                   if (item.notes != null && item.notes!.isNotEmpty)
-                                    pw.Text('ملاحظة: ${item.notes}', style: const pw.TextStyle(fontSize: 9)),
+                                    pw.Text('ملاحظة المطبخ: ${item.notes}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -612,6 +663,8 @@ class PrintService {
     String? tableTitle,
     List<String>? customHeaders,
     List<List<String>>? customDataRows,
+    String? firstInvoiceTime,
+    String? dayClosingTime,
     required SettingsProvider settings,
   }) async {
     try {
@@ -661,6 +714,22 @@ class PrintService {
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
+                    if (firstInvoiceTime != null && firstInvoiceTime.isNotEmpty)
+                      pw.Center(
+                        child: pw.Text(
+                          'تاريخ أول فاتورة: $firstInvoiceTime',
+                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
+                    if (dayClosingTime != null && dayClosingTime.isNotEmpty)
+                      pw.Center(
+                        child: pw.Text(
+                          'إغلاق اليوم: $dayClosingTime',
+                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ),
                     pw.Center(
                       child: pw.Text(
                         'المنفذ: $generatedBy | ${DateTime.now().toString().substring(0, 16)}',
@@ -812,13 +881,13 @@ class PrintService {
 
         final escapedPath = file.path.replaceAll('\\', '\\\\');
         final escapedPrinter = pName.replaceAll("'", "''");
+        final rawConfig = printerNameConfig.trim().replaceAll("'", "''");
 
         final psScript = '''
-\$printerName = '$escapedPrinter'
+\$printerNameConfig = '$rawConfig'
+\$resolvedPrinter = '$escapedPrinter'
 \$filePath = '$escapedPath'
-if ([string]::IsNullOrWhiteSpace(\$printerName)) {
-  \$printerName = (Get-WmiObject -Class Win32_Printer | Where-Object {\$_ .Default -eq \$true}).Name
-}
+
 \$code = @"
 using System;
 using System.IO;
@@ -845,6 +914,7 @@ public class WinRawPrinter {
   [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
   public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
   public static bool PrintRawBytes(string pName, string path) {
+    if (string.IsNullOrWhiteSpace(pName) || !File.Exists(path)) return false;
     byte[] bytes = File.ReadAllBytes(path);
     IntPtr hPrinter = new IntPtr(0);
     DOCINFOA di = new DOCINFOA { pDocName = "OpenCashDrawer", pDataType = "RAW" };
@@ -870,7 +940,44 @@ public class WinRawPrinter {
 }
 "@
 Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
-[WinRawPrinter]::PrintRawBytes(\$printerName, \$filePath)
+
+\$candidates = @()
+if (-not [string]::IsNullOrWhiteSpace(\$resolvedPrinter)) { \$candidates += \$resolvedPrinter }
+if (-not [string]::IsNullOrWhiteSpace(\$printerNameConfig)) {
+  \$candidates += \$printerNameConfig
+  if (\$printerNameConfig -match '\\((.*?)\\)') {
+    \$candidates += \$matches[1].Trim()
+  }
+  \$clean = \$printerNameConfig -replace '[\\u0600-\\u06FF]', ''
+  \$clean = \$clean.Trim(' ()-_')
+  if (-not [string]::IsNullOrWhiteSpace(\$clean)) { \$candidates += \$clean }
+}
+
+# Add default printer
+try {
+  \$def = (Get-WmiObject -Class Win32_Printer -ErrorAction SilentlyContinue | Where-Object {\$_ .Default -eq \$true}).Name
+  if (\$def) { \$candidates += \$def }
+} catch {}
+
+# Add all thermal/POS printers installed on Windows
+try {
+  \$posPrinters = (Get-WmiObject -Class Win32_Printer -ErrorAction SilentlyContinue | Where-Object {\$_ .Name -match 'POS|Receipt|Thermal|Xprinter|XP|Epson|Star|Citizen|TSC|Gprinter|Bixolon|Zonerich'}).Name
+  if (\$posPrinters) { \$candidates += \$posPrinters }
+} catch {}
+
+# Add all available installed printers as final fallback
+try {
+  \$allP = (Get-WmiObject -Class Win32_Printer -ErrorAction SilentlyContinue).Name
+  if (\$allP) { \$candidates += \$allP }
+} catch {}
+
+foreach (\$p in \$candidates | Select-Object -Unique) {
+  if ([WinRawPrinter]::PrintRawBytes(\$p, \$filePath)) {
+    Write-Output "True"
+    exit 0
+  }
+}
+Write-Output "False"
 ''';
 
         final psFile = File('${tempDir.path}\\send_raw_drawer.ps1');
@@ -987,21 +1094,25 @@ Add-Type -TypeDefinition \$code -ErrorAction SilentlyContinue
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
       final List<int> drawerBytes = [
-        // 1. DLE DC4 Real-time pulse commands (Pin 2 & Pin 5) - executes instantly on thermal printers
-        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time)
-        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time)
-        
-        // 2. Standard ESC p 0 (Pin 2, 100ms pulse, 250ms off)
+        // 1. Standard ESC p 0 (Pin 2, 100ms pulse, 250ms off)
         27, 112, 0, 50, 250,
         27, 112, 48, 50, 250,    // ASCII '0'
+        27, 112, 0, 25, 250,
 
-        // 3. Standard ESC p 1 (Pin 5, 100ms pulse, 250ms off)
+        // 2. Standard ESC p 1 (Pin 5, 100ms pulse, 250ms off)
         27, 112, 1, 50, 250,
         27, 112, 49, 50, 250,    // ASCII '1'
+        27, 112, 1, 25, 250,
 
-        // 4. Star Micronics & Citizen BEL pulses
-        7,
+        // 3. DLE DC4 Real-time pulse commands (Pin 2 & Pin 5)
+        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time)
+        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time)
+
+        // 4. Star Micronics & Citizen & FS p 1 0
+        7,                       // BEL
         27, 7, 10, 50, 7,
+        28, 112, 1, 0,
+        27, 30,
 
         // 5. Line feeds to flush byte buffer
         10, 10, 10,

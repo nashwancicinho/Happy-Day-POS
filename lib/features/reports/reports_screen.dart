@@ -42,6 +42,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<TopSellingProduct> _topSellingProducts = [];
   List<CashierSalesSummary> _cashierReportData = [];
   List<ProductNetProfitSummary> _netProfitReportData = [];
+  SessionPeriodInfo? _sessionInfo;
   bool _isLoadingReportData = false;
 
   @override
@@ -55,6 +56,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final month = dt.month.toString().padLeft(2, '0');
     final day = dt.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+
+  String _formatFullTime(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'غير متوفر (لا توجد فواتير بعد)';
+    try {
+      final dt = DateTime.parse(isoString);
+      final year = dt.year.toString().padLeft(4, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final day = dt.day.toString().padLeft(2, '0');
+      final rawHour = dt.hour;
+      final displayHour = rawHour > 12 ? (rawHour - 12).toString().padLeft(2, '0') : (rawHour == 0 ? '12' : rawHour.toString().padLeft(2, '0'));
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = rawHour >= 12 ? 'م' : 'ص';
+      return '$year-$month-$day  $displayHour:$minute $period';
+    } catch (_) {
+      return isoString;
+    }
   }
 
   String _getDatePrefix() {
@@ -117,12 +135,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     List<TopSellingProduct> topProducts = [];
     List<CashierSalesSummary> cashierReport = [];
     List<ProductNetProfitSummary> netProfitReport = [];
+    SessionPeriodInfo? sessionInfo;
 
     final currentUsername = context.read<AuthProvider>().currentUserName;
 
     if (_selectedPeriod == ReportPeriod.customRange) {
       final fromStr = _formatDate(_fromDate);
       final toStr = _formatDate(_toDate);
+      sessionInfo = await ordersProvider.getSessionPeriodInfo(fromDate: fromStr, toDate: toStr);
       if (_selectedReportType == 'cashier') {
         cashierReport = await ordersProvider.getCashierSalesReport(
           fromDate: fromStr,
@@ -143,6 +163,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
     } else {
       final prefix = _getDatePrefix();
+      sessionInfo = await ordersProvider.getSessionPeriodInfo(datePrefix: prefix);
       if (_selectedReportType == 'cashier') {
         cashierReport = await ordersProvider.getCashierSalesReport(
           datePrefix: prefix,
@@ -166,6 +187,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _topSellingProducts = topProducts;
         _cashierReportData = cashierReport;
         _netProfitReportData = netProfitReport;
+        _sessionInfo = sessionInfo;
         _isLoadingReportData = false;
         _isReportGenerated = true;
       });
@@ -761,6 +783,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                     TopNotification.showInfo(context, isEng ? 'Sending Net Profit Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير الربح الصافي للمواد لـ [${settingsProvider.reportsPrinter}] وطباعته...');
 
+                    final firstInvTimeStr = _formatFullTime(_sessionInfo?.firstOrderTime);
+                    final dayCloseTimeStr = _sessionInfo?.isClosed == true
+                        ? _formatFullTime(_sessionInfo?.closingTime)
+                        : (isEng ? 'Open Session' : 'مفتوح (حتى الآن)');
+
                     final success = await PrintService.printReport(
                       reportTitle: _getReportTypeTitle(isEng),
                       dateRangeText: _getPeriodTitle(isEng),
@@ -772,6 +799,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       tableTitle: isEng ? 'Net Profit Details for Items Sold:' : 'تفاصيل الربح الصافي للمواد والمنتجات المباعة:',
                       customHeaders: customHeaders,
                       customDataRows: customDataRows,
+                      firstInvoiceTime: firstInvTimeStr,
+                      dayClosingTime: dayCloseTimeStr,
                       settings: settingsProvider,
                     );
 
@@ -801,6 +830,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                     TopNotification.showInfo(context, isEng ? 'Sending Cashier Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير الكاشيرية لـ [${settingsProvider.reportsPrinter}] وطباعته...');
 
+                    final firstInvTimeStr = _formatFullTime(_sessionInfo?.firstOrderTime);
+                    final dayCloseTimeStr = _sessionInfo?.isClosed == true
+                        ? _formatFullTime(_sessionInfo?.closingTime)
+                        : (isEng ? 'Open Session' : 'مفتوح (حتى الآن)');
+
                     final success = await PrintService.printReport(
                       reportTitle: _getReportTypeTitle(isEng),
                       dateRangeText: _getPeriodTitle(isEng),
@@ -812,6 +846,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       tableTitle: isEng ? 'Cashier & User Sales Breakdown:' : 'تفاصيل مبيعات الكاشيرية والمستخدمين:',
                       customHeaders: customHeaders,
                       customDataRows: customDataRows,
+                      firstInvoiceTime: firstInvTimeStr,
+                      dayClosingTime: dayCloseTimeStr,
                       settings: settingsProvider,
                     );
 
@@ -833,6 +869,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                   TopNotification.showInfo(context, isEng ? 'Sending Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال التقرير لـ [${settingsProvider.reportsPrinter}] وطباعته...');
 
+                  final firstInvTimeStr = _formatFullTime(_sessionInfo?.firstOrderTime);
+                  final dayCloseTimeStr = _sessionInfo?.isClosed == true
+                      ? _formatFullTime(_sessionInfo?.closingTime)
+                      : (isEng ? 'Open Session' : 'مفتوح (حتى الآن)');
+
                   final success = await PrintService.printReport(
                     reportTitle: _getReportTypeTitle(isEng),
                     dateRangeText: _getPeriodTitle(isEng),
@@ -842,6 +883,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     totalOrders: totalOrdersCount,
                     netProfit: calculatedNetProfit,
                     productBreakdown: breakdownList,
+                    firstInvoiceTime: firstInvTimeStr,
+                    dayClosingTime: dayCloseTimeStr,
                     settings: settingsProvider,
                   );
 
@@ -897,6 +940,77 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             onPressed: () => setState(() => _isReportGenerated = false),
                             icon: const Icon(Icons.tune, size: 16),
                             label: Text(isEng ? 'Change Filters' : 'تغيير الفلاتر'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Shift & Session Start / End Info Card
+                  Card(
+                    elevation: 2,
+                    color: Colors.blue.shade900.withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.blue.shade300.withValues(alpha: 0.4)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.history_toggle_off_rounded, color: primaryColor, size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEng ? '🕒 Shift Work Period & Session Limits:' : '🕒 حيز النطاق وتوقيت أول فاتورة وإغلاق اليوم:',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryColor),
+                                ),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 24,
+                                  runSpacing: 8,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.play_circle_fill, color: Colors.green, size: 16),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${isEng ? "First Invoice:" : "تاريخ ووقت أول فاتورة:"} ${_formatFullTime(_sessionInfo?.firstOrderTime)}',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _sessionInfo?.isClosed == true ? Icons.lock_clock : Icons.access_time_filled,
+                                          color: _sessionInfo?.isClosed == true ? Colors.deepOrange : Colors.blue,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          _sessionInfo?.isClosed == true
+                                              ? '${isEng ? "Day Closed At:" : "تاريخ ووقت إغلاق اليوم:"} ${_formatFullTime(_sessionInfo?.closingTime)} (${_sessionInfo?.closedBy ?? ''})'
+                                              : '${isEng ? "Day Closed At:" : "تاريخ ووقت إغلاق اليوم:"} مفتوح (حتى الوقت الحالي)',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: _sessionInfo?.isClosed == true ? Colors.deepOrange.shade800 : Colors.blue.shade800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
