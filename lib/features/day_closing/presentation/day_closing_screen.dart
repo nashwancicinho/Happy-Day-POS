@@ -72,7 +72,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isEng ? 'Date: ${DateTime.now().toIso8601String().substring(0, 10)}' : 'اليوم: ${DateTime.now().toIso8601String().substring(0, 10)}',
+                                isEng ? 'Shift Start Date: ${ordersProvider.currentShiftFirstInvoiceDate}' : 'تاريخ بداية الشيفت (أول فاتورة): ${ordersProvider.currentShiftFirstInvoiceDate}',
                                 style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
@@ -280,7 +280,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'التاريخ: ${DateTime.now().toIso8601String().substring(0, 10)}',
+                              'تاريخ أول فاتورة: ${context.read<OrdersProvider>().currentShiftFirstInvoiceDate}',
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                             Text(
@@ -468,11 +468,11 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     }
 
                     final nowIso = DateTime.now().toIso8601String();
-                    final todayStr = nowIso.substring(0, 10);
+                    final reportDate = ordersProvider.currentShiftFirstInvoiceDate;
 
-                    // 1. Save treasury record
+                    // 1. Save treasury record with date of the first invoice of the shift
                     final treasuryRecord = DailyTreasuryModel(
-                      date: todayStr,
+                      date: reportDate,
                       dailyIncome: incomeVal,
                       dailyExpense: expenseVal,
                       netIncome: netIncomeVal,

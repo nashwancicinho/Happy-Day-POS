@@ -26,26 +26,32 @@ class OrdersProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  double get todaySalesTotal {
-    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+  List<OrderModel> get currentShiftCompletedOrders {
     return _orders.where((o) {
       if (o.status != 'COMPLETED') return false;
       if (_lastClosedTimestamp != null && o.createdAt.compareTo(_lastClosedTimestamp!) <= 0) {
         return false;
       }
-      return o.createdAt.startsWith(todayStr);
-    }).fold(0.0, (sum, o) => sum + o.total);
+      return true;
+    }).toList();
+  }
+
+  String get currentShiftFirstInvoiceDate {
+    final shiftOrders = currentShiftCompletedOrders;
+    if (shiftOrders.isNotEmpty) {
+      final sorted = List<OrderModel>.from(shiftOrders)
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return sorted.first.createdAt.substring(0, 10);
+    }
+    return DateTime.now().toIso8601String().substring(0, 10);
+  }
+
+  double get todaySalesTotal {
+    return currentShiftCompletedOrders.fold(0.0, (sum, o) => sum + o.total);
   }
 
   int get todayOrdersCount {
-    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
-    return _orders.where((o) {
-      if (o.status != 'COMPLETED') return false;
-      if (_lastClosedTimestamp != null && o.createdAt.compareTo(_lastClosedTimestamp!) <= 0) {
-        return false;
-      }
-      return o.createdAt.startsWith(todayStr);
-    }).length;
+    return currentShiftCompletedOrders.length;
   }
 
   Future<void> loadOrders() async {
