@@ -261,22 +261,23 @@ class LocalServerService extends ChangeNotifier {
     final productsMap = {for (var p in productsList) p['id'] as int: p};
 
     final items = rawItems.map((item) {
-      final pId = item['product_id'] as int;
+      final pId = (item['product_id'] ?? item['id']) as int?;
+      if (pId == null) return null;
       final prod = productsMap[pId];
-      final pName = prod != null ? prod['name'] as String : null;
+      final pName = (item['product_name'] ?? item['name']) as String? ?? (prod != null ? prod['name'] as String? : null);
       final printToKit = prod != null ? ((prod['print_to_kitchen'] as int? ?? 1) == 1) : true;
       final kitPrinter = prod != null ? prod['kitchen_printer'] as String? : null;
 
       return OrderItemModel(
         productId: pId,
         productName: pName,
-        quantity: (item['quantity'] as num).toDouble(),
-        price: (item['price'] as num).toDouble(),
+        quantity: (item['quantity'] as num? ?? 1.0).toDouble(),
+        price: (item['price'] as num? ?? 0.0).toDouble(),
         notes: item['notes'] as String?,
         printToKitchen: printToKit,
         kitchenPrinter: kitPrinter,
       );
-    }).toList();
+    }).whereType<OrderItemModel>().toList();
 
     final repo = OrdersRepository();
     final existingOrder = await repo.getOpenOrderByTable(tableId);

@@ -86,7 +86,9 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
       } else {
         _selectedItems[pid] = {
           'id': pid,
+          'product_id': pid,
           'name': name,
+          'product_name': name,
           'price': price,
           'quantity': 1.0,
           'notes': '',
