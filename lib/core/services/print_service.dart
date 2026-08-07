@@ -1363,14 +1363,17 @@ Write-Output "False"
           queueNames.add(queueName.replaceAll(' ', '_'));
         }
 
-        // Get exact system CUPS queue names via lpstat -e
+        // Get exact system CUPS queue names via lpstat -e & lpstat -p
         try {
           final res = await Process.run('lpstat', ['-e']);
           if (res.exitCode == 0) {
             final lines = res.stdout.toString().split('\n');
             for (var l in lines) {
               final q = l.trim();
-              if (q.isNotEmpty) queueNames.add(q);
+              if (q.isNotEmpty) {
+                queueNames.add(q);
+                queueNames.add(q.replaceAll(' ', '_'));
+              }
             }
           }
         } catch (_) {}
@@ -1384,6 +1387,14 @@ Write-Output "False"
             }
           }
         } catch (_) {}
+
+        // Auto-enable & accept any paused or offline CUPS queues on macOS/Linux
+        for (var q in queueNames) {
+          try {
+            await Process.run('cupsenable', [q]);
+            await Process.run('cupsaccept', [q]);
+          } catch (_) {}
+        }
 
         bool anySuccess = false;
         for (var qName in queueNames) {
