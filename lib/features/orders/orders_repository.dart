@@ -914,9 +914,10 @@ class OrdersRepository {
         // Copy source order items to target order
         final sourceItems = await txn.query('order_items', where: 'order_id = ?', whereArgs: [sourceOrderId]);
         for (final itemMap in sourceItems) {
-          final item = OrderItemModel.fromMap(itemMap);
-          final updatedItem = item.copyWith(id: null, orderId: targetOrderId);
-          await txn.insert('order_items', updatedItem.toMap());
+          final itemMapToInsert = Map<String, dynamic>.from(itemMap);
+          itemMapToInsert.remove('id');
+          itemMapToInsert['order_id'] = targetOrderId;
+          await txn.insert('order_items', itemMapToInsert);
         }
 
         // Recalculate target order total
