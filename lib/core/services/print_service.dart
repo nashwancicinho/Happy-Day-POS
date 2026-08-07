@@ -708,7 +708,8 @@ class PrintService {
 
       final pdfBytes = await pdf.save();
       // Trigger cash drawer kick signal before and after PDF print
-      await openCashDrawer(settings);
+      openCashDrawer(settings);
+      await Future.delayed(const Duration(milliseconds: 150));
 
       final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
@@ -716,7 +717,7 @@ class PrintService {
         docName: 'Invoice_${order.id ?? 1}',
       );
 
-      await openCashDrawer(settings);
+      openCashDrawer(settings);
 
       return printResult;
     } catch (e) {
