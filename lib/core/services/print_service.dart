@@ -1321,20 +1321,43 @@ Write-Output "False"
         debugPrint('Windows Win32 spool failed: $e');
       }
 
-      // Windows secondary fallback: cmd copy /b
+      // Windows secondary fallback: Native print.exe, PowerShell Out-Printer, and cmd spool copy
       try {
         final tempDir = await getTemporaryDirectory();
-        if (pName.isNotEmpty) {
-          final result = await Process.run('cmd', [
+        final binPath = '${tempDir.path}\\drawer_kick.bin';
+
+        final printerCandidates = <String>{};
+        if (pName.isNotEmpty) printerCandidates.add(pName);
+        if (printerNameConfig.isNotEmpty) printerCandidates.add(printerNameConfig.trim());
+
+        for (var p in printerCandidates) {
+          // Attempt 1: print.exe /D:"PrinterName" file.bin (Built-in Windows RAW print command)
+          var res = await Process.run('print', ['/D:$p', binPath]);
+          if (res.exitCode == 0) return true;
+
+          // Attempt 2: PowerShell Get-Content | Out-Printer
+          res = await Process.run('powershell', [
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-Command',
+            'Get-Content -Path "$binPath" -Encoding Byte -Raw | Out-Printer -Name "$p"',
+          ]);
+          if (res.exitCode == 0) return true;
+
+          // Attempt 3: cmd copy /b to local spooler share
+          res = await Process.run('cmd', [
             '/c',
             'copy',
             '/b',
-            '${tempDir.path}\\drawer_kick.bin',
-            '"$pName"',
+            '"$binPath"',
+            '"\\\\127.0.0.1\\$p"',
           ]);
-          if (result.exitCode == 0) return true;
+          if (res.exitCode == 0) return true;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Windows secondary RAW fallback failed: $e');
+      }
     }
 
     // 3. macOS & Linux CUPS Raw Spooling via lpr/lp
