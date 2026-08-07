@@ -1837,21 +1837,69 @@ class _CashierScreenState extends State<CashierScreen> {
 
   Future<void> _openCashDrawer() async {
     final settings = context.read<SettingsProvider>();
-    TopNotification.showInfo(context, '🔑 جاري فتح درج النقدية...');
+    TopNotification.showInfo(context, '🔑 جاري إرسال إشارة فتح درج النقدية...');
     final success = await PrintService.openCashDrawer(settings);
-    if (mounted) {
-      if (success) {
-        TopNotification.showSuccess(
-          context,
-          '🔑 تم فتح درج النقدية بنجاح! 💵',
-        );
-      } else {
-        TopNotification.showWarning(
-          context,
-          '⚠️ تم إرسال الأمر. تأكد من توصيل سلك الدرج بالطابعة وتحديد طابعة الكاشير في الإعدادات.',
-        );
-      }
-    }
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(success ? Icons.check_circle : Icons.build_circle, color: success ? Colors.green : Colors.orange, size: 28),
+            const SizedBox(width: 8),
+            Text(success ? 'تم إرسال إشارة الفتح للطابعة ⚡' : 'دليل فحص وتوصيل درج النقدية 🔑'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (success)
+              const Text('تم إرسال إشارة النبض الكهربائي للطابعة بنجاح.\nإذا لم يندفع الدرج تلقائياً، يرجى مراجعة الأسباب المادية التالية:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
+            else
+              const Text('تعذر إرسال الإشارة تلقائياً. يرجى التأكد من اختيار طابعة الكاشير في الإعدادات وفحص التوصيلات التالية:', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('1️⃣ قفل المفتاح الأوتوماتيكي:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                  Text('• تأكد أن المفتاح المعدني في واجهة الدرج في الوضع العمودي (مفتوح) وليس مقفولاً أفلاقاً بمفتاح الأمان.', style: TextStyle(fontSize: 12)),
+                  SizedBox(height: 8),
+                  Text('2️⃣ منفذ السلك في خلف الطابعة (RJ11 vs RJ45):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                  Text('• تأكد من تركيب سلك الدرج في منفذ (DK / Cash Drawer) الخماسي الصغير خلف الطابعة وليس في منفذ شبكة الإنترنت (LAN).', style: TextStyle(fontSize: 12)),
+                  SizedBox(height: 8),
+                  Text('3️⃣ مشاركة الطابعة في النظام (Windows / Mac):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                  Text('• تأكد من تفعيل خيار (Open Cash Drawer) داخل خصائص الطابعة (Printer Properties -> Device Settings) في الويندوز.', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await PrintService.openCashDrawer(settings);
+            },
+            child: const Text('إعادة التجربة الآن ⚡', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<Map<String, String>?> _promptDeliveryCustomerDetails() async {
