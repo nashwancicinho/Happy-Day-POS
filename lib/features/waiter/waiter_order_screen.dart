@@ -154,8 +154,8 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
           ],
         ),
         actions: [
-          if (noteController.text.isNotEmpty)
-            TextButton(
+          if (existingNote.isNotEmpty || noteController.text.isNotEmpty)
+            TextButton.icon(
               onPressed: () {
                 setState(() {
                   if (_selectedItems.containsKey(productId)) {
@@ -163,28 +163,46 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
                   }
                 });
                 Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('تم مسح ملاحظة الصنف 🗑️'),
+                    backgroundColor: Colors.redAccent,
+                    duration: Duration(seconds: 1),
+                  ),
+                );
               },
-              child: const Text('مسح الملاحظة', style: TextStyle(color: Colors.redAccent)),
+              icon: const Icon(Icons.delete_forever, color: Colors.redAccent, size: 18),
+              label: const Text('مسح الملاحظة', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+            child: const Text('إغلاق', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
             onPressed: () {
+              final newNote = noteController.text.trim();
               setState(() {
                 if (_selectedItems.containsKey(productId)) {
-                  _selectedItems[productId]!['notes'] = noteController.text.trim();
+                  _selectedItems[productId]!['notes'] = newNote;
                 } else {
                   final product = _allProducts.firstWhere((p) => p['id'] == productId, orElse: () => {});
                   if (product.isNotEmpty) {
                     _addItem(product);
-                    _selectedItems[productId]!['notes'] = noteController.text.trim();
+                    _selectedItems[productId]!['notes'] = newNote;
                   }
                 }
               });
               Navigator.pop(ctx);
+              if (newNote.isNotEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('تم حفظ ملاحظة الصنف للمطبخ ✅'),
+                    backgroundColor: Color(0xFF10B981),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
             },
             icon: const Icon(Icons.check, color: Colors.white, size: 18),
             label: const Text('حفظ الملاحظة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -250,62 +268,6 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
     }
   }
 
-  Future<void> _cancelOrder() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2937),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
-            SizedBox(width: 8),
-            Text('إلغاء الفاتورة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(
-          'هل أنت تأكد من رغبتك في إلغاء فاتورة ${widget.tableName} وإخلاء الطاولة بالكامل؟',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('نعم، إلغاء وإخلاء الطاولة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      setState(() => _isSending = true);
-
-      final success = await widget.apiClient.cancelTableOrder(widget.tableId);
-
-      if (!mounted) return;
-
-      setState(() => _isSending = false);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم إلغاء فاتورة ${widget.tableName} وإخلاء الطاولة ❌'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل إلغاء الفاتورة، تأكد من الاتصال.'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final total = _calculateTotal();
@@ -321,11 +283,6 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-            tooltip: 'إلغاء الفاتورة وإخلاء الطاولة',
-            onPressed: _isSending ? null : _cancelOrder,
-          ),
           if (_selectedItems.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 12),
