@@ -192,44 +192,105 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                 ),
               ),
 
-            const Divider(thickness: 1.5, color: Colors.black87),
+            const SizedBox(height: 10),
 
-            // 3. INVOICE META & ORDER TYPE & SEPARATE DATE / TIME LINES
-            if (widget.order.orderType == 'DINE_IN' && widget.tableName != null) ...[
-              Text(
-                'طاولة: ${widget.tableName!.startsWith("طاولة") ? widget.tableName!.replaceFirst("طاولة", "").trim() : widget.tableName}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                textAlign: TextAlign.center,
+            // 3. INVOICE META & ORDER TYPE & SEPARATE DATE / TIME LINES IN ROUNDED BOXES
+            // Box 1: Order # & Table/Customer
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black87, width: 1),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ] else ...[
-              Text(
-                'نوع الطلب: ${_orderTypeLabel(widget.order.orderType)}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                textAlign: TextAlign.center,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                      child: Text(
+                        widget.tableName != null && widget.tableName!.isNotEmpty
+                            ? 'السيد: ${widget.tableName!.startsWith("طاولة") ? widget.tableName : "طاولة ${widget.tableName}"} المحترم'
+                            : 'الطلب: ${_orderTypeLabel(widget.order.orderType)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, height: 24, color: Colors.black87),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                      child: Text(
+                        'رقم: ${widget.order.id ?? 1}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-            const SizedBox(height: 2),
-            Text(
-              'التاريخ: ${_formatDateOnly(widget.order.createdAt)}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              textAlign: TextAlign.center,
             ),
-            Text(
-              'الوقت: ${_formatTimeOnly(widget.order.createdAt)}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              textAlign: TextAlign.center,
+
+            // Box 2: Date & Time
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black87, width: 1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                      child: Text(
+                        'الوقت: ${_formatTimeOnly(widget.order.createdAt)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, height: 24, color: Colors.black87),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                      child: Text(
+                        'التاريخ: ${_formatDateOnly(widget.order.createdAt)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Box 3: Cashier Name
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black87, width: 1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'الكاشير: ${widget.order.cashierName != null && widget.order.cashierName!.isNotEmpty ? widget.order.cashierName! : 'الرئيسي'}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
             ),
 
             // Delivery Customer Phone & Address
             if (widget.order.orderType == 'DELIVERY' || (widget.order.customerPhone != null && widget.order.customerPhone!.isNotEmpty)) ...[
-              const SizedBox(height: 8),
               Container(
                 width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: Colors.blue.shade300),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,85 +320,160 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
               ),
             ],
 
-            const Divider(thickness: 1.5, color: Colors.black87),
+            const SizedBox(height: 4),
 
-            // ITEMS TABLE HEADER
-            Row(
-              children: const [
-                Expanded(flex: 6, child: Text('الصنف / المادة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                Expanded(flex: 2, child: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('المجموع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.end)),
-              ],
-            ),
-            const Divider(height: 8),
-
-            // ITEMS ROWS
-            ...widget.items.map((item) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
+            // ITEMS TABLE GRID WITH CELL BORDER LINES
+            Table(
+              border: TableBorder.all(color: Colors.black87, width: 1),
+              columnWidths: const {
+                0: FixedColumnWidth(24), // ت
+                1: FlexColumnWidth(3.5), // المادة
+                2: FixedColumnWidth(36), // الكمية
+                3: FixedColumnWidth(55), // السعر
+                4: FixedColumnWidth(60), // القيمة
+              },
+              children: [
+                // Header Row
+                const TableRow(
+                  decoration: BoxDecoration(color: Color(0xFFEEEEEE)),
                   children: [
-                    Expanded(
-                      flex: 6,
-                      child: Text(item.productName ?? 'صنف', style: const TextStyle(fontSize: 12)),
-                    ),
-                    Expanded(flex: 2, child: Text(item.formattedQuantity, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        '${item.subtotal.toStringAsFixed(0)} ${settings.currencySymbol}',
-                        style: const TextStyle(fontSize: 12),
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
+                    Padding(padding: EdgeInsets.all(4), child: Text('ت', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    Padding(padding: EdgeInsets.all(4), child: Text('المادة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    Padding(padding: EdgeInsets.all(4), child: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    Padding(padding: EdgeInsets.all(4), child: Text('السعر', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    Padding(padding: EdgeInsets.all(4), child: Text('القيمة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
                   ],
                 ),
-              );
-            }),
 
-            const Divider(thickness: 1.5, color: Colors.black87),
+                // Item Rows
+                ...widget.items.asMap().entries.map((entry) {
+                  final idx = entry.key + 1;
+                  final item = entry.value;
+                  return TableRow(
+                    children: [
+                      Padding(padding: const EdgeInsets.all(4), child: Text('$idx', style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(4), child: Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                      Padding(padding: const EdgeInsets.all(4), child: Text(item.formattedQuantity, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(4), child: Text(item.price.toStringAsFixed(0), style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(4), child: Text(item.subtotal.toStringAsFixed(0), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    ],
+                  );
+                }),
 
-            // FINANCIAL SUMMARY
-            if (widget.order.discountAmount > 0 || (widget.order.subtotal > widget.order.total && widget.order.subtotal > 0)) ...[
-              _receiptSumRow(
-                'المجموع:',
-                '${(widget.order.subtotal > 0 ? widget.order.subtotal : (widget.order.total + widget.order.discountAmount)).toStringAsFixed(0)} ${settings.currencySymbol}',
-              ),
-              _receiptSumRow(
-                'الخصم:',
-                '-${widget.order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}',
-              ),
-              if (widget.order.taxAmount > 0)
-                _receiptSumRow(
-                  'الضريبة:',
-                  '+${widget.order.taxAmount.toStringAsFixed(0)} ${settings.currencySymbol}',
+                // Table Summary Row (Total Items Count)
+                TableRow(
+                  decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
+                  children: [
+                    const Padding(padding: EdgeInsets.all(4), child: Text('')),
+                    const Padding(padding: EdgeInsets.all(4), child: Text('مجموع عدد المواد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                    Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Text(
+                        widget.items.fold<double>(0, (sum, i) => sum + i.quantity).toStringAsFixed(0),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Padding(padding: EdgeInsets.all(4), child: Text('')),
+                    const Padding(padding: EdgeInsets.all(4), child: Text('')),
+                  ],
                 ),
-              const Divider(height: 10),
-              _receiptSumRow(
-                'الصافي:',
-                '${widget.order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
-                isBold: true,
-                fontSize: 15,
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // FINANCIAL SUMMARY IN ROUNDED BOXES
+            if (widget.order.discountAmount > 0 || (widget.order.subtotal > widget.order.total && widget.order.subtotal > 0)) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black87, width: 1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('المجموع قبل الخصم:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('${(widget.order.subtotal > 0 ? widget.order.subtotal : (widget.order.total + widget.order.discountAmount)).toStringAsFixed(0)} ${settings.currencySymbol}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
               ),
-            ] else ...[
-              _receiptSumRow(
-                'الإجمالي الكلي:',
-                '${widget.order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
-                isBold: true,
-                fontSize: 15,
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black87, width: 1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('مبلغ الخصم:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('-${widget.order.discountAmount.toStringAsFixed(0)} ${settings.currencySymbol}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
               ),
             ],
+
+            // Main Net Total Box (الصافي)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black87, width: 2),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey.shade50,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('الصافي:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    '${widget.order.total.toStringAsFixed(0)} ${settings.currencySymbol}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
 
             if (widget.order.paymentMethod == 'CASH' && widget.cashPaid > 0) ...[
-              const SizedBox(height: 4),
-              _receiptSumRow('المدفوع كاش:', '${widget.cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}'),
-              _receiptSumRow('المتبقي (الباقي):', '${widget.changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', isBold: true),
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black87, width: 1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('المدفوع كاش:', style: TextStyle(fontSize: 13)),
+                    Text('${widget.cashPaid.toStringAsFixed(0)} ${settings.currencySymbol}', style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black87, width: 1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('المتبقي (الباقي):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('${widget.changeDue.toStringAsFixed(0)} ${settings.currencySymbol}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+              ),
             ],
 
-            const Divider(thickness: 1.5, color: Colors.black87),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
-            // FOOTER (FOOTER MSG + STORE NAME + ADDRESS + PHONE)
+            // FOOTER
             Text(
               settings.receiptFooter,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -345,7 +481,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
             ),
             const SizedBox(height: 4),
             Text(
-              '${settings.storeName} - ${settings.storeAddress}',
+              '${settings.storeName} ${settings.storeAddress.isNotEmpty ? "- ${settings.storeAddress}" : ""}',
               style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
               textAlign: TextAlign.center,
             ),
@@ -422,18 +558,6 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
     );
   }
 
-  Widget _receiptSumRow(String label, String value, {bool isBold = false, double fontSize = 13}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
-          Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
-        ],
-      ),
-    );
-  }
 
   String _orderTypeLabel(String type) {
     switch (type) {

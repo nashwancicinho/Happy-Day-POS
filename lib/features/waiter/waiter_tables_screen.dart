@@ -156,12 +156,12 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                     : RefreshIndicator(
                         onRefresh: () => _loadTables(),
                         child: GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 1.1,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 14,
+                          padding: const EdgeInsets.all(12),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 170,
+                            childAspectRatio: 1.05,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
                           ),
                           itemCount: _tables.length,
                           itemBuilder: (context, index) {
@@ -173,17 +173,17 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                             final isBusy = status == 1;
 
                             return Card(
-                              elevation: 4,
+                              elevation: 3,
                               color: isBusy ? const Color(0xFF374151) : const Color(0xFF1F2937),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(14),
                                 side: BorderSide(
                                   color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981).withValues(alpha: 0.5),
-                                  width: 2,
+                                  width: 1.5,
                                 ),
                               ),
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(14),
                                 onTap: () async {
                                   final result = await Navigator.push(
                                     context,
@@ -201,7 +201,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                                   }
                                 },
                                 child: Padding(
-                                  padding: const EdgeInsets.all(14.0),
+                                  padding: const EdgeInsets.all(10.0),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
@@ -211,19 +211,19 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                                           Icon(
                                             Icons.table_restaurant,
                                             color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981),
-                                            size: 28,
+                                            size: 22,
                                           ),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                             decoration: BoxDecoration(
                                               color: (isBusy ? Colors.orangeAccent : const Color(0xFF10B981)).withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius: BorderRadius.circular(6),
                                             ),
                                             child: Text(
                                               isBusy ? 'طلب مفتوح' : 'متاحة',
                                               style: TextStyle(
                                                 color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981),
-                                                fontSize: 11,
+                                                fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -233,19 +233,21 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                                       Text(
                                         name,
                                         style: const TextStyle(
-                                          fontSize: 18,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.people, size: 14, color: Colors.grey),
+                                          const Icon(Icons.people, size: 13, color: Colors.grey),
                                           const SizedBox(width: 4),
                                           Text(
                                             '$capacity أشخاص',
-                                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                            style: const TextStyle(fontSize: 11, color: Colors.grey),
                                           ),
                                         ],
                                       ),

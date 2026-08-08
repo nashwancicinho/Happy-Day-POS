@@ -45,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _backupFolderController;
   String _selectedLogoIcon = 'storefront';
   String _selectedCurrency = 'د.ع';
+  int _selectedTab = 0;
 
   List<Printer> _systemPrinters = [];
   bool _isLoadingPrinters = false;
@@ -1041,691 +1042,862 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isEng = settings.isEnglish;
     _syncControllers(settings);
 
+    final tabs = [
+      {
+        'title': isEng ? 'Store & Receipt' : 'بيانات المطعم والفاتورة',
+        'subtitle': isEng ? 'Store details, logo & currency' : 'اسم المطعم، اللوجو، العملة، والتذييل',
+        'icon': Icons.storefront_rounded,
+        'color': AppColors.primary,
+      },
+      {
+        'title': isEng ? 'Printer Settings' : 'إعدادات الطابعات',
+        'subtitle': isEng ? 'Cashier, Kitchen & Reports' : 'طابعة الكاشير، المطبخ والتقارير',
+        'icon': Icons.print_rounded,
+        'color': Colors.teal,
+      },
+      {
+        'title': isEng ? 'Theme & Language' : 'المظهر واللغة',
+        'subtitle': isEng ? 'App language & theme color' : 'لغة الواجهة وألوان التطبيق',
+        'icon': Icons.palette_rounded,
+        'color': Colors.purple,
+      },
+      {
+        'title': isEng ? 'Backup & Updates' : 'النسخ الاحتياطي والتحديثات',
+        'subtitle': isEng ? 'DB Backup & Software Updates' : 'حفظ القاعدة وتحديثات البرنامج',
+        'icon': Icons.cloud_sync_rounded,
+        'color': Colors.blue,
+      },
+      {
+        'title': isEng ? 'Maintenance & Reset' : 'صيانة وإعادة التعيين',
+        'subtitle': isEng ? 'Factory reset & data wipe' : 'إعادة تعيين المصنع والمسح الشامل',
+        'icon': Icons.engineering_rounded,
+        'color': Colors.red,
+      },
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEng ? 'Restaurant, Printer & System Settings' : 'إعدادات المطعم والطابعات والشعار وإعادة التعيين'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.settings_suggest_rounded, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              isEng ? 'System & Restaurant Settings' : 'إعدادات النظام والمطعم',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
         centerTitle: true,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 750),
+      body: Row(
+        children: [
+          // Sidebar Navigation Panel
+          Container(
+            width: 290,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(3, 0),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.grey.shade50,
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune_rounded, color: Colors.grey.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        isEng ? 'SETTINGS SECTIONS' : 'أقسام الإعدادات',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    itemCount: tabs.length,
+                    itemBuilder: (context, index) {
+                      final tab = tabs[index];
+                      final isSelected = _selectedTab == index;
+                      final tabColor = tab['color'] as Color;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedTab = index;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? tabColor.withValues(alpha: 0.12) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isSelected ? tabColor : Colors.transparent,
+                                  width: isSelected ? 1.5 : 0,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? tabColor : tabColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      tab['icon'] as IconData,
+                                      color: isSelected ? Colors.white : tabColor,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tab['title'] as String,
+                                          style: TextStyle(
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                            fontSize: 14,
+                                            color: isSelected ? Colors.black87 : Colors.grey.shade800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          tab['subtitle'] as String,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: isSelected ? tabColor.withValues(alpha: 0.9) : Colors.grey.shade600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(Icons.chevron_left_rounded, color: tabColor, size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const VerticalDivider(width: 1),
+
+          // Main Tab Content Area
+          Expanded(
+            child: Container(
+              color: Colors.grey.shade50.withValues(alpha: 0.5),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 850),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: KeyedSubtree(
+                        key: ValueKey<int>(_selectedTab),
+                        child: _buildSelectedTabContent(context, settings, isEng),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: Colors.grey.shade600, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                isEng ? 'Click Save button to apply all changes across system' : 'تأكد من النقرفوق زر الحفظ أدناه لتطبيق كافة التعديلات فورياً',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: _saveSettings,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 3,
+                ),
+                icon: const Icon(Icons.save_rounded, size: 22),
+                label: Text(
+                  isEng ? 'Save All Settings 💾' : 'حفظ إعدادات المطعم والطابعات 💾',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedTabContent(BuildContext context, SettingsProvider settings, bool isEng) {
+    switch (_selectedTab) {
+      case 0:
+        return _buildStoreAndReceiptTab(context, settings, isEng);
+      case 1:
+        return _buildPrintersTab(context, settings, isEng);
+      case 2:
+        return _buildThemeAndLanguageTab(context, settings, isEng);
+      case 3:
+        return _buildBackupAndUpdatesTab(context, settings, isEng);
+      case 4:
+        return _buildMaintenanceTab(context, settings, isEng);
+      default:
+        return _buildStoreAndReceiptTab(context, settings, isEng);
+    }
+  }
+
+  // TAB 0: Store & Receipt Info
+  Widget _buildStoreAndReceiptTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Store Info & Logo Card
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Section -2: Language Control Card
-                _buildLanguageSection(context, settings),
-
-                const SizedBox(height: 20),
-
-                // Section -1: Database Backup & Restore Card
-
-                _buildBackupRestoreSection(context, settings),
-
-                const SizedBox(height: 20),
-
-                // Section 0: Theme Color Palette Selection
-                _buildThemeColorSection(context, settings),
-
-                const SizedBox(height: 20),
-
-                // Section 1: Store Information & Logo Upload
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: AppColors.primary,
-                              child: const Icon(Icons.store, color: Colors.white),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              isEng ? 'Restaurant Info & Printed Receipt Logo' : 'معلومات المطعم والشعار المطبوع بالفاتورة',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 28),
-
-                        // Custom Image Logo Upload Section (معرض الصور)
-                        Text(
-                          isEng ? 'Choose custom logo image from gallery (Custom Logo Image):' : 'اختيار صورة الشعار الخاص بالمطعم من المعرض (Custom Logo Image):',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _pickLogoImage,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primary,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      ),
-                                      icon: const Icon(Icons.photo_library_rounded, size: 24),
-                                      label: Text(
-                                        isEng ? '🖼️ Choose Logo Image from Gallery' : '🖼️ فتح المعرض واختيار صورة اللوجو من الجهاز',
-                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_logoPathController.text.isNotEmpty && File(_logoPathController.text).existsSync()) ...[
-                                    const SizedBox(width: 14),
-                                    Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(12),
-                                          child: Image.file(
-                                            File(_logoPathController.text),
-                                            width: 65,
-                                            height: 65,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: -6,
-                                          right: -6,
-                                          child: InkWell(
-                                            onTap: () {
-                                              setState(() {
-                                                _logoPathController.clear();
-                                              });
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(3),
-                                              decoration: const BoxDecoration(
-                                                color: Colors.red,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(Icons.close, color: Colors.white, size: 14),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: _logoPathController,
-                                onChanged: (_) => setState(() {}),
-                                decoration: InputDecoration(
-                                  labelText: isEng ? 'Image File Path' : 'مسار ملف الصورة بالجهاز (Path)',
-                                  hintText: '/Users/.../logo.png',
-                                  isDense: true,
-                                  prefixIcon: const Icon(Icons.link, size: 20),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Logo Presets Selection Section
-                        Text(
-                          isEng ? 'Or choose a graphic logo icon preset for receipts:' : 'أو اختر شعار رمز جرافيكي جاهز للفاتورة:',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: _logoPresets.map((preset) {
-                            final isSelected = _selectedLogoIcon == preset['name'];
-                            return InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedLogoIcon = preset['name'];
-                                });
-                                _saveSettings();
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected ? AppColors.primary : Colors.grey.shade300,
-                                    width: isSelected ? 2 : 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      preset['icon'] as IconData,
-                                      color: isSelected ? AppColors.primary : Colors.grey.shade700,
-                                      size: 22,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      isEng ? (preset['labelEn'] ?? preset['label']) as String : preset['label'] as String,
-                                      style: TextStyle(
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                        color: isSelected ? AppColors.primary : Colors.black87,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Store Name Field
-                        TextField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Restaurant Name (Printed at header & footer) *' : 'اسم المطعم (يظهر أعلى وأسفل الفاتورة) *',
-                            prefixIcon: const Icon(Icons.business),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Address Field
-                        TextField(
-                          controller: _addressController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Detailed Restaurant Address (Printed on receipt) *' : 'عنوان المطعم التفصيلي (يظهر بالفاتورة) *',
-                            prefixIcon: const Icon(Icons.location_on),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Phone Field
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Restaurant Phone Number (Printed on receipt) *' : 'رقم موبايل / هاتف المطعم (يظهر بالفاتورة) *',
-                            prefixIcon: const Icon(Icons.phone),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                        ),
-
-                        const Divider(height: 32),
-
-                        // Section 1.5: Currency Selection
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                              child: Icon(Icons.monetization_on_rounded, color: AppColors.primary),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              isEng ? 'Store Currency (Store Currency)' : 'عملة النظام والفواتير (Store Currency)',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isEng ? 'Choose official store currency to apply across all invoices, prices, and reports:' : 'اختر العملة الرسمية للمتجر لتطبيقها فورياً على كافة الفواتير والأسعار والتقارير:',
-                          style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedCurrency = 'د.ع';
-                                  });
-                                  _saveSettings();
-                                },
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  decoration: BoxDecoration(
-                                    color: _selectedCurrency == 'د.ع' ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.grey.shade300,
-                                      width: _selectedCurrency == 'د.ع' ? 2.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        isEng ? '🇮🇶 Iraqi Dinar (IQD)' : '🇮🇶 دينار عراقي (د.ع)',
-                                        style: TextStyle(
-                                          fontWeight: _selectedCurrency == 'د.ع' ? FontWeight.bold : FontWeight.normal,
-                                          color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.black87,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      if (_selectedCurrency == 'د.ع') ...[
-                                        const SizedBox(width: 8),
-                                        Icon(Icons.check_circle, color: AppColors.primary, size: 20),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedCurrency = '\$';
-                                  });
-                                  _saveSettings();
-                                },
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  decoration: BoxDecoration(
-                                    color: _selectedCurrency == '\$' ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: _selectedCurrency == '\$' ? AppColors.primary : Colors.grey.shade300,
-                                      width: _selectedCurrency == '\$' ? 2.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        isEng ? '🇺🇸 US Dollar (\$)' : '🇺🇸 دولار أمريكي (\$)',
-                                        style: TextStyle(
-                                          fontWeight: _selectedCurrency == '\$' ? FontWeight.bold : FontWeight.normal,
-                                          color: _selectedCurrency == '\$' ? AppColors.primary : Colors.black87,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      if (_selectedCurrency == '\$') ...[
-                                        const SizedBox(width: 8),
-                                        Icon(Icons.check_circle, color: AppColors.primary, size: 20),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.primary,
+                      child: const Icon(Icons.store, color: Colors.white),
                     ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isEng ? 'Restaurant Info & Printed Receipt Logo' : 'معلومات المطعم والشعار المطبوع بالفاتورة',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+
+                Text(
+                  isEng ? 'Choose custom logo image from gallery (Custom Logo Image):' : 'اختيار صورة الشعار الخاص بالمطعم من المعرض (Custom Logo Image):',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _pickLogoImage,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.photo_library_rounded, size: 24),
+                              label: Text(
+                                isEng ? '🖼️ Choose Logo Image from Gallery' : '🖼️ فتح المعرض وااختيار صورة اللوجو من الجهاز',
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          if (_logoPathController.text.isNotEmpty && File(_logoPathController.text).existsSync()) ...[
+                            const SizedBox(width: 14),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    File(_logoPathController.text),
+                                    width: 65,
+                                    height: 65,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: -6,
+                                  right: -6,
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _logoPathController.clear();
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.close, color: Colors.white, size: 14),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _logoPathController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Image File Path' : 'مسار ملف الصورة بالجهاز (Path)',
+                          hintText: '/Users/.../logo.png',
+                          isDense: true,
+                          prefixIcon: const Icon(Icons.link, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // Section 2: Printers Configuration (Cashier Printer & Kitchen Printer)
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                Text(
+                  isEng ? 'Or choose a graphic logo icon preset for receipts:' : 'أو اختر شعار رمز جرافيكي جاهز للفاتورة:',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _logoPresets.map((preset) {
+                    final isSelected = _selectedLogoIcon == preset['name'];
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedLogoIcon = preset['name'];
+                        });
+                        _saveSettings();
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const CircleAvatar(
-                              backgroundColor: Colors.teal,
-                              child: Icon(Icons.print_rounded, color: Colors.white),
+                            Icon(
+                              preset['icon'] as IconData,
+                              color: isSelected ? AppColors.primary : Colors.grey.shade700,
+                              size: 22,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                isEng ? 'Cashier & Kitchen Printer Settings (KOT)' : 'إعدادات طابعة الكاشير وطابعة المطبخ (KOT)',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            const SizedBox(width: 8),
+                            Text(
+                              isEng ? (preset['labelEn'] ?? preset['label']) as String : preset['label'] as String,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? AppColors.primary : Colors.black87,
                               ),
-                            ),
-                            IconButton(
-                              onPressed: _loadSystemPrinters,
-                              icon: const Icon(Icons.refresh_rounded, color: Colors.teal),
-                              tooltip: isEng ? 'Refresh system printers list' : 'تحديث قائمة طابعات الجهاز',
                             ),
                           ],
                         ),
-                        const Divider(height: 24),
+                      ),
+                    );
+                  }).toList(),
+                ),
 
-                        // System Printers Status Banner
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                const SizedBox(height: 20),
+
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Restaurant Name (Printed at header & footer) *' : 'اسم المطعم (يظهر أعلى وأسفل الفاتورة) *',
+                    prefixIcon: const Icon(Icons.business),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _addressController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Detailed Restaurant Address (Printed on receipt) *' : 'عنوان المطعم التفصيلي (يظهر بالفاتورة) *',
+                    prefixIcon: const Icon(Icons.location_on),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Restaurant Phone Number (Printed on receipt) *' : 'رقم موبايل / هاتف المطعم (يظهر بالفاتورة) *',
+                    prefixIcon: const Icon(Icons.phone),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+
+                const Divider(height: 32),
+
+                // Currency Selection
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                      child: Icon(Icons.monetization_on_rounded, color: AppColors.primary),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isEng ? 'Store Currency' : 'عملة النظام والفواتير (Store Currency)',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isEng ? 'Choose official store currency to apply across all invoices, prices, and reports:' : 'اختر العملة الرسمية للمتجر لتطبيقها فورياً على كافة الفواتير والأسعار والتقارير:',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedCurrency = 'د.ع';
+                          });
+                          _saveSettings();
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: Colors.teal.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.teal.shade200),
+                            color: _selectedCurrency == 'د.ع' ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.grey.shade300,
+                              width: _selectedCurrency == 'د.ع' ? 2.5 : 1,
+                            ),
                           ),
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.important_devices_rounded, color: Colors.teal, size: 24),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _isLoadingPrinters
-                                      ? (isEng ? 'Querying system printers list...' : 'جاري الاستعلام عن طابعات جهاز الكمبيوتر...')
-                                      : _systemPrinters.isEmpty
-                                          ? (isEng ? 'No mapped printers detected. System default printer will be used.' : 'لم يتم الكشف عن طابعات مخصصة في النظام. يمكنك الطباعة عبر طابعة النظام الافتراضية.')
-                                          : (isEng ? 'Detected ${_systemPrinters.length} mapped system printers on your PC!' : 'تم الكشف عن ${_systemPrinters.length} طابعة معرفة ومجهزة في جهازك!'),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal.shade900,
-                                  ),
+                              Text(
+                                isEng ? '🇮🇶 Iraqi Dinar (IQD)' : '🇮🇶 دينار عراقي (د.ع)',
+                                style: TextStyle(
+                                  fontWeight: _selectedCurrency == 'د.ع' ? FontWeight.bold : FontWeight.normal,
+                                  color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.black87,
+                                  fontSize: 15,
                                 ),
                               ),
-                              if (_isLoadingPrinters)
-                                const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)),
+                              if (_selectedCurrency == 'د.ع') ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                              ],
                             ],
                           ),
                         ),
-                        const SizedBox(height: 18),
-
-                        // Cashier Printer Field with Selection Dialog
-                        TextField(
-                          controller: _cashierPrinterController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Invoice & Cashier Main Printer' : 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
-                            prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
-                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
-                            ),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Kitchen Printer Field with Selection Dialog
-                        TextField(
-                          controller: _kitchenPrinterController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Kitchen Order Ticket Printer (KOT)' : 'طابعة المطبخ وإرسال الطلبات (Kitchen KOT Printer)',
-                            prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.orange),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.orange),
-                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_kitchenPrinterController, isEng ? 'Select Kitchen (KOT) Printer' : 'اختر طابعة المطبخ (KOT)'),
-                            ),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: isEng ? 'Click dropdown arrow to pick kitchen printer or type printer name directly' : 'انقر على السهم لاختيار طابعة المطبخ من الكمبيوتر أو اكتب الاسم المباشر',
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Reports Printer Field with Selection Dialog
-                        TextField(
-                          controller: _reportsPrinterController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Administrative & Financial Reports Printer' : 'طابعة التقارير الإدارية والمالية (Reports Printer)',
-                            prefixIcon: const Icon(Icons.print, color: Colors.purple),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.purple),
-                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_reportsPrinterController, isEng ? 'Select Reports Printer' : 'اختر طابعة التقارير الإدارية'),
-                            ),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: isEng ? 'Used to print daily, monthly, and financial reports directly' : 'تستخدم لطباعة التقرير اليومي، الشهري، والمالي مباشرة من قسم التقارير',
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Barcode Printer Field with Selection Dialog
-                        TextField(
-                          controller: _barcodePrinterController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Barcode Label Printer' : 'طابعة ملصقات الباركود (Barcode Label Printer)',
-                            prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.blue),
-                              tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
-                              onPressed: () => _showPrinterSelectionDialog(_barcodePrinterController, isEng ? 'Select Barcode Printer' : 'اختر طابعة ملصقات الباركود'),
-                            ),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                            helperText: isEng ? 'Used for barcode sticker printing (e.g. Xprinter / Zebra)' : 'تستخدم لطباعة ملصقات الباركود للأصناف والمنتجات مباشرة (مثل طابعات Xprinter / Zebra)',
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Section 3: Receipt Messages
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const CircleAvatar(
-                              backgroundColor: Colors.purple,
-                              child: Icon(Icons.receipt, color: Colors.white),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedCurrency = '\$';
+                          });
+                          _saveSettings();
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: _selectedCurrency == '\$' ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _selectedCurrency == '\$' ? AppColors.primary : Colors.grey.shade300,
+                              width: _selectedCurrency == '\$' ? 2.5 : 1,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              isEng ? 'Receipt Header & Footer Messages' : 'نصوص الترحيب والتذييل بالفاتورة',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 28),
-
-                        // Header text
-                        TextField(
-                          controller: _headerController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Receipt Top Welcome Message' : 'رسالة الترحيب أعلى الفاتورة',
-                            prefixIcon: const Icon(Icons.short_text),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Footer text
-                        TextField(
-                          controller: _footerController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Receipt Bottom Footer Message' : 'رسالة الختام أسفل الفاتورة',
-                            prefixIcon: const Icon(Icons.notes),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // System Updates Card
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const CircleAvatar(
-                              backgroundColor: Color(0xFFFF9800),
-                              child: Icon(Icons.system_update_rounded, color: Colors.white),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    isEng ? 'Software Updates' : 'تحديثات النظام والبرنامج',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    isEng
-                                        ? 'Current Version: v$_currentAppVersion'
-                                        : 'الإصدار الحالي المثبت: v$_currentAppVersion',
-                                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                                  ),
-                                ],
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                isEng ? '🇺🇸 US Dollar (\$)' : '🇺🇸 دولار أمريكي (\$)',
+                                style: TextStyle(
+                                  fontWeight: _selectedCurrency == '\$' ? FontWeight.bold : FontWeight.normal,
+                                  color: _selectedCurrency == '\$' ? AppColors.primary : Colors.black87,
+                                  fontSize: 15,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 28),
-                        Text(
-                          isEng
-                              ? 'Check for new updates online to install new features and improvements.'
-                              : 'يمكنك الفحص عن التحديثات الجديدة عبر الإنترنت لتنزيل أحدث المميزات والإصلاحات تلقائياً.',
-                          style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton.icon(
-                            onPressed: _isCheckingUpdate ? null : _checkForUpdatesManually,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF9800),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            icon: _isCheckingUpdate
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Icon(Icons.sync_rounded),
-                            label: Text(
-                              _isCheckingUpdate
-                                  ? (isEng ? 'Checking for updates...' : 'جاري الفحص...')
-                                  : (isEng ? 'Check for Updates Now 🔄' : 'فحص وجود تحديثات الآن 🔄'),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
+                              if (_selectedCurrency == '\$') ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                              ],
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Receipt Messages Card
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.purple,
+                      child: Icon(Icons.receipt, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isEng ? 'Receipt Header & Footer Messages' : 'نصوص الترحيب والتذييل بالفاتورة',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+
+                TextField(
+                  controller: _headerController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Receipt Top Welcome Message' : 'رسالة الترحيب أعلى الفاتورة',
+                    prefixIcon: const Icon(Icons.short_text),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _footerController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Receipt Bottom Footer Message' : 'رسالة الختام أسفل الفاتورة',
+                    prefixIcon: const Icon(Icons.notes),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // TAB 1: Printers Configuration
+  Widget _buildPrintersTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.teal,
+                      child: Icon(Icons.print_rounded, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isEng ? 'Cashier & Kitchen Printer Settings (KOT)' : 'إعدادات طابعة الكاشير وطابعة المطبخ (KOT)',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _loadSystemPrinters,
+                      icon: const Icon(Icons.refresh_rounded, color: Colors.teal),
+                      tooltip: isEng ? 'Refresh system printers list' : 'تحديث قائمة طابعات الجهاز',
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.teal.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.important_devices_rounded, color: Colors.teal, size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _isLoadingPrinters
+                              ? (isEng ? 'Querying system printers list...' : 'جاري الاستعلام عن طابعات جهاز الكمبيوتر...')
+                              : _systemPrinters.isEmpty
+                                  ? (isEng ? 'No mapped printers detected. System default printer will be used.' : 'لم يتم الكشف عن طابعات مخصصة في النظام. يمكنك الطباعة عبر طابعة النظام الافتراضية.')
+                                  : (isEng ? 'Detected ${_systemPrinters.length} mapped system printers on your PC!' : 'تم الكشف عن ${_systemPrinters.length} طابعة معرفة ومجهزة في جهازك!'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal.shade900,
+                          ),
+                        ),
+                      ),
+                      if (_isLoadingPrinters)
+                        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                TextField(
+                  controller: _cashierPrinterController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Invoice & Cashier Main Printer' : 'طابعة الفواتير والكاشير الرئيسية (Invoice Printer)',
+                    prefixIcon: Icon(Icons.receipt_long, color: AppColors.primary),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.teal),
+                      tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                      onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لااختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // Section 4: Factory Reset (إعادة تعيين المصنع)
-                Card(
-                  elevation: 4,
-                  color: Colors.red.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: Colors.red.shade200, width: 1.5),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const CircleAvatar(
-                              backgroundColor: Colors.red,
-                              child: Icon(Icons.delete_forever, color: Colors.white),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              isEng ? 'Factory Reset (Erase All Data)' : 'إعادة تعيين المصنع (مسح جميع البيانات)',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 28),
-                        Text(
-                          isEng ? 'Warning: Deletes all products, categories, invoices, and user records. Reverts to default fresh install.' : 'تنبيه: مسح كافة بيانات النظام والمنتجات والفواتير السابقة وإعادة التثبيت الافتراضي. تطلب موافقة المدير بالرمز السري.',
-                          style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton.icon(
-                            onPressed: _confirmFactoryReset,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade700,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            icon: const Icon(Icons.warning_rounded),
-                            label: Text(
-                              isEng ? 'Factory Reset & Wipe Data...' : 'إعادة تعيين المصنع ومسح البيانات...',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ],
+                TextField(
+                  controller: _kitchenPrinterController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Kitchen Order Ticket Printer (KOT)' : 'طابعة المطبخ وإرسال الطلبات (Kitchen KOT Printer)',
+                    prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.orange),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.orange),
+                      tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                      onPressed: () => _showPrinterSelectionDialog(_kitchenPrinterController, isEng ? 'Select Kitchen (KOT) Printer' : 'اختر طابعة المطبخ (KOT)'),
                     ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    helperText: isEng ? 'Click dropdown arrow to pick kitchen printer or type printer name directly' : 'انقر على السهم لاختيار طابعة المطبخ من الكمبيوتر أو اكتب الاسم المباشر',
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                // Save Button
+                TextField(
+                  controller: _reportsPrinterController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Administrative & Financial Reports Printer' : 'طابعة التقارير الإدارية والمالية (Reports Printer)',
+                    prefixIcon: const Icon(Icons.print, color: Colors.purple),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.purple),
+                      tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                      onPressed: () => _showPrinterSelectionDialog(_reportsPrinterController, isEng ? 'Select Reports Printer' : 'اختر طابعة التقارير الإدارية'),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    helperText: isEng ? 'Used to print daily, monthly, and financial reports directly' : 'تستخدم لطباعة التقرير اليومي، الشهري، والمالي مباشرة من قسم التقارير',
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                TextField(
+                  controller: _barcodePrinterController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Barcode Label Printer' : 'طابعة ملصقات الباركود (Barcode Label Printer)',
+                    prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.blue),
+                      tooltip: isEng ? 'Select Mapped System Printer' : 'اختيار من طابعات الكمبيوتر Mapped Printers',
+                      onPressed: () => _showPrinterSelectionDialog(_barcodePrinterController, isEng ? 'Select Barcode Printer' : 'اختر طابعة ملصقات الباركود'),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    helperText: isEng ? 'Used for barcode sticker printing (e.g. Xprinter / Zebra)' : 'تستخدم لطباعة ملصقات الباركود للأصناف والمنتجات مباشرة (مثل طابعات Xprinter / Zebra)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // TAB 2: Appearance & Language
+  Widget _buildThemeAndLanguageTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLanguageSection(context, settings),
+        const SizedBox(height: 20),
+        _buildThemeColorSection(context, settings),
+      ],
+    );
+  }
+
+  // TAB 3: Backup & Updates
+  Widget _buildBackupAndUpdatesTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildBackupRestoreSection(context, settings),
+        const SizedBox(height: 20),
+
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Color(0xFFFF9800),
+                      child: Icon(Icons.system_update_rounded, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEng ? 'Software Updates' : 'تحديثات النظام والبرنامج',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isEng
+                                ? 'Current Version: v$_currentAppVersion'
+                                : 'الإصدار الحالي المثبت: v$_currentAppVersion',
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+                Text(
+                  isEng
+                      ? 'Check for new updates online to install new features and improvements.'
+                      : 'يمكنك الفحص عن التحديثات الجديدة عبر الإنترنت لتنزيل أحدث المميزات والإصلاحات تلقائياً.',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  height: 54,
+                  height: 48,
                   child: ElevatedButton.icon(
-                    onPressed: _saveSettings,
+                    onPressed: _isCheckingUpdate ? null : _checkForUpdatesManually,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: const Color(0xFFFF9800),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    icon: const Icon(Icons.save_rounded, size: 26),
+                    icon: _isCheckingUpdate
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.sync_rounded),
                     label: Text(
-                      isEng ? 'Save Restaurant & Printer Settings 💾' : 'حفظ إعدادات المطعم والطابعات والشعار',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      _isCheckingUpdate
+                          ? (isEng ? 'Checking for updates...' : 'جاري الفحص...')
+                          : (isEng ? 'Check for Updates Now 🔄' : 'فحص وجود تحديثات الآن 🔄'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -1733,7 +1905,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ),
-      ),
+      ],
+    );
+  }
+
+  // TAB 4: Maintenance & Factory Reset
+  Widget _buildMaintenanceTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          elevation: 3,
+          color: Colors.red.shade50,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.red.shade200, width: 1.5),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.delete_forever, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isEng ? 'Factory Reset (Erase All Data)' : 'إعادة تعيين المصنع (مسح جميع البيانات)',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+                Text(
+                  isEng ? 'Warning: Deletes all products, categories, invoices, and user records. Reverts to default fresh install.' : 'تنبيه: مسح كافة بيانات النظام والمنتجات والفواتير السابقة وإعادة التثبيت الافتراضي. تتطلب موافقة المدير بالرمز السري.',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: _confirmFactoryReset,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.warning_rounded),
+                    label: Text(
+                      isEng ? 'Factory Reset & Wipe Data...' : 'إعادة تعيين المصنع ومسح البيانات...',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
