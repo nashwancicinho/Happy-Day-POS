@@ -1451,29 +1451,37 @@ Write-Output "False"
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
       final List<int> drawerBytes = [
-        // 1. Standard ESC p 0 (Pin 2: 25ms, 50ms, 100ms pulse variations)
+        // 1. Standard ESC p 0 (Pin 2: 25ms, 50ms, 100ms, 120ms pulse variations)
         27, 112, 0, 25, 250,
         27, 112, 0, 50, 250,
         27, 112, 0, 100, 250,
+        27, 112, 0, 60, 120,
         27, 112, 48, 50, 250,    // ASCII '0'
+        27, 112, 48, 60, 120,
 
-        // 2. Standard ESC p 1 (Pin 5: 25ms, 50ms, 100ms pulse variations)
+        // 2. Standard ESC p 1 (Pin 5: 25ms, 50ms, 100ms, 120ms pulse variations)
         27, 112, 1, 25, 250,
         27, 112, 1, 50, 250,
         27, 112, 1, 100, 250,
+        27, 112, 1, 60, 120,
         27, 112, 49, 50, 250,    // ASCII '1'
+        27, 112, 49, 60, 120,
 
-        // 3. DLE DC4 Real-time pulse commands for Xprinter / Rongta / Bixolon (Pin 2 & Pin 5)
+        // 3. DLE DC4 Real-time pulse commands for Xprinter / Rongta / Bixolon / POS-80 (Pin 2 & Pin 5)
         16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time pulse)
         16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time pulse)
+        16, 20, 1, 0, 1,
+        16, 20, 1, 1, 1,
         16, 20, 2, 0, 8,
         16, 20, 2, 1, 8,
 
         // 4. Star Micronics, Citizen, Bixolon & FS pulse
         7,                       // BEL pulse
         27, 7, 10, 50, 7,
+        27, 7, 11, 55, 7,
         28, 112, 1, 0,
         28, 112, 2, 0,
+        27, 118, 0,              // ESC v 0
 
         // 5. Line feeds to flush byte buffer on POS printers
         10, 10, 10,
