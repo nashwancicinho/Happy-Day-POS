@@ -1850,7 +1850,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _buildLanguageSection(context, settings),
         const SizedBox(height: 20),
         _buildThemeColorSection(context, settings),
+        const SizedBox(height: 20),
+        _buildTopNotificationSection(context, settings),
       ],
+    );
+  }
+
+  Widget _buildTopNotificationSection(BuildContext context, SettingsProvider settings) {
+    final isEng = settings.isEnglish;
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.notifications_active_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  isEng ? 'Top Floating Notifications' : 'إعدادات الإشعارات العلوية المنبثقة',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            SwitchListTile(
+              value: settings.showTopNotifications,
+              activeTrackColor: AppColors.primary,
+              title: Text(
+                isEng ? 'Show Top Floating Notifications' : 'إظهار الإشعارات العلوية المنبثقة',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              subtitle: Text(
+                isEng
+                    ? 'Display temporary alert banners at the top of the screen during operations.'
+                    : 'عرض شريط التنبيهات المؤقت في أعلى الشاشة عند تفعيل العمليات وحفظ البيانات.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              ),
+              onChanged: (val) {
+                settings.setShowTopNotifications(val);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

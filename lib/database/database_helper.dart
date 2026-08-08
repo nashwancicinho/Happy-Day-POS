@@ -85,12 +85,63 @@ class DatabaseHelper {
 
     await _addColumnIfMissing(db, 'orders', 'customer_address', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'cashier_name', 'TEXT');
+    await _addColumnIfMissing(db, 'orders', 'business_date', 'TEXT');
     await _addColumnIfMissing(db, 'order_items', 'print_to_kitchen', 'INTEGER DEFAULT 1');
     await _addColumnIfMissing(db, 'products', 'unit', "TEXT DEFAULT 'قطعة'");
     await _addColumnIfMissing(db, 'products', 'is_weighted', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'allow_price_change', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'barcode', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'buy_price', 'REAL DEFAULT 0');
+    await _addColumnIfMissing(db, 'raw_materials', 'cost_per_unit', 'REAL DEFAULT 0');
+
+    // Employees table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS employees(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'موظف',
+        phone TEXT,
+        base_salary REAL NOT NULL DEFAULT 0.0,
+        hire_date TEXT,
+        is_active INTEGER DEFAULT 1,
+        notes TEXT
+      );
+    ''');
+
+    // Employee Advances / Bonuses / Deductions table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS employee_advances(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        notes TEXT,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(employee_id) REFERENCES employees(id)
+      );
+    ''');
+
+    // Salary Payments History table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS salary_payments(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL,
+        month_year TEXT NOT NULL,
+        base_salary REAL NOT NULL,
+        total_advances REAL NOT NULL DEFAULT 0.0,
+        total_bonuses REAL NOT NULL DEFAULT 0.0,
+        total_deductions REAL NOT NULL DEFAULT 0.0,
+        net_salary REAL NOT NULL,
+        payment_date TEXT NOT NULL,
+        payment_method TEXT NOT NULL DEFAULT 'CASH',
+        paid_by TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(employee_id) REFERENCES employees(id)
+      );
+    ''');
     await _addColumnIfMissing(db, 'products', 'stock_quantity', 'REAL DEFAULT 100');
     await _addColumnIfMissing(db, 'products', 'track_stock', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'min_stock', 'REAL DEFAULT 5');
@@ -205,6 +256,37 @@ class DatabaseHelper {
         );
       ''');
     } catch (_) {}
+
+    // Raw Materials table
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS raw_materials(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          unit TEXT NOT NULL DEFAULT 'غرام',
+          cost_per_unit REAL NOT NULL DEFAULT 0.0,
+          stock_quantity REAL NOT NULL DEFAULT 0.0,
+          min_stock REAL NOT NULL DEFAULT 100.0,
+          created_at TEXT
+        );
+      ''');
+    } catch (_) {}
+
+    // Product Recipes table
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS product_recipes(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id INTEGER NOT NULL,
+          raw_material_id INTEGER NOT NULL,
+          quantity_required REAL NOT NULL,
+          FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE,
+          FOREIGN KEY(raw_material_id) REFERENCES raw_materials(id) ON DELETE CASCADE
+        );
+      ''');
+    } catch (_) {}
+
+    await _addColumnIfMissing(db, 'purchase_items', 'raw_material_id', 'INTEGER');
   }
 
   Future<void> _onCreate(Database db, int version) async {

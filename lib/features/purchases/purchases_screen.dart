@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
 import '../../models/purchase.dart';
+import '../../models/raw_material.dart';
 import '../../models/supplier.dart';
+import '../raw_materials/raw_materials_provider.dart';
 import '../settings/settings_provider.dart';
 import 'purchases_provider.dart';
 import 'widgets/add_purchase_dialog.dart';
@@ -25,7 +27,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -77,6 +79,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
           tabs: [
             Tab(icon: const Icon(Icons.receipt_long), text: isEng ? 'Purchase Invoices' : 'فواتير المشتريات (Invoices)'),
             Tab(icon: const Icon(Icons.group_outlined), text: isEng ? 'Suppliers Directory & Debts' : 'دليل الموردين وديونهم (Suppliers)'),
+            Tab(icon: const Icon(Icons.scale_rounded), text: isEng ? 'Raw Materials Inventory' : 'المواد الأولية والخامات (Materials)'),
           ],
         ),
       ),
@@ -84,8 +87,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
         onPressed: () {
           if (_tabController.index == 0) {
             _showAddPurchaseDialog(context);
-          } else {
+          } else if (_tabController.index == 1) {
             _showAddSupplierDialog(context);
+          } else {
+            _showAddEditRawMaterialDialog(context);
           }
         },
         backgroundColor: AppColors.primary,
@@ -93,7 +98,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
         label: Text(
           _tabController.index == 0
               ? (isEng ? 'New Purchase Invoice 📦+' : 'فاتورة مشتريات جديدة 📦+')
-              : (isEng ? 'Add New Supplier 🚚+' : 'إضافة مورد جديد 🚚+'),
+              : _tabController.index == 1
+                  ? (isEng ? 'Add New Supplier 🚚+' : 'إضافة مورد جديد 🚚+')
+                  : (isEng ? 'Add Raw Material 🌾+' : 'إضافة مادة أولية جديدة 🌾+'),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -173,6 +180,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
 
                       // TAB 2: SUPPLIERS LIST & DEBTS
                       _buildSuppliersTab(context, filteredSuppliers, isEng, currencySym),
+
+                      // TAB 3: RAW MATERIALS INVENTORY
+                      _buildRawMaterialsTab(context, isEng, currencySym),
                     ],
                   ),
                 ),
@@ -562,6 +572,370 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               }
             },
             child: Text(isEng ? 'Delete Invoice' : 'مسح الفاتورة', style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRawMaterialsTab(BuildContext context, bool isEng, String currencySym) {
+    final rawMaterialsProvider = context.watch<RawMaterialsProvider>();
+    final rawMaterials = rawMaterialsProvider.rawMaterials;
+    final query = _searchController.text.trim().toLowerCase();
+
+    final filtered = rawMaterials.where((rm) {
+      if (query.isEmpty) return true;
+      return rm.name.toLowerCase().contains(query) || rm.unit.toLowerCase().contains(query);
+    }).toList();
+
+    if (rawMaterialsProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (filtered.isEmpty) {
+      return Center(child: Text(isEng ? 'No raw materials found' : 'لا توجد مواد أولية مضافة بعد'));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      itemBuilder: (ctx, i) {
+        final rm = filtered[i];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              backgroundColor: rm.isLowStock ? Colors.red.shade100 : Colors.amber.shade100,
+              child: Icon(
+                rm.isLowStock ? Icons.warning_amber_rounded : Icons.rice_bowl,
+                color: rm.isLowStock ? Colors.red.shade900 : Colors.amber.shade900,
+              ),
+            ),
+            title: Text(
+              rm.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text('الوحدة: ${rm.unit} | سعر الكلفة للوحدة: ${rm.costPerUnit.toStringAsFixed(0)} $currencySym'),
+                Text(
+                  'الرصيد المتاح: ${rm.stockQuantity.toStringAsFixed(0)} ${rm.unit} (الحد الأدنى: ${rm.minStock.toStringAsFixed(0)})',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: rm.isLowStock ? Colors.red.shade800 : Colors.green.shade800,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _showAddStockDialog(context, rm),
+                  icon: const Icon(Icons.add_shopping_cart, size: 16),
+                  label: Text(isEng ? 'Add Stock' : 'تزويد الرصيد', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  onPressed: () => _showAddEditRawMaterialDialog(context, rawMaterial: rm),
+                  tooltip: isEng ? 'Edit' : 'تعديل',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _confirmDeleteRawMaterial(context, rm),
+                  tooltip: isEng ? 'Delete' : 'حذف',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddEditRawMaterialDialog(BuildContext context, {RawMaterialModel? rawMaterial}) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
+
+    final nameController = TextEditingController(text: rawMaterial?.name ?? '');
+    String selectedUnit = rawMaterial?.unit ?? 'غرام';
+    final costController = TextEditingController(text: rawMaterial?.costPerUnit.toStringAsFixed(0) ?? '0');
+    final stockController = TextEditingController(text: rawMaterial?.stockQuantity.toStringAsFixed(0) ?? '0');
+    final minStockController = TextEditingController(text: rawMaterial?.minStock.toStringAsFixed(0) ?? '100');
+
+    final unitsList = ['غرام', 'كيلوغرام', 'قطعة', 'مل', 'لتر', 'علبة', 'طقم', 'كارتون'];
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                child: Icon(rawMaterial == null ? Icons.add_box : Icons.edit, color: AppColors.primary),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                rawMaterial == null
+                    ? (isEng ? 'Add New Raw Material' : 'إضافة مادة أولية جديدة')
+                    : (isEng ? 'Edit Raw Material' : 'تعديل مادة أولية'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Raw Material Name *' : 'اسم المادة الأولية * (مثلاً: لحم همبركر، طماطم)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: unitsList.contains(selectedUnit) ? selectedUnit : unitsList.first,
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Unit *' : 'وحدة القياس *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: unitsList.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => selectedUnit = val);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: costController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Cost per Unit ($currencySym)' : 'سعر كلفة الوحدة ($currencySym)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: stockController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Current Stock Quantity' : 'الرصيد المتاح حالياً',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: minStockController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Minimum Alert Stock' : 'حد التنبيه للنقصان',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(isEng ? 'Cancel' : 'إلغاء'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.save, color: Colors.white),
+              label: Text(
+                isEng ? 'Save Material' : 'حفظ المادة الأولية',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final cost = double.tryParse(costController.text.trim()) ?? 0.0;
+                final stock = double.tryParse(stockController.text.trim()) ?? 0.0;
+                final minStock = double.tryParse(minStockController.text.trim()) ?? 100.0;
+
+                if (name.isEmpty) {
+                  TopNotification.showWarning(dialogCtx, isEng ? 'Please enter name' : 'يرجى كتابة اسم المادة الأولية');
+                  return;
+                }
+
+                Navigator.pop(dialogCtx);
+                final rmProvider = context.read<RawMaterialsProvider>();
+                final item = RawMaterialModel(
+                  id: rawMaterial?.id,
+                  name: name,
+                  unit: selectedUnit,
+                  costPerUnit: cost,
+                  stockQuantity: stock,
+                  minStock: minStock,
+                );
+
+                if (rawMaterial == null) {
+                  await rmProvider.addRawMaterial(item);
+                  if (context.mounted) {
+                    TopNotification.showSuccess(context, isEng ? 'Raw material added!' : 'تمت إضافة المادة الأولية بنجاح!');
+                  }
+                } else {
+                  await rmProvider.updateRawMaterial(item);
+                  if (context.mounted) {
+                    TopNotification.showSuccess(context, isEng ? 'Raw material updated!' : 'تم تحديث المادة الأولية بنجاح!');
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddStockDialog(BuildContext context, RawMaterialModel rawMaterial) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
+
+    final qtyController = TextEditingController();
+    final costController = TextEditingController(text: rawMaterial.costPerUnit.toStringAsFixed(0));
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(
+          children: [
+            const CircleAvatar(
+              backgroundColor: Colors.green,
+              child: Icon(Icons.add_shopping_cart, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              isEng ? 'Add Stock: ${rawMaterial.name}' : 'تزويد رصيد: ${rawMaterial.name}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'الرصيد المتاح حالياً: ${rawMaterial.stockQuantity.toStringAsFixed(0)} ${rawMaterial.unit}',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: qtyController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: isEng ? 'Quantity to Add (${rawMaterial.unit}) *' : 'الكمية المضافة بالمشتريات (${rawMaterial.unit}) *',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: costController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: isEng ? 'New Cost per Unit ($currencySym)' : 'سعر كلفة الوحدة الجديد ($currencySym)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            icon: const Icon(Icons.check, color: Colors.white),
+            label: Text(
+              isEng ? 'Add Stock' : 'تحديث الرصيد',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            onPressed: () async {
+              final addedQty = double.tryParse(qtyController.text.trim()) ?? 0.0;
+              final newCost = double.tryParse(costController.text.trim());
+
+              if (addedQty <= 0) {
+                TopNotification.showWarning(dialogCtx, isEng ? 'Please enter valid quantity' : 'يرجى إدخال كمية صحيحة أكبر من الصفر');
+                return;
+              }
+
+              Navigator.pop(dialogCtx);
+              await context.read<RawMaterialsProvider>().addStockQuantity(rawMaterial.id!, addedQty, newCostPerUnit: newCost);
+              if (context.mounted) {
+                TopNotification.showSuccess(context, isEng ? 'Stock updated successfully!' : 'تم إضافة الشراء وتحديث الرصيد بنجاح!');
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteRawMaterial(BuildContext context, RawMaterialModel rawMaterial) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(isEng ? 'Confirm Delete Raw Material' : 'تأكيد مسح المادة الأولية'),
+        content: Text('هل أنت متأكد من مسح المادة الأولية (${rawMaterial.name})؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              if (rawMaterial.id != null) {
+                await context.read<RawMaterialsProvider>().deleteRawMaterial(rawMaterial.id!);
+                if (context.mounted) {
+                  TopNotification.showSuccess(context, isEng ? 'Raw material deleted.' : 'تم مسح المادة الأولية بنجاح.');
+                }
+              }
+            },
+            child: Text(isEng ? 'Delete' : 'مسح المادة', style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

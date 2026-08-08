@@ -16,6 +16,7 @@ class OrderModel {
   final String status; // 'OPEN', 'COMPLETED', 'SUSPENDED', 'CANCELLED'
   final String? notes;
   final String createdAt;
+  final String? businessDate;
 
   const OrderModel({
     this.id,
@@ -35,7 +36,10 @@ class OrderModel {
     this.status = 'OPEN',
     this.notes,
     required this.createdAt,
+    this.businessDate,
   });
+
+  String get effectiveDate => (businessDate != null && businessDate!.isNotEmpty) ? businessDate! : createdAt.substring(0, 10);
 
   Map<String, dynamic> toMap() {
     return {
@@ -55,6 +59,7 @@ class OrderModel {
       'status': status,
       'notes': notes,
       'created_at': createdAt,
+      'business_date': businessDate,
     };
   }
 
@@ -77,6 +82,7 @@ class OrderModel {
       status: map['status'] as String? ?? 'OPEN',
       notes: map['notes'] as String?,
       createdAt: map['created_at'] as String? ?? DateTime.now().toIso8601String(),
+      businessDate: map['business_date'] as String?,
     );
   }
 
@@ -98,6 +104,7 @@ class OrderModel {
     String? status,
     String? notes,
     String? createdAt,
+    String? businessDate,
   }) {
     return OrderModel(
       id: id ?? this.id,
@@ -117,6 +124,7 @@ class OrderModel {
       status: status ?? this.status,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      businessDate: businessDate ?? this.businessDate,
     );
   }
 }

@@ -220,20 +220,7 @@ class WaiterApiClient {
   }
 
   Future<bool> cancelTableOrder(int tableId) async {
-    final uri = Uri.parse('$baseUrl/api/orders/cancel');
-    final request = await _client.postUrl(uri);
-    request.headers.contentType = ContentType.json;
-
-    request.write(jsonEncode({
-      'table_id': tableId,
-    }));
-
-    final response = await request.close();
-    if (response.statusCode == 200) {
-      final body = await response.transform(utf8.decoder).join();
-      final data = jsonDecode(body);
-      return data['success'] == true;
-    }
+    // Cancellation of orders/tables is prohibited from waiter mobile app
     return false;
   }
 }

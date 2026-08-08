@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/top_notification.dart';
 import '../../database/database_helper.dart';
 import 'settings_repository.dart';
 
@@ -34,6 +35,12 @@ class SettingsProvider extends ChangeNotifier {
   bool get isEnglish => appLanguage == 'en';
   TextDirection get textDirection => isEnglish ? TextDirection.ltr : TextDirection.rtl;
   Locale get locale => Locale(appLanguage);
+  bool get showTopNotifications => (_settings['show_top_notifications'] ?? 'false') == 'true';
+
+  Future<void> setShowTopNotifications(bool value) async {
+    TopNotification.enabled = value;
+    await updateSetting('show_top_notifications', value.toString());
+  }
 
   Color get primaryColor {
     final hex = themeColorHex.replaceAll('#', '');
@@ -52,6 +59,7 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
 
     _settings = await _repository.getAllSettings();
+    TopNotification.enabled = showTopNotifications;
     _isLoading = false;
     notifyListeners();
   }

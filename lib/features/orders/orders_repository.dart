@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../database/database_helper.dart';
 import '../../models/order.dart';
 import '../../models/order_item.dart';
@@ -63,6 +65,99 @@ class ProductNetProfitSummary {
 class OrdersRepository {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
 
+  Future<void> _deductRawMaterialRecipeStock(DatabaseExecutor db, int productId, double soldQuantity) async {
+    try {
+      final recipes = await db.rawQuery('''
+        SELECT raw_material_id, quantity_required
+        FROM product_recipes
+        WHERE product_id = ?
+      ''', [productId]);
+
+      for (final r in recipes) {
+        final rawMatId = r['raw_material_id'] as int;
+        final qtyReq = (r['quantity_required'] as num).toDouble();
+        final totalDeduct = qtyReq * soldQuantity;
+
+        await db.rawUpdate('''
+          UPDATE raw_materials
+          SET stock_quantity = stock_quantity - ?
+          WHERE id = ?
+        ''', [totalDeduct, rawMatId]);
+      }
+    } catch (e) {
+      debugPrint('Error deducting raw material recipe stock: $e');
+    }
+  }
+
+  Future<String> _getEffectiveBusinessDate(DatabaseExecutor txn, {int? shiftId}) async {
+    try {
+      final lastClosingRows = await txn.rawQuery('''
+        SELECT MAX(created_at) AS last_closed
+        FROM daily_treasury
+      ''');
+      String? lastClosedAt;
+      if (lastClosingRows.isNotEmpty && lastClosingRows.first['last_closed'] != null) {
+        lastClosedAt = lastClosingRows.first['last_closed'] as String;
+      }
+
+      String query = '''
+        SELECT business_date, created_at
+        FROM orders
+        WHERE status IN ('COMPLETED', 'OPEN', 'SUSPENDED')
+      ''';
+      List<dynamic> args = [];
+      if (lastClosedAt != null && lastClosedAt.isNotEmpty) {
+        query += ' AND created_at > ? ';
+        args.add(lastClosedAt);
+      }
+      query += ' ORDER BY created_at ASC LIMIT 1';
+
+      final sessionOrders = await txn.rawQuery(query, args);
+      if (sessionOrders.isNotEmpty) {
+        final bDate = sessionOrders.first['business_date'] as String?;
+        if (bDate != null && bDate.isNotEmpty) {
+          return bDate;
+        }
+        final cAt = sessionOrders.first['created_at'] as String;
+        return cAt.substring(0, 10);
+      }
+    } catch (e) {
+      debugPrint('Error getting effective business date: $e');
+    }
+    return DateTime.now().toIso8601String().substring(0, 10);
+  }
+
+  Future<void> finalizeShiftOrdersBusinessDate(String businessDate, String closedAtIso) async {
+    try {
+      final db = await _databaseHelper.database;
+      final lastClosingRows = await db.rawQuery('''
+        SELECT MAX(created_at) AS last_closed
+        FROM daily_treasury
+        WHERE created_at < ?
+      ''', [closedAtIso]);
+
+      String? prevClosedAt;
+      if (lastClosingRows.isNotEmpty && lastClosingRows.first['last_closed'] != null) {
+        prevClosedAt = lastClosingRows.first['last_closed'] as String;
+      }
+
+      String whereClause = "WHERE (business_date IS NULL OR business_date = '')";
+      List<dynamic> args = [];
+      if (prevClosedAt != null && prevClosedAt.isNotEmpty) {
+        whereClause += " AND created_at > ?";
+        args.add(prevClosedAt);
+      }
+
+      await db.rawUpdate('''
+        UPDATE orders
+        SET business_date = ?
+        $whereClause
+      ''', [businessDate, ...args]);
+    } catch (e) {
+      debugPrint('Error finalizing shift orders business date: $e');
+    }
+  }
+
   Future<OrderModel?> getOpenOrderByTable(int tableId) async {
     final db = await _databaseHelper.database;
     final maps = await db.rawQuery('''
@@ -82,7 +177,9 @@ class OrdersRepository {
     final db = await _databaseHelper.database;
 
     return await db.transaction((txn) async {
-      final orderId = await txn.insert('orders', order.toMap());
+      final bDate = order.businessDate ?? await _getEffectiveBusinessDate(txn, shiftId: order.shiftId);
+      final orderWithBDate = order.copyWith(businessDate: bDate);
+      final orderId = await txn.insert('orders', orderWithBDate.toMap());
 
       for (final item in items) {
         final itemWithOrderId = item.copyWith(orderId: orderId);
@@ -94,6 +191,7 @@ class OrdersRepository {
             SET stock_quantity = stock_quantity - ?
             WHERE id = ? AND track_stock = 1
           ''', [item.quantity, item.productId]);
+          await _deductRawMaterialRecipeStock(txn, item.productId, item.quantity);
         }
       }
 
@@ -168,6 +266,7 @@ class OrdersRepository {
         final calculatedTotal = finalItems.fold(0.0, (sum, i) => sum + (i.price * i.quantity));
         final calcSubtotal = calculatedTotal + discountAmount;
 
+        final bDate = await _getEffectiveBusinessDate(txn, shiftId: shiftId);
         // Update the primary order
         await txn.update(
           'orders',
@@ -178,6 +277,7 @@ class OrdersRepository {
             'status': status,
             'cashier_name': cashierName,
             'shift_id': shiftId,
+            'business_date': bDate,
           },
           where: 'id = ?',
           whereArgs: [orderId],
@@ -248,6 +348,8 @@ class OrdersRepository {
     return await db.transaction((txn) async {
       int orderId;
 
+      final bDate = await _getEffectiveBusinessDate(txn, shiftId: shiftId);
+
       if (existingOrderId != null) {
         orderId = existingOrderId;
         await txn.update(
@@ -262,6 +364,7 @@ class OrdersRepository {
             'customer_address': customerAddress,
             'cashier_name': cashierName,
             'shift_id': shiftId,
+            'business_date': bDate,
             'created_at': DateTime.now().toIso8601String(),
           },
           where: 'id = ?',
@@ -282,6 +385,7 @@ class OrdersRepository {
           total: total,
           status: 'COMPLETED',
           createdAt: DateTime.now().toIso8601String(),
+          businessDate: bDate,
         );
         orderId = await txn.insert('orders', newOrder.toMap());
       }
@@ -296,6 +400,7 @@ class OrdersRepository {
           SET stock_quantity = stock_quantity - ?
           WHERE id = ? AND track_stock = 1
         ''', [item.quantity, item.productId]);
+        await _deductRawMaterialRecipeStock(txn, item.productId, item.quantity);
       }
 
       // Free table if Dine-In
@@ -329,6 +434,7 @@ class OrdersRepository {
 
     return await db.transaction((txn) async {
       int orderId;
+      final bDate = await _getEffectiveBusinessDate(txn, shiftId: shiftId);
       final notesStr = 'دين على الزبون: $debtorName${debtorPhone != null && debtorPhone.isNotEmpty ? ' ($debtorPhone)' : ''}';
 
       if (existingOrderId != null) {
@@ -345,6 +451,7 @@ class OrdersRepository {
             'customer_phone': debtorPhone,
             'cashier_name': cashierName,
             'shift_id': shiftId,
+            'business_date': bDate,
             'created_at': DateTime.now().toIso8601String(),
           },
           where: 'id = ?',
@@ -365,6 +472,7 @@ class OrdersRepository {
           discountAmount: discountAmount,
           total: total,
           createdAt: DateTime.now().toIso8601String(),
+          businessDate: bDate,
         );
         orderId = await txn.insert('orders', newOrder.toMap());
       }
@@ -379,6 +487,7 @@ class OrdersRepository {
           SET stock_quantity = stock_quantity - ?
           WHERE id = ? AND track_stock = 1
         ''', [item.quantity, item.productId]);
+        await _deductRawMaterialRecipeStock(txn, item.productId, item.quantity);
       }
 
       // Free table if Dine-In
@@ -559,6 +668,7 @@ class OrdersRepository {
           SET stock_quantity = stock_quantity - ?
           WHERE id = ? AND track_stock = 1
         ''', [qty, productId]);
+        await _deductRawMaterialRecipeStock(txn, productId, qty);
       }
 
       if (tableId != null) {
@@ -601,12 +711,13 @@ class OrdersRepository {
     String whereClause = "WHERE o.status = 'COMPLETED'";
     List<dynamic> whereArgs = [];
 
+    final dateCol = "COALESCE(NULLIF(o.business_date, ''), SUBSTR(o.created_at, 1, 10))";
     if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
-      whereClause += " AND DATE(o.created_at) >= DATE(?) AND DATE(o.created_at) <= DATE(?)";
+      whereClause += " AND $dateCol >= ? AND $dateCol <= ?";
       whereArgs.add(fromDate);
       whereArgs.add(toDate);
     } else if (datePrefix != null && datePrefix.isNotEmpty) {
-      whereClause += " AND o.created_at LIKE ?";
+      whereClause += " AND $dateCol LIKE ?";
       whereArgs.add('$datePrefix%');
     }
 
@@ -638,12 +749,13 @@ class OrdersRepository {
     String whereClause = "WHERE o.status = 'COMPLETED'";
     List<dynamic> whereArgs = [];
 
+    final dateCol = "COALESCE(NULLIF(o.business_date, ''), SUBSTR(o.created_at, 1, 10))";
     if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
-      whereClause += " AND DATE(o.created_at) >= DATE(?) AND DATE(o.created_at) <= DATE(?)";
+      whereClause += " AND $dateCol >= ? AND $dateCol <= ?";
       whereArgs.add(fromDate);
       whereArgs.add(toDate);
     } else if (datePrefix != null && datePrefix.isNotEmpty) {
-      whereClause += " AND o.created_at LIKE ?";
+      whereClause += " AND $dateCol LIKE ?";
       whereArgs.add('$datePrefix%');
     }
 
@@ -684,12 +796,13 @@ class OrdersRepository {
     String whereClause = "WHERE o.status = 'COMPLETED'";
     List<dynamic> whereArgs = [];
 
+    final dateCol = "COALESCE(NULLIF(o.business_date, ''), SUBSTR(o.created_at, 1, 10))";
     if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
-      whereClause += " AND DATE(o.created_at) >= DATE(?) AND DATE(o.created_at) <= DATE(?)";
+      whereClause += " AND $dateCol >= ? AND $dateCol <= ?";
       whereArgs.add(fromDate);
       whereArgs.add(toDate);
     } else if (datePrefix != null && datePrefix.isNotEmpty) {
-      whereClause += " AND o.created_at LIKE ?";
+      whereClause += " AND $dateCol LIKE ?";
       whereArgs.add('$datePrefix%');
     }
 
@@ -745,12 +858,13 @@ class OrdersRepository {
     String whereClause = "WHERE o.status = 'COMPLETED'";
     List<dynamic> whereArgs = [];
 
+    final dateCol = "COALESCE(NULLIF(o.business_date, ''), SUBSTR(o.created_at, 1, 10))";
     if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
-      whereClause += " AND DATE(o.created_at) >= DATE(?) AND DATE(o.created_at) <= DATE(?)";
+      whereClause += " AND $dateCol >= ? AND $dateCol <= ?";
       whereArgs.add(fromDate);
       whereArgs.add(toDate);
     } else if (datePrefix != null && datePrefix.isNotEmpty) {
-      whereClause += " AND o.created_at LIKE ?";
+      whereClause += " AND $dateCol LIKE ?";
       whereArgs.add('$datePrefix%');
     }
 
@@ -814,12 +928,13 @@ class OrdersRepository {
     String whereClause = "WHERE status = 'COMPLETED'";
     List<dynamic> whereArgs = [];
 
+    final dateCol = "COALESCE(NULLIF(business_date, ''), SUBSTR(created_at, 1, 10))";
     if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
-      whereClause += " AND DATE(created_at) >= DATE(?) AND DATE(created_at) <= DATE(?)";
+      whereClause += " AND $dateCol >= ? AND $dateCol <= ?";
       whereArgs.add(fromDate);
       whereArgs.add(toDate);
     } else if (datePrefix != null && datePrefix.isNotEmpty) {
-      whereClause += " AND created_at LIKE ?";
+      whereClause += " AND $dateCol LIKE ?";
       whereArgs.add('$datePrefix%');
     }
 

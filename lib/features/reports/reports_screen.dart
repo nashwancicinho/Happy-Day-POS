@@ -8,7 +8,9 @@ import '../auth/auth_provider.dart';
 import '../categories/categories_provider.dart';
 import '../orders/orders_provider.dart';
 import '../orders/orders_repository.dart';
+import '../payroll/payroll_provider.dart';
 import '../products/products_provider.dart';
+import '../purchases/purchases_provider.dart';
 import '../settings/settings_provider.dart';
 import '../treasury/treasury_provider.dart';
 
@@ -26,7 +28,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   bool _isReportGenerated = false;
 
   // Filter Configurations
-  String _selectedReportType = 'financial'; // 'financial', 'products', 'treasury', 'invoices', 'cashier'
+  String _selectedReportType = 'store_pnl'; // 'store_pnl', 'financial', 'products', 'treasury', 'invoices', 'cashier'
   ReportPeriod _selectedPeriod = ReportPeriod.daily;
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _toDate = DateTime.now();
@@ -107,6 +109,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   String _getReportTypeTitle(bool isEng) {
     switch (_selectedReportType) {
+      case 'store_pnl':
+        return isEng ? 'Store Net Profit & P&L Statement (Sales, Materials & Salaries)' : 'تقرير أرباح وخسائر المتجر الشامل (المبيعات والمخزن والرواتب والمصاريف)';
       case 'financial':
         return isEng ? 'Comprehensive Financial & General Summary Report' : 'تقرير الملخص العام والمالي الشامل';
       case 'products':
@@ -230,11 +234,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<OrderModel> _getFilteredOrders(List<OrderModel> allOrders) {
     return allOrders.where((order) {
-      if (order.status == 'CANCELLED') return false;
+      if (order.status != 'COMPLETED') return false;
 
       bool matchesPeriod = true;
+      final effDateStr = order.effectiveDate;
       if (_selectedPeriod == ReportPeriod.customRange) {
-        final orderDt = DateTime.tryParse(order.createdAt);
+        final orderDt = DateTime.tryParse(effDateStr);
         if (orderDt != null) {
           final startDay = DateTime(_fromDate.year, _fromDate.month, _fromDate.day);
           final endDay = DateTime(_toDate.year, _toDate.month, _toDate.day, 23, 59, 59);
@@ -243,7 +248,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         }
       } else {
         final prefix = _getDatePrefix();
-        matchesPeriod = prefix.isEmpty || order.createdAt.startsWith(prefix);
+        matchesPeriod = prefix.isEmpty || effDateStr.startsWith(prefix);
       }
 
       final matchesOrderType = _selectedOrderTypeFilter == 'ALL' || order.orderType == _selectedOrderTypeFilter;
@@ -362,6 +367,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         spacing: 10,
                         runSpacing: 10,
                         children: [
+                          _buildTypeChip(
+                            context,
+                            'store_pnl',
+                            isEng ? '📈 Store Net Profit & P&L Statement (Sales, Materials & Salaries)' : '📈 تقرير أرباح وخسائر المتجر الشامل (المبيعات والمخزن والرواتب والمصاريف)',
+                            Icons.insights,
+                            isManagerOnly: true,
+                          ),
                           _buildTypeChip(
                             context,
                             'cashier',
@@ -814,6 +826,106 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     return;
                   }
 
+                  if (_selectedReportType == 'store_pnl') {
+                    final payrollProvider = context.read<PayrollProvider>();
+                    final purchasesProvider = context.read<PurchasesProvider>();
+
+                    // Materials Cost
+                    final filteredPurchases = purchasesProvider.purchases.where((p) {
+                      if (_selectedPeriod == ReportPeriod.allTime) return true;
+                      final dateStr = p.createdAt.length >= 10 ? p.createdAt.substring(0, 10) : p.createdAt;
+                      if (_selectedPeriod == ReportPeriod.customRange) {
+                        final fromStr = _formatDate(_fromDate);
+                        final toStr = _formatDate(_toDate);
+                        return dateStr.compareTo(fromStr) >= 0 && dateStr.compareTo(toStr) <= 0;
+                      }
+                      return dateStr.startsWith(_getDatePrefix());
+                    }).toList();
+
+                    double materialsCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
+                    if (materialsCost == 0.0 && _netProfitReportData.isNotEmpty) {
+                      materialsCost = _netProfitReportData.fold(0.0, (sum, item) => sum + item.totalCost);
+                    }
+
+                    // Payroll Expenses
+                    final filteredPayments = payrollProvider.payments.where((p) {
+                      if (_selectedPeriod == ReportPeriod.allTime) return true;
+                      final dateStr = p.paymentDate;
+                      if (_selectedPeriod == ReportPeriod.customRange) {
+                        final fromStr = _formatDate(_fromDate);
+                        final toStr = _formatDate(_toDate);
+                        return dateStr.compareTo(fromStr) >= 0 && dateStr.compareTo(toStr) <= 0;
+                      }
+                      return dateStr.startsWith(_getDatePrefix());
+                    }).toList();
+
+                    final salaryExpenses = filteredPayments.fold(0.0, (sum, p) => sum + p.netSalary);
+
+                    // General Expenses
+                    final filteredExpenses = treasuryProvider.treasuryRecords.where((r) {
+                      if (_selectedPeriod == ReportPeriod.allTime) return true;
+                      final dateStr = r.date;
+                      if (_selectedPeriod == ReportPeriod.customRange) {
+                        final fromStr = _formatDate(_fromDate);
+                        final toStr = _formatDate(_toDate);
+                        return dateStr.compareTo(fromStr) >= 0 && dateStr.compareTo(toStr) <= 0;
+                      }
+                      return dateStr.startsWith(_getDatePrefix());
+                    }).toList();
+
+                    final generalExpenses = filteredExpenses.fold(0.0, (sum, r) => sum + r.dailyExpense);
+                    final totalExpensesSum = materialsCost + salaryExpenses + generalExpenses;
+                    final netStoreProfit = totalSales - totalExpensesSum;
+                    final netMarginPct = totalSales > 0 ? (netStoreProfit / totalSales) * 100 : 0.0;
+
+                    final materialsPct = totalSales > 0 ? (materialsCost / totalSales) * 100 : 0.0;
+                    final salaryPct = totalSales > 0 ? (salaryExpenses / totalSales) * 100 : 0.0;
+                    final generalPct = totalSales > 0 ? (generalExpenses / totalSales) * 100 : 0.0;
+
+                    final customHeaders = isEng
+                        ? ['P&L Statement Line Item', 'Total Amount', '% of Gross Sales']
+                        : ['بند قائمة الأرباح والخسائر', 'المبلغ الإجمالي', 'النسبة المئوية من المبيعات'];
+                    final customDataRows = [
+                      ['إجمالي مبيعات وإيرادات المتجر (100%)', '${totalSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '100.0%'],
+                      ['تكلفة المواد الأولية وخامات الأصناف (-)', '-${materialsCost.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${materialsPct.toStringAsFixed(1)}%'],
+                      ['مصاريف رواتب ومستحقات الموظفين (-)', '-${salaryExpenses.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${salaryPct.toStringAsFixed(1)}%'],
+                      ['النفقات والمصاريف التشغيلية الخزينة (-)', '-${generalExpenses.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${generalPct.toStringAsFixed(1)}%'],
+                      ['صافي ربح المتجر النهائي والأخير (=)', '${netStoreProfit.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${netMarginPct.toStringAsFixed(1)}%'],
+                    ];
+
+                    TopNotification.showInfo(context, isEng ? 'Sending Store P&L Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير أرباح وخسائر المتجر لـ [${settingsProvider.reportsPrinter}] وطباعته...');
+
+                    final firstInvTimeStr = _formatFullTime(_sessionInfo?.firstOrderTime);
+                    final dayCloseTimeStr = _sessionInfo?.isClosed == true
+                        ? _formatFullTime(_sessionInfo?.closingTime)
+                        : (isEng ? 'Open Session' : 'مفتوح (حتى الآن)');
+
+                    final success = await PrintService.printReport(
+                      reportTitle: _getReportTypeTitle(isEng),
+                      dateRangeText: _getPeriodTitle(isEng),
+                      generatedBy: context.read<AuthProvider>().currentUserName,
+                      totalSales: totalSales,
+                      totalExpenses: totalExpensesSum,
+                      totalOrders: totalOrdersCount,
+                      netProfit: netStoreProfit,
+                      tableTitle: isEng ? 'Store Net Profit & P&L Statement Details:' : 'تفاصيل قائمة أرباح وخسائر المتجر الشاملة:',
+                      customHeaders: customHeaders,
+                      customDataRows: customDataRows,
+                      firstInvoiceTime: firstInvTimeStr,
+                      dayClosingTime: dayCloseTimeStr,
+                      settings: settingsProvider,
+                    );
+
+                    if (context.mounted) {
+                      if (success) {
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Store P&L Report printed successfully!' : '🖨️ تم طباعة تقرير أرباح وخسائر المتجر بنجاح!');
+                      } else {
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Report sent to direct printing system!' : '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
+                      }
+                    }
+                    return;
+                  }
+
                   if (_selectedReportType == 'cashier') {
                     final customHeaders = isEng
                         ? ['Cashier Name', 'Invoices Count', 'Cash Sales', 'Card Sales', 'Credit Sales', 'Average Order Value', 'Total Sales']
@@ -1190,7 +1302,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   const SizedBox(height: 24),
 
                   // Specific Report Data View
-                  if (_selectedReportType == 'net_profit') ...[
+                  if (_selectedReportType == 'store_pnl') ...[
+                    _buildStorePnLReportView(context),
+                  ] else if (_selectedReportType == 'net_profit') ...[
                     _buildNetProfitReportView(context, _netProfitReportData),
                   ] else if (_selectedReportType == 'cashier') ...[
                     _buildCashierReportView(context, _cashierReportData),
@@ -1206,6 +1320,437 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildStorePnLReportView(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
+    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final currencySym = context.watch<SettingsProvider>().currencySymbol;
+
+    final ordersProvider = context.watch<OrdersProvider>();
+    final treasuryProvider = context.watch<TreasuryProvider>();
+    final payrollProvider = context.watch<PayrollProvider>();
+    final purchasesProvider = context.watch<PurchasesProvider>();
+
+    final filteredOrders = _getFilteredOrders(ordersProvider.orders);
+    final totalSales = filteredOrders.fold(0.0, (sum, o) => sum + o.total);
+
+    // 1. Materials & Purchases Cost
+    final filteredPurchases = purchasesProvider.purchases.where((p) {
+      if (_selectedPeriod == ReportPeriod.allTime) return true;
+      final dateStr = p.createdAt.length >= 10 ? p.createdAt.substring(0, 10) : p.createdAt;
+      if (_selectedPeriod == ReportPeriod.customRange) {
+        final fromStr = _formatDate(_fromDate);
+        final toStr = _formatDate(_toDate);
+        return dateStr.compareTo(fromStr) >= 0 && dateStr.compareTo(toStr) <= 0;
+      }
+      return dateStr.startsWith(_getDatePrefix());
+    }).toList();
+
+    double materialsCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
+    if (materialsCost == 0.0 && _netProfitReportData.isNotEmpty) {
+      materialsCost = _netProfitReportData.fold(0.0, (sum, item) => sum + item.totalCost);
+    }
+
+    // 2. Employee Payroll Expenses
+    final filteredPayments = payrollProvider.payments.where((p) {
+      if (_selectedPeriod == ReportPeriod.allTime) return true;
+      final dateStr = p.paymentDate;
+      if (_selectedPeriod == ReportPeriod.customRange) {
+        final fromStr = _formatDate(_fromDate);
+        final toStr = _formatDate(_toDate);
+        return dateStr.compareTo(fromStr) >= 0 && dateStr.compareTo(toStr) <= 0;
+      }
+      return dateStr.startsWith(_getDatePrefix());
+    }).toList();
+
+    final salaryExpenses = filteredPayments.fold(0.0, (sum, p) => sum + p.netSalary);
+
+    // 3. General Treasury Expenses
+    final filteredExpenses = treasuryProvider.treasuryRecords.where((r) {
+      if (_selectedPeriod == ReportPeriod.allTime) return true;
+      final dateStr = r.date;
+      if (_selectedPeriod == ReportPeriod.customRange) {
+        final fromStr = _formatDate(_fromDate);
+        final toStr = _formatDate(_toDate);
+        return dateStr.compareTo(fromStr) >= 0 && dateStr.compareTo(toStr) <= 0;
+      }
+      return dateStr.startsWith(_getDatePrefix());
+    }).toList();
+
+    final generalExpenses = filteredExpenses.fold(0.0, (sum, r) => sum + r.dailyExpense);
+
+    // 4. Net Store Profit Calculation
+    final totalExpensesSum = materialsCost + salaryExpenses + generalExpenses;
+    final netStoreProfit = totalSales - totalExpensesSum;
+    final netProfitMargin = totalSales > 0 ? (netStoreProfit / totalSales) * 100 : 0.0;
+
+    final materialsPct = totalSales > 0 ? (materialsCost / totalSales) * 100 : 0.0;
+    final salaryPct = totalSales > 0 ? (salaryExpenses / totalSales) * 100 : 0.0;
+    final generalPct = totalSales > 0 ? (generalExpenses / totalSales) * 100 : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // A. FINANCIAL SUMMARY CARDS GRID
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth > 850;
+            final cardWidth = isDesktop ? (constraints.maxWidth - 40) / 5 : (constraints.maxWidth - 10) / 2;
+
+            final cards = [
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Total Sales Revenue' : 'إجمالي مبيعات المتجر',
+                value: '${totalSales.toStringAsFixed(0)} $currencySym',
+                subtitle: isEng ? '100% Gross Baseline' : 'الوارد الإجمالي (100%)',
+                icon: Icons.storefront,
+                color: Colors.green.shade700,
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Materials & Purchases Cost' : 'كلفة المواد والمشتريات',
+                value: '${materialsCost.toStringAsFixed(0)} $currencySym',
+                subtitle: '${materialsPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
+                icon: Icons.inventory_2_outlined,
+                color: Colors.orange.shade800,
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Employee Salary Expenses' : 'مصاريف رواتب الموظفين',
+                value: '${salaryExpenses.toStringAsFixed(0)} $currencySym',
+                subtitle: '${salaryPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
+                icon: Icons.badge_outlined,
+                color: Colors.blue.shade800,
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'General Operating Expenses' : 'المصاريف العامة والنفقات',
+                value: '${generalExpenses.toStringAsFixed(0)} $currencySym',
+                subtitle: '${generalPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
+                icon: Icons.account_balance_wallet_outlined,
+                color: Colors.red.shade700,
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Final Net Store Profit' : 'صافي ربح المتجر الأخير',
+                value: '${netStoreProfit.toStringAsFixed(0)} $currencySym',
+                subtitle: '${netProfitMargin.toStringAsFixed(1)}% ${isEng ? "Net Margin" : "هامش الربح الصافي"}',
+                icon: Icons.insights,
+                color: netStoreProfit >= 0 ? Colors.purple.shade700 : Colors.red.shade900,
+              ),
+            ];
+
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: cards.map((c) => SizedBox(width: cardWidth, child: c)).toList(),
+            );
+          },
+        ),
+
+        const SizedBox(height: 20),
+
+        // B. VISUAL INTERACTIVE CHARTS CARD
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(22.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.bar_chart_rounded, color: primaryColor, size: 26),
+                        const SizedBox(width: 10),
+                        Text(
+                          isEng ? '📊 Store Revenue vs Expenses Visual Distribution' : '📊 المخطط البياني لتوزيع إيرادات ومصاريف المتجر',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: (netProfitMargin >= 20 ? Colors.green : (netProfitMargin >= 0 ? Colors.orange : Colors.red)).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: (netProfitMargin >= 20 ? Colors.green : (netProfitMargin >= 0 ? Colors.orange : Colors.red)).withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        '${isEng ? "Profit Margin:" : "معدل هامش الربح الصافي:"} ${netProfitMargin.toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: netProfitMargin >= 20 ? Colors.green.shade800 : (netProfitMargin >= 0 ? Colors.orange.shade900 : Colors.red.shade900),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+
+                // Visual Bars Section
+                _buildVisualPnlBar(
+                  context: context,
+                  label: isEng ? 'Gross Store Sales Revenue (Total Income)' : '🟩 إجمالي مبيعات وإيرادات المتجر (الوارد الأساسي)',
+                  amount: totalSales,
+                  percentage: 100.0,
+                  maxAmount: totalSales,
+                  color: Colors.green.shade700,
+                  currencySym: currencySym,
+                ),
+                const SizedBox(height: 16),
+                _buildVisualPnlBar(
+                  context: context,
+                  label: isEng ? 'Materials & Stock Cost (-)' : '🟧 تكلفة المواد الأولية وخامات الأصناف والمشتريات (-)',
+                  amount: materialsCost,
+                  percentage: materialsPct,
+                  maxAmount: totalSales,
+                  color: Colors.orange.shade800,
+                  currencySym: currencySym,
+                ),
+                const SizedBox(height: 16),
+                _buildVisualPnlBar(
+                  context: context,
+                  label: isEng ? 'Employee Salary & Payroll Expenses (-)' : '🟦 مصاريف رواتب ومستحقات الموظفين (-)',
+                  amount: salaryExpenses,
+                  percentage: salaryPct,
+                  maxAmount: totalSales,
+                  color: Colors.blue.shade800,
+                  currencySym: currencySym,
+                ),
+                const SizedBox(height: 16),
+                _buildVisualPnlBar(
+                  context: context,
+                  label: isEng ? 'General Operating Expenses (-)' : '🟥 النفقات والمصاريف التشغيلية العامة والخزينة (-)',
+                  amount: generalExpenses,
+                  percentage: generalPct,
+                  maxAmount: totalSales,
+                  color: Colors.red.shade700,
+                  currencySym: currencySym,
+                ),
+                const SizedBox(height: 16),
+                _buildVisualPnlBar(
+                  context: context,
+                  label: isEng ? 'Final Store Net Profit (=)' : '🟪 صافي ربح المتجر النهائي والأخير (=)',
+                  amount: netStoreProfit,
+                  percentage: netProfitMargin,
+                  maxAmount: totalSales,
+                  color: netStoreProfit >= 0 ? Colors.purple.shade700 : Colors.red.shade900,
+                  currencySym: currencySym,
+                  isBold: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // C. COMPREHENSIVE P&L FINANCIAL TABLE CARD
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.table_chart, color: Colors.indigo, size: 24),
+                    const SizedBox(width: 10),
+                    Text(
+                      isEng ? 'Comprehensive P&L Statement Details' : 'جدول القائمة المالية المفصلة للأرباح والخسائر',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+                      columns: [
+                        DataColumn(label: Text(isEng ? 'Financial Item' : 'بند القائمة المالية', style: const TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text(isEng ? 'Type / Direction' : 'النوع / الاتجاه', style: const TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text(isEng ? 'Total Amount' : 'المبلغ الإجمالي', style: const TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text(isEng ? '% of Sales' : 'النسبة من المبيعات', style: const TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      rows: [
+                        DataRow(cells: [
+                          const DataCell(Text('إجمالي مبيعات المتجر (Gross Revenue)', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('إيراد +', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)))),
+                          DataCell(Text('${totalSales.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green))),
+                          const DataCell(Text('100.0%')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('تكلفة المواد الأولية وخامات الأصناف والمشتريات')),
+                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)))),
+                          DataCell(Text('-${materialsCost.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold))),
+                          DataCell(Text('${materialsPct.toStringAsFixed(1)}%')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('مصاريف رواتب ومستحقات الموظفين والسُلف')),
+                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)))),
+                          DataCell(Text('-${salaryExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold))),
+                          DataCell(Text('${salaryPct.toStringAsFixed(1)}%')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('النفقات والمصاريف التشغيلية العامة')),
+                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)))),
+                          DataCell(Text('-${generalExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold))),
+                          DataCell(Text('${generalPct.toStringAsFixed(1)}%')),
+                        ]),
+                        DataRow(
+                          color: WidgetStateProperty.all(Colors.purple.shade50),
+                          cells: [
+                            const DataCell(Text('صافي ربح المتجر الأخير (Net Profit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('صافي ربح =', style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('${netStoreProfit.toStringAsFixed(0)} $currencySym', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: netStoreProfit >= 0 ? Colors.purple.shade900 : Colors.red.shade900))),
+                            DataCell(Text('${netProfitMargin.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _pnlSummaryMetricCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)),
+            ),
+            const SizedBox(height: 4),
+            Text(subtitle, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVisualPnlBar({
+    required BuildContext context,
+    required String label,
+    required double amount,
+    required double percentage,
+    required double maxAmount,
+    required Color color,
+    required String currencySym,
+    bool isBold = false,
+  }) {
+    final double fillRatio = maxAmount > 0 ? (amount.abs() / maxAmount).clamp(0.0, 1.0) : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                fontSize: isBold ? 15 : 13.5,
+                color: isBold ? color : Colors.black87,
+              ),
+            ),
+            Row(
+              children: [
+                Text(
+                  '${amount.toStringAsFixed(0)} $currencySym',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isBold ? 16 : 14,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${percentage.toStringAsFixed(1)}%',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Stack(
+          children: [
+            Container(
+              height: isBold ? 14 : 10,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            FractionallySizedBox(
+              widthFactor: fillRatio,
+              child: Container(
+                height: isBold ? 14 : 10,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

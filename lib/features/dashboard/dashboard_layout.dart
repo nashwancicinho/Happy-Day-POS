@@ -11,6 +11,7 @@ import '../categories/categories_screen.dart';
 import '../debts/debts_screen.dart';
 import '../day_closing/presentation/day_closing_screen.dart';
 import '../inventory/presentation/inventory_screen.dart';
+import '../payroll/payroll_screen.dart';
 import '../products/presentation/products_screen.dart';
 import '../products/products_provider.dart';
 import '../purchases/purchases_screen.dart';
@@ -137,6 +138,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     PurchasesScreen(),
     UsersScreen(),
     DebtsScreen(),
+    PayrollScreen(),
     ReportsScreen(),
     SettingsScreen(),
     DayClosingScreen(),
@@ -208,9 +210,10 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                         _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEnglish ? "Purchases" : "المشتريات والموردين"),
                         _buildDrawerTile(7, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
                         _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
-                        _buildDrawerTile(9, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
-                        _buildDrawerTile(10, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
-                        _buildDrawerTile(11, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
+                        _buildDrawerTile(9, Icons.payments_outlined, Icons.payments, isEnglish ? "Employee Payroll" : "رواتب الموظفين والسُلف"),
+                        _buildDrawerTile(10, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
+                        _buildDrawerTile(11, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
+                        _buildDrawerTile(12, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
                       ],
                     );
                   },
@@ -340,10 +343,12 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       case 8:
         return 'perm_cashier_access_debts';
       case 9:
-        return 'perm_cashier_access_reports';
-      case 10:
         return 'perm_cashier_access_settings';
+      case 10:
+        return 'perm_cashier_access_reports';
       case 11:
+        return 'perm_cashier_access_settings';
+      case 12:
         return 'perm_cashier_access_day_closing';
       default:
         return null;

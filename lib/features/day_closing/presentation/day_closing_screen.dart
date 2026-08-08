@@ -482,6 +482,9 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     );
                     await treasuryProvider.saveTreasuryRecord(treasuryRecord);
 
+                    // Finalize shift orders business date
+                    await ordersProvider.finalizeShiftOrdersBusinessDate(reportDate, nowIso);
+
                     // 2. Close current shift & Open new clean shift
 
                     if (shiftsProvider.currentShift != null) {

@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import '../../models/order.dart';
 import '../../models/order_item.dart';
 import '../../models/product.dart';
+import '../../models/salary_payment.dart';
 import '../../features/settings/settings_provider.dart';
 
 class PrintService {
@@ -678,14 +679,21 @@ class PrintService {
 
       final pdfBytes = await pdf.save();
 
+      // 1. Send instant raw cash drawer pulse BEFORE PDF spooling locks the printer port
+      openCashDrawer(settings).catchError((e) {
+        debugPrint('Pre-spool open cash drawer error: $e');
+        return false;
+      });
+
+      // 2. Send Customer Invoice PDF to printer
       final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
         printerNameConfig: settings.cashierPrinter,
         docName: 'Invoice_${order.id ?? 1}',
       );
 
-      // Trigger automatic electronic cash drawer pulse after PDF spooling releases printer handle
-      Future.delayed(const Duration(milliseconds: 600), () async {
+      // 3. Backup attempt: retry cash drawer pulse after PDF spooling releases printer handle
+      Future.delayed(const Duration(milliseconds: 700), () async {
         for (int attempt = 0; attempt < 3; attempt++) {
           final success = await openCashDrawer(settings);
           if (success) break;
@@ -1595,6 +1603,166 @@ Write-Output "False"
       );
     } catch (e) {
       debugPrint('Error printing barcode label: $e');
+      return false;
+    }
+  }
+
+  /// طباعة سند صرف الراتب الشهري للموظف
+  static Future<bool> printSalarySlip({
+    required SalaryPaymentModel payment,
+    required SettingsProvider settings,
+  }) async {
+    try {
+      pw.Font arabicFont;
+      pw.Font arabicFontBold;
+      try {
+        arabicFont = await PdfGoogleFonts.amiriRegular();
+        arabicFontBold = await PdfGoogleFonts.amiriBold();
+      } catch (_) {
+        arabicFont = await PdfGoogleFonts.cairoRegular();
+        arabicFontBold = await PdfGoogleFonts.cairoBold();
+      }
+
+      final pdf = pw.Document();
+      final pageFormat = PdfPageFormat(220, double.infinity, marginAll: 8);
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: pageFormat,
+          build: (pw.Context context) {
+            return pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Theme(
+                data: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      settings.storeName,
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text('سند صرف راتب شهري', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    pw.Divider(thickness: 1),
+                    pw.SizedBox(height: 4),
+
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('اسم الموظف:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                        pw.Text(payment.employeeName ?? 'موظف', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                      ],
+                    ),
+                    pw.SizedBox(height: 3),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('عن شهر / سنة:', style: const pw.TextStyle(fontSize: 8.5)),
+                        pw.Text(payment.monthYear, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+                      ],
+                    ),
+                    pw.SizedBox(height: 3),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('تاريخ الصرف:', style: const pw.TextStyle(fontSize: 8.5)),
+                        pw.Text(payment.paymentDate, style: const pw.TextStyle(fontSize: 8.5)),
+                      ],
+                    ),
+                    if (payment.paidBy != null && payment.paidBy!.isNotEmpty) ...[
+                      pw.SizedBox(height: 3),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('منفذ الصرف:', style: const pw.TextStyle(fontSize: 8.5)),
+                          pw.Text(payment.paidBy!, style: const pw.TextStyle(fontSize: 8.5)),
+                        ],
+                      ),
+                    ],
+
+                    pw.SizedBox(height: 6),
+                    pw.Divider(thickness: 0.5),
+
+                    // Financial details
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('الراتب الأساسي:', style: const pw.TextStyle(fontSize: 8.5)),
+                        pw.Text('${payment.baseSalary.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 8.5)),
+                      ],
+                    ),
+                    if (payment.totalBonuses > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('+ المكافآت:', style: const pw.TextStyle(fontSize: 8.5)),
+                          pw.Text('+${payment.totalBonuses.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 8.5)),
+                        ],
+                      ),
+                    ],
+                    if (payment.totalAdvances > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('- مجموع السُلف التسوية:', style: const pw.TextStyle(fontSize: 8.5)),
+                          pw.Text('-${payment.totalAdvances.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 8.5)),
+                        ],
+                      ),
+                    ],
+                    if (payment.totalDeductions > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('- مجموع الخصومات:', style: const pw.TextStyle(fontSize: 8.5)),
+                          pw.Text('-${payment.totalDeductions.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 8.5)),
+                        ],
+                      ),
+                    ],
+
+                    pw.SizedBox(height: 6),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.black, width: 1.2),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                      ),
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('صافي الراتب المدفوع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                          pw.Text('${payment.netSalary.toStringAsFixed(0)} ${settings.currencySymbol}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+
+                    pw.SizedBox(height: 14),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('توقيع الموظف: ...................', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text('توقيع المحاسب/المدير: ...................', style: const pw.TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                    pw.SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
+      final pdfBytes = await pdf.save();
+      return await sendPdfToPrinter(
+        pdfBytes: pdfBytes,
+        printerNameConfig: settings.cashierPrinter,
+        docName: 'SalarySlip_${payment.employeeName}',
+      );
+    } catch (e) {
+      debugPrint('Error printing salary slip: $e');
       return false;
     }
   }

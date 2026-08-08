@@ -367,25 +367,10 @@ class LocalServerService extends ChangeNotifier {
   }
 
   Future<void> _handleCancelTableOrder(HttpRequest request) async {
-    final content = await utf8.decoder.bind(request).join();
-    final data = jsonDecode(content) as Map<String, dynamic>;
-    final tableId = data['table_id'] as int?;
-
-    if (tableId == null) {
-      await _jsonResponse(request.response, {'error': 'table_id required'}, statusCode: 400);
-      return;
-    }
-
-    final repo = OrdersRepository();
-    await repo.cancelTableOrder(tableId);
-
-    _broadcastEvent({'type': 'TABLE_UPDATED', 'table_id': tableId});
-    _onTableOrderUpdated?.call();
-
     await _jsonResponse(request.response, {
-      'success': true,
-      'message': 'تم إلغاء الفاتورة وإخلاء الطاولة بنجاح',
-    });
+      'success': false,
+      'error': 'غير مسموح للنادل بإلغاء الفاتورة أو إخلاء الطاولة من تطبيق الموبايل. هذا الإجراء متاح من جهاز الكاشير الرئيسي فقط.',
+    }, statusCode: 403);
   }
 
   void _broadcastEvent(Map<String, dynamic> event) {

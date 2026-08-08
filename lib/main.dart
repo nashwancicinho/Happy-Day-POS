@@ -10,8 +10,10 @@ import 'features/categories/categories_provider.dart';
 import 'features/customers/customers_provider.dart';
 import 'features/dashboard/dashboard_layout.dart';
 import 'features/orders/orders_provider.dart';
+import 'features/payroll/payroll_provider.dart';
 import 'features/products/products_provider.dart';
 import 'features/purchases/purchases_provider.dart';
+import 'features/raw_materials/raw_materials_provider.dart';
 import 'features/settings/settings_provider.dart';
 import 'features/shifts/shifts_provider.dart';
 import 'features/tables/tables_provider.dart';
@@ -58,6 +60,9 @@ class HappyDayPOS extends StatelessWidget {
           create: (_) => ProductsProvider()..loadProducts().catchError((e) => debugPrint('Products load error: $e')),
         ),
         ChangeNotifierProvider(
+          create: (_) => RawMaterialsProvider()..loadRawMaterials().catchError((e) => debugPrint('RawMaterials load error: $e')),
+        ),
+        ChangeNotifierProvider(
           create: (_) => OrdersProvider()..loadOrders().catchError((e) => debugPrint('Orders load error: $e')),
         ),
         ChangeNotifierProvider(
@@ -74,6 +79,9 @@ class HappyDayPOS extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => TreasuryProvider()..loadTreasuryRecords().catchError((e) => debugPrint('Treasury load error: $e')),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PayrollProvider()..loadPayrollData().catchError((e) => debugPrint('Payroll load error: $e')),
         ),
       ],
       child: Consumer<SettingsProvider>(

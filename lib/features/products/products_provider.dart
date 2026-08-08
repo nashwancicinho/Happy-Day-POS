@@ -67,9 +67,10 @@ class ProductsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addProduct(ProductModel product) async {
-    await _repository.insertProduct(product);
+  Future<int> addProduct(ProductModel product) async {
+    final id = await _repository.insertProduct(product);
     await loadProducts();
+    return id;
   }
 
   Future<void> updateProduct(ProductModel product) async {

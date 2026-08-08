@@ -41,9 +41,14 @@ class OrdersProvider extends ChangeNotifier {
     if (shiftOrders.isNotEmpty) {
       final sorted = List<OrderModel>.from(shiftOrders)
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      return sorted.first.createdAt.substring(0, 10);
+      return sorted.first.effectiveDate;
     }
     return DateTime.now().toIso8601String().substring(0, 10);
+  }
+
+  Future<void> finalizeShiftOrdersBusinessDate(String businessDate, String closedAtIso) async {
+    await _repository.finalizeShiftOrdersBusinessDate(businessDate, closedAtIso);
+    await loadOrders();
   }
 
   double get todaySalesTotal {

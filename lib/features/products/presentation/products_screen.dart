@@ -8,7 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_notification.dart';
 import '../../../models/category.dart';
 import '../../../models/product.dart';
+import '../../../models/product_recipe.dart';
+import '../../../models/raw_material.dart';
 import '../../categories/categories_provider.dart';
+import '../../raw_materials/raw_materials_provider.dart';
 import '../../settings/settings_provider.dart';
 import '../products_provider.dart';
 
@@ -349,12 +352,28 @@ class ProductsScreen extends StatelessWidget {
       return '20$part1$part2';
     }
 
+    List<ProductRecipeItemModel> recipeItems = [];
+    bool isRecipesLoaded = false;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) {
+            if (!isRecipesLoaded) {
+              isRecipesLoaded = true;
+              if (product?.id != null) {
+                context.read<RawMaterialsProvider>().getProductRecipes(product!.id!).then((items) {
+                  if (ctx.mounted) {
+                    setState(() {
+                      recipeItems = items;
+                    });
+                  }
+                }).catchError((_) {});
+              }
+            }
+
             if (!isPrintersLoaded) {
               isPrintersLoaded = true;
               PrintService.getSystemPrinters().then((printers) {
@@ -590,6 +609,136 @@ class ProductsScreen extends StatelessWidget {
                                 });
                               },
                             ),
+                          ],
+                        ),
+                      );
+
+                      final sectionRecipe = Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _sectionTitle(isEng ? 'Recipe & Raw Materials' : 'مكونات المادة والمقادير الأولية (الخلطة / Recipe)'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () {
+                                    _showAddRecipeItemDialog(context, setState, recipeItems);
+                                  },
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: Text(isEng ? 'Add Ingredient' : 'إضافة مكون', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (recipeItems.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(
+                                  isEng ? 'No raw material ingredients added yet for this product.' : 'لم يتم إضافة مواد أولية لهذه المادة بعد.',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontStyle: FontStyle.italic),
+                                ),
+                              )
+                            else
+                              Column(
+                                children: [
+                                  const Divider(),
+                                  ...recipeItems.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final item = entry.value;
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.orange.shade100),
+                                      ),
+                                      child: ListTile(
+                                        dense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                        leading: CircleAvatar(
+                                          radius: 12,
+                                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                                          child: Text('${idx + 1}', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                        ),
+                                        title: Text(item.rawMaterialName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        subtitle: Text('الكمية: ${item.quantityRequired} ${item.rawMaterialUnit} (كلفة: ${item.costPerUnit} $currencySym)', style: const TextStyle(fontSize: 11)),
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              '${item.totalCost.toStringAsFixed(0)} $currencySym',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown, fontSize: 12),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                              onPressed: () {
+                                                setState(() {
+                                                  recipeItems.removeAt(idx);
+                                                });
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  const Divider(),
+                                  Wrap(
+                                    alignment: WrapAlignment.spaceBetween,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: [
+                                      Text(
+                                        isEng ? 'Total Recipe Cost:' : 'كلفة المواد الأولية:',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            '${recipeItems.fold(0.0, (sum, i) => sum + i.totalCost).toStringAsFixed(0)} $currencySym',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.orange.shade100,
+                                              foregroundColor: Colors.orange.shade900,
+                                              elevation: 0,
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            onPressed: () {
+                                              final totalCost = recipeItems.fold(0.0, (sum, i) => sum + i.totalCost);
+                                              setState(() {
+                                                buyPriceController.text = totalCost.toStringAsFixed(0);
+                                              });
+                                            },
+                                            icon: const Icon(Icons.copy, size: 14),
+                                            label: Text(isEng ? 'Use as Cost' : 'اعتماد كـ سعر الكلفة', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       );
@@ -834,6 +983,8 @@ class ProductsScreen extends StatelessWidget {
                                 section1,
                                 const SizedBox(height: 16),
                                 section2,
+                                const SizedBox(height: 16),
+                                sectionRecipe,
                               ],
                             ),
                           ),
@@ -912,10 +1063,15 @@ class ProductsScreen extends StatelessWidget {
                         kitchenPrinter: selectedKitchenPrinter,
                       );
 
+                      int saveId = product?.id ?? 0;
                       if (product == null) {
-                        await prodProvider.addProduct(newProduct);
+                        saveId = await prodProvider.addProduct(newProduct);
                       } else {
                         await prodProvider.updateProduct(newProduct);
+                      }
+
+                      if (saveId > 0 && context.mounted) {
+                        await context.read<RawMaterialsProvider>().saveProductRecipes(saveId, recipeItems);
                       }
 
                       if (context.mounted) {
@@ -941,6 +1097,163 @@ class ProductsScreen extends StatelessWidget {
                     isEng ? 'Save Product' : 'حفظ المادة',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showAddRecipeItemDialog(
+    BuildContext context,
+    StateSetter parentSetState,
+    List<ProductRecipeItemModel> recipeItems,
+  ) async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final rawMaterialsProvider = context.read<RawMaterialsProvider>();
+    final rawMaterials = rawMaterialsProvider.rawMaterials;
+
+    if (rawMaterials.isEmpty) {
+      TopNotification.showWarning(
+        context,
+        isEng
+            ? 'No raw materials added yet! Please add raw materials first in Purchases screen.'
+            : 'لم يتم إضافة مواد أولية بعد! يرجى إضافة المواد الأولية أولاً من شاشة المشتريات -> قسم المواد الأولية.',
+      );
+      return;
+    }
+
+    RawMaterialModel? selectedMaterial = rawMaterials.first;
+    final qtyController = TextEditingController(text: '100');
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            final qtyVal = double.tryParse(qtyController.text.trim()) ?? 0.0;
+            final costPerUnit = selectedMaterial?.costPerUnit ?? 0.0;
+            final calculatedCost = qtyVal * costPerUnit;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                    child: Icon(Icons.rice_bowl, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isEng ? 'Add Raw Material Ingredient' : 'إضافة مادة أولية / مكون للوجبة',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 450,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonFormField<RawMaterialModel>(
+                      initialValue: selectedMaterial,
+                      decoration: InputDecoration(
+                        labelText: isEng ? 'Select Raw Material' : 'اختر المادة الأولية',
+                        prefixIcon: const Icon(Icons.inventory_2_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: rawMaterials.map((rm) {
+                        return DropdownMenuItem<RawMaterialModel>(
+                          value: rm,
+                          child: Text('${rm.name} (${rm.unit}) - كلفة الوحدة: ${rm.costPerUnit} $currencySym'),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          selectedMaterial = val;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: qtyController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: isEng
+                            ? 'Required Quantity (${selectedMaterial?.unit ?? "Unit"}) *'
+                            : 'الكمية المطلوبة للوجبة الواحدة (${selectedMaterial?.unit ?? "الوحدة"}) *',
+                        prefixIcon: const Icon(Icons.scale_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            isEng ? 'Calculated Ingredient Cost:' : 'الكلفة المحسوبة للمكون:',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '${calculatedCost.toStringAsFixed(0)} $currencySym',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.check, color: Colors.white),
+                  label: Text(
+                    isEng ? 'Add Ingredient' : 'إضافة المكون',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    if (selectedMaterial == null || qtyVal <= 0) {
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? 'Please enter valid quantity' : 'يرجى إدخال كمية صحيحة أكبر من الصفر',
+                      );
+                      return;
+                    }
+
+                    parentSetState(() {
+                      recipeItems.add(
+                        ProductRecipeItemModel(
+                          productId: 0,
+                          rawMaterialId: selectedMaterial!.id!,
+                          rawMaterialName: selectedMaterial!.name,
+                          rawMaterialUnit: selectedMaterial!.unit,
+                          costPerUnit: selectedMaterial!.costPerUnit,
+                          quantityRequired: qtyVal,
+                        ),
+                      );
+                    });
+                    Navigator.pop(ctx);
+                  },
                 ),
               ],
             );

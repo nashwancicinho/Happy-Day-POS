@@ -8,6 +8,8 @@ import '../auth/auth_provider.dart';
 import '../settings/settings_provider.dart';
 import '../settings/cashier_permissions_card.dart';
 
+import '../payroll/payroll_screen.dart';
+
 class UsersScreen extends StatelessWidget {
   const UsersScreen({super.key});
 
@@ -62,6 +64,18 @@ class UsersScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(isEng ? 'Users & Permissions Management' : 'إدارة المستخدمين والموظفين والصلاحيات'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.payments),
+            tooltip: isEng ? 'Employee Payroll' : 'إدارة الرواتب والسُلف',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PayrollScreen()),
+              );
+            },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _handleAddUser(context, authProvider),

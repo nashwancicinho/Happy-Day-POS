@@ -47,6 +47,10 @@ class DashboardScreen extends StatelessWidget {
                 label: Text("المستخدمون"),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.payments),
+                label: Text("رواتب الموظفين والسُلف"),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.bar_chart),
                 label: Text("التقارير"),
               ),

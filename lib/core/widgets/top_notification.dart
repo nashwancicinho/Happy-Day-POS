@@ -3,12 +3,18 @@ import 'package:flutter/material.dart';
 enum TopNotificationType { success, warning, error, info }
 
 class TopNotification {
+  /// Toggle to enable or disable top floating notifications globally.
+  /// Set to false by default as per user request.
+  static bool enabled = false;
+
   static void show(
     BuildContext context, {
     required String message,
     TopNotificationType type = TopNotificationType.info,
     Duration duration = const Duration(seconds: 3),
   }) {
+    if (!enabled) return;
+
     final overlayState = Overlay.of(context, rootOverlay: true);
     late OverlayEntry entry;
 
