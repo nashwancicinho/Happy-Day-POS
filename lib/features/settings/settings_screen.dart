@@ -1805,6 +1805,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     helperText: isEng ? 'Used for barcode sticker printing (e.g. Xprinter / Zebra)' : 'تستخدم لطباعة ملصقات الباركود للأصناف والمنتجات مباشرة (مثل طابعات Xprinter / Zebra)',
                   ),
                 ),
+
+                const SizedBox(height: 20),
+
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          isEng
+                              ? 'Tip: To prevent the cash drawer from opening when printing kitchen tickets, set "Cash Drawer" to "Disabled" in Windows Printer Properties.'
+                              : '💡 ملاحظة هامة: لمنع فتح درج النقدية عند طباعة طلبات المطبخ، يرجى إيقاف خاصية الفتح الآلي من إعدادات الويندوز (Windows Printer Properties -> Device Settings -> Cash Drawer: Disabled).',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
