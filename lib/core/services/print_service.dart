@@ -1467,11 +1467,36 @@ Write-Output "False"
         10, 10, 10,
       ];
 
+      // Primary Attempt: ESC/POS Raw Pulse
       final success = await sendRawBytesToPrinter(
         bytes: drawerBytes,
         settings: settings,
       );
-      return success;
+
+      if (success) return true;
+
+      // Secondary Backup Attempt: Micro PDF print job to trigger driver drawer kick
+      try {
+        final pdf = pw.Document();
+        pdf.addPage(
+          pw.Page(
+            pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, 5 * PdfPageFormat.mm),
+            margin: pw.EdgeInsets.zero,
+            build: (context) => pw.Container(height: 1),
+          ),
+        );
+        final pdfBytes = await pdf.save();
+        final printed = await sendPdfToPrinter(
+          pdfBytes: pdfBytes,
+          printerNameConfig: settings.cashierPrinter,
+          docName: 'OpenCashDrawer',
+        );
+        if (printed) return true;
+      } catch (e) {
+        debugPrint('Backup PDF open drawer attempt error: $e');
+      }
+
+      return false;
     } catch (e) {
       debugPrint('Error opening cash drawer: $e');
       return false;
