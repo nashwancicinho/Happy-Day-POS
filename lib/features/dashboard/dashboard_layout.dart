@@ -25,8 +25,6 @@ import '../../services/local_server_service.dart';
 import '../settings/sync_qr_widget.dart';
 import '../tables/tables_provider.dart';
 import '../orders/orders_provider.dart';
-import '../../services/update_service.dart';
-import '../../core/widgets/update_dialog.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
 
 
@@ -58,18 +56,6 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       }
     });
 
-    // Silent check for updates on startup
-    Future.delayed(const Duration(seconds: 3), () async {
-      if (!mounted) return;
-      try {
-        final updateInfo = await UpdateService.checkForUpdates();
-        if (updateInfo.hasUpdate && mounted) {
-          UpdateDialog.show(context, updateInfo);
-        }
-      } catch (e) {
-        debugPrint('Silent update check error: $e');
-      }
-    });
   }
 
   @override
