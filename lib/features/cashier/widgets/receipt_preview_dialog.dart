@@ -209,7 +209,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                       child: Text(
                         widget.tableName != null && widget.tableName!.isNotEmpty
-                            ? 'السيد: ${widget.tableName!.startsWith("طاولة") ? widget.tableName : "طاولة ${widget.tableName}"} المحترم'
+                            ? 'طاولة: ${widget.tableName!.startsWith("طاولة") ? widget.tableName!.replaceFirst("طاولة", "").trim() : widget.tableName}'
                             : 'الطلب: ${_orderTypeLabel(widget.order.orderType)}',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         textAlign: TextAlign.center,

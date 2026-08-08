@@ -346,7 +346,7 @@ class PrintService {
                             child: pw.Container(
                               padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 4),
                               child: pw.Text(
-                                cleanTable.isNotEmpty ? 'السيد: طاولة $cleanTable المحترم' : 'الطلب: $typeText',
+                                cleanTable.isNotEmpty ? 'طاولة: $cleanTable' : 'الطلب: $typeText',
                                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
                                 textAlign: pw.TextAlign.center,
                               ),
