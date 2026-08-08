@@ -677,9 +677,6 @@ class PrintService {
       );
 
       final pdfBytes = await pdf.save();
-      // Trigger cash drawer kick signal before and after PDF print
-      openCashDrawer(settings);
-      await Future.delayed(const Duration(milliseconds: 150));
 
       final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
@@ -687,7 +684,14 @@ class PrintService {
         docName: 'Invoice_${order.id ?? 1}',
       );
 
-      openCashDrawer(settings);
+      // Trigger automatic electronic cash drawer pulse after PDF spooling releases printer handle
+      Future.delayed(const Duration(milliseconds: 600), () async {
+        for (int attempt = 0; attempt < 3; attempt++) {
+          final success = await openCashDrawer(settings);
+          if (success) break;
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      });
 
       return printResult;
     } catch (e) {
