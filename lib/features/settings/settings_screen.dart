@@ -22,7 +22,9 @@ import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
 import 'settings_provider.dart';
+import 'sync_qr_widget.dart';
 import '../../core/services/license_service.dart';
+import '../../services/local_server_service.dart';
 import '../license/license_activation_screen.dart';
 
 
@@ -1688,11 +1690,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // TAB 1: Printers Configuration
+  // TAB 1: Printers & Multi-POS Networking Configuration
   Widget _buildPrintersTab(BuildContext context, SettingsProvider settings, bool isEng) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildMultiPOSNetworkSection(context, settings),
+        const SizedBox(height: 20),
         Card(
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1877,6 +1881,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMultiPOSNetworkSection(BuildContext context, SettingsProvider settings) {
+    final isEng = settings.isEnglish;
+    final server = LocalServerService.instance;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const CircleAvatar(
+                  backgroundColor: Color(0xFF10B981),
+                  child: Icon(Icons.lan_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEng ? 'Multi-POS Networking & Server Setup' : 'ربط أجهزة الكاشير المتعددة (شبكة المزامنة)',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isEng ? 'Connect multiple cashier PCs and waiter phones together.' : 'ربط عدة أجهزة كمبيوتر كاشير وهواتف نادل على نفس شبكة المطعم.',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEng ? 'Main Master Server Status:' : 'حالة سيرفر الجهاز الرئيسي (Master):',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          server.isRunning ? (isEng ? 'ONLINE 🟢' : 'شغّال أونلاين 🟢') : (isEng ? 'OFFLINE 🔴' : 'غير متصل 🔴'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEng ? 'Server IP Address:' : 'عنوان IP الكاشير الرئيسي بالشبكة:',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+                      ),
+                      SelectableText(
+                        '${server.serverIp ?? '192.168.1.100'}:${server.port}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D9488), letterSpacing: 1.2),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isEng
+                  ? '💡 To connect a secondary cashier PC or waiter phone:\n1. Ensure both devices are connected to the same Wi-Fi router.\n2. On the secondary PC/phone, enter the Server IP address above (${server.serverIp ?? '192.168.1.100'}).\n3. Click "Test & Connect" to perform live real-time synchronization.'
+                  : '💡 طريقة ربط جهاز كاشير كمبيوتر فرعي أو هاتف نادل بالكمبيوتر الرئيسي:\n1. تأكد من توصيل الجهازين بنفس شبكة الـ Wi-Fi أو الكابل بنفس الراوتر.\n2. في الجهاز الفرعي، ادخل عنوان الـ IP الموضح أعلاه (${server.serverIp ?? '192.168.1.100'}).\n3. اضغط على "اختبار ومزامنة" للبدء في نقل الفواتير والمنتجات لحظياً بنسبة 100%.',
+              style: TextStyle(fontSize: 12.5, height: 1.5, color: Colors.grey.shade800, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const SyncQrDialog(),
+                  );
+                },
+                icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                label: Text(
+                  isEng ? 'Show Connection QR Code & Sync Info 📱' : 'عرض QR Code ورابط الاتصال السريع 📱',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

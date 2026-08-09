@@ -144,6 +144,8 @@ class LocalServerService extends ChangeNotifier {
         await _handleSaveTableOrder(request);
       } else if (request.method == 'POST' && path == '/api/orders/cancel') {
         await _handleCancelTableOrder(request);
+      } else if (request.method == 'GET' && path == '/api/sync/full') {
+        await _handleFullSync(request.response);
       } else {
         await _jsonResponse(request.response, {'error': 'Endpoint not found'}, statusCode: 404);
       }
@@ -214,6 +216,25 @@ class LocalServerService extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     final products = await db.query('products', where: 'is_available = 1', orderBy: 'category_id ASC, name ASC');
     await _jsonResponse(response, {'success': true, 'data': products});
+  }
+
+  Future<void> _handleFullSync(HttpResponse response) async {
+    final db = await DatabaseHelper.instance.database;
+    final categories = await db.query('categories', orderBy: 'id ASC');
+    final products = await db.query('products', orderBy: 'id ASC');
+    final tables = await db.query('restaurant_tables', orderBy: 'sort_order ASC, id ASC');
+    final settingsMap = await SettingsRepository().getAllSettings();
+
+    await _jsonResponse(response, {
+      'success': true,
+      'timestamp': DateTime.now().toIso8601String(),
+      'data': {
+        'categories': categories,
+        'products': products,
+        'tables': tables,
+        'settings': settingsMap,
+      }
+    });
   }
 
   Future<void> _handleGetTableOrder(HttpResponse response, int tableId) async {
