@@ -2170,36 +2170,6 @@ class _CashierScreenState extends State<CashierScreen> {
                         ),
                       ),
 
-                      // Category & Items Quick Navigation Chip Bar
-                      _buildCategoryFilterChipsBar(context, categoriesProvider, productsProvider),
-
-                      // View Header Title
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                        child: Row(
-                          children: [
-                            Icon(
-                              showingCategoriesView ? Icons.category : Icons.fastfood,
-                              color: AppColors.primary,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              showingCategoriesView
-                                  ? (isEng ? 'Main View (Categories & Direct Items):' : 'الشاشة الرئيسية (التصنيفات والمنتجات المباشرة):')
-                                  : (_showAllItemsDirectly
-                                      ? (isEng ? 'All Products View:' : 'جميع المواد والمنتجات:')
-                                      : (isEng ? 'Category items: ${_getCategoryName(categoriesProvider, selectedCategoryId)}' : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}')),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
                       // Main Content View (Categories Grid OR Items Grid)
                       Expanded(
                         child: showingCategoriesView
@@ -2214,9 +2184,9 @@ class _CashierScreenState extends State<CashierScreen> {
 
                 // Right Pane: Cart Panel & Table Action Buttons
                 Container(
-                  width: 390,
+                  width: 275,
                   color: Colors.white,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -2444,15 +2414,6 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
-  String _getCategoryName(CategoriesProvider categoriesProvider, int? categoryId) {
-    if (categoryId == null) return 'الكل';
-    final match = categoriesProvider.categories.firstWhere(
-      (c) => c.id == categoryId,
-      orElse: () => categoriesProvider.categories.isNotEmpty ? categoriesProvider.categories.first : categoriesProvider.categories.first,
-    );
-    return match.name;
-  }
-
   Color? _parseColor(String? hexString) {
     if (hexString == null || hexString.isEmpty) return null;
     try {
@@ -2509,62 +2470,6 @@ class _CashierScreenState extends State<CashierScreen> {
     }
   }
 
-  Widget _buildCategoryFilterChipsBar(
-    BuildContext context,
-    CategoriesProvider categoriesProvider,
-    ProductsProvider productsProvider,
-  ) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
-    final selectedCatId = productsProvider.selectedCategoryId;
-    final categories = categoriesProvider.categories;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Row(
-        children: [
-          ChoiceChip(
-            avatar: const Icon(Icons.grid_view_rounded, size: 16),
-            label: Text(isEng ? 'Main View 📌' : 'الرئيسية 📌'),
-            selected: selectedCatId == null && !_showAllItemsDirectly,
-            selectedColor: AppColors.primary.withValues(alpha: 0.2),
-            onSelected: (_) {
-              setState(() => _showAllItemsDirectly = false);
-              productsProvider.selectCategory(null);
-            },
-          ),
-          const SizedBox(width: 8),
-          ChoiceChip(
-            avatar: const Icon(Icons.fastfood_rounded, size: 16),
-            label: Text(isEng ? 'All Items 🍔' : 'كل المواد 🍔'),
-            selected: _showAllItemsDirectly,
-            selectedColor: AppColors.primary.withValues(alpha: 0.2),
-            onSelected: (_) {
-              setState(() => _showAllItemsDirectly = true);
-              productsProvider.selectCategory(null);
-            },
-          ),
-          const SizedBox(width: 8),
-          ...categories.map((cat) {
-            final isSel = selectedCatId == cat.id && !_showAllItemsDirectly;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(
-                label: Text(cat.name),
-                selected: isSel,
-                selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                onSelected: (_) {
-                  setState(() => _showAllItemsDirectly = false);
-                  productsProvider.selectCategory(cat.id);
-                },
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
   // 1. Grid View for Categories & Direct Root Products
 
   Widget _buildCategoriesGrid(
@@ -2590,12 +2495,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 100,
-        childAspectRatio: 1.0,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        maxCrossAxisExtent: 80,
+        childAspectRatio: 0.95,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
       ),
       itemCount: totalGridCount,
       itemBuilder: (context, index) {
@@ -2663,7 +2568,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 Text(
                                   category.name,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: textColor,
                                   ),
@@ -2745,28 +2650,14 @@ class _CashierScreenState extends State<CashierScreen> {
                     ),
                   Positioned.fill(
                     child: Padding(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(4),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: Colors.purple,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'مباشر',
-                                style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
                           Text(
                             product.name,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: textColor,
                             ),
@@ -2774,16 +2665,17 @@ class _CashierScreenState extends State<CashierScreen> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          const SizedBox(height: 3),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
                               color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '${product.price.toStringAsFixed(0)} $currencySym',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.bold,
                                 color: priceColor,
                               ),
@@ -2812,12 +2704,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final totalGridItems = products.length + 1;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 100,
-        childAspectRatio: 1.0,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        maxCrossAxisExtent: 80,
+        childAspectRatio: 0.95,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
