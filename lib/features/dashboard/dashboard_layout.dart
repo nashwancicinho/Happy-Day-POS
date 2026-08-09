@@ -395,58 +395,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                         ),
                       ),
 
-                      const SizedBox(width: 12),
 
-                      // Full Screen Mode Toggle Button
-                      IconButton(
-                        icon: Icon(
-                          _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                        tooltip: _isFullscreen
-                            ? (isEng ? 'Exit Full Screen (F11)' : 'الخروج من الشاشة الكاملة (F11)')
-                            : (isEng ? 'Full Screen Mode 🖥️ (F11)' : 'توسيع شاشة كاملة 🖥️ (F11)'),
-                        onPressed: _toggleFullscreen,
-                      ),
-
-                      // Screen Measurement & Resolution Scaling Selector
-                      PopupMenuButton<double>(
-                        icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 24),
-                        tooltip: isEng ? 'Screen Measurements & Scaling' : 'قياسات الشاشة والتكبير',
-                        onSelected: (double scale) {
-                          context.read<SettingsProvider>().setScreenScale(scale);
-                        },
-                        itemBuilder: (context) {
-                          return [
-                            CheckedPopupMenuItem<double>(
-                              value: 1.0,
-                              checked: currentScale == 1.0,
-                              child: Text(isEng ? 'Standard (100%)' : 'القياس القياسي (100%)'),
-                            ),
-                            CheckedPopupMenuItem<double>(
-                              value: 1.1,
-                              checked: currentScale == 1.1,
-                              child: Text(isEng ? 'Zoom 110%' : 'تكبير قياس الشاشة (110%)'),
-                            ),
-                            CheckedPopupMenuItem<double>(
-                              value: 1.2,
-                              checked: currentScale == 1.2,
-                              child: Text(isEng ? 'Zoom 120%' : 'تكبير قياس الشاشة (120%)'),
-                            ),
-                            CheckedPopupMenuItem<double>(
-                              value: 0.9,
-                              checked: currentScale == 0.9,
-                              child: Text(isEng ? 'Compact (90%)' : 'تصغير قياس الشاشة (90%)'),
-                            ),
-                            CheckedPopupMenuItem<double>(
-                              value: 0.0,
-                              checked: currentScale == 0.0,
-                              child: Text(isEng ? 'Auto Fit Proportions' : 'تنسيق قياسي موحّد (Auto-Fit لكل الشاشات)'),
-                            ),
-                          ];
-                        },
-                      ),
 
                       const SizedBox(width: 8),
 

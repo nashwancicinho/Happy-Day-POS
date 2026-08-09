@@ -2590,12 +2590,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 130,
+        maxCrossAxisExtent: 100,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: totalGridCount,
       itemBuilder: (context, index) {
@@ -2812,12 +2812,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final totalGridItems = products.length + 1;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 130,
+        maxCrossAxisExtent: 100,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {

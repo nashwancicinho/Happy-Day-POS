@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import 'package:window_manager/window_manager.dart';
+
 import 'features/auth/auth_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/categories/categories_provider.dart';
@@ -34,6 +36,24 @@ void main() async {
       databaseFactory = databaseFactoryFfi;
     } catch (e) {
       debugPrint('sqfliteFfiInit error: $e');
+    }
+
+    try {
+      await windowManager.ensureInitialized();
+      WindowOptions windowOptions = const WindowOptions(
+        fullScreen: true,
+        center: true,
+        backgroundColor: Colors.transparent,
+        skipTaskbar: false,
+        titleBarStyle: TitleBarStyle.normal,
+      );
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.setFullScreen(true);
+        await windowManager.show();
+        await windowManager.focus();
+      });
+    } catch (e) {
+      debugPrint('windowManager error: $e');
     }
   }
 
