@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
@@ -44,14 +45,28 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   LicenseInfo? _licenseInfo;
   bool _isFullscreen = false;
 
-  void _toggleFullscreen() {
-    setState(() {
-      _isFullscreen = !_isFullscreen;
-    });
-    if (_isFullscreen) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  void _toggleFullscreen() async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      try {
+        final current = await windowManager.isFullScreen();
+        await windowManager.setFullScreen(!current);
+        if (mounted) {
+          setState(() {
+            _isFullscreen = !current;
+          });
+        }
+      } catch (e) {
+        debugPrint('windowManager toggle error: $e');
+      }
     } else {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      setState(() {
+        _isFullscreen = !_isFullscreen;
+      });
+      if (_isFullscreen) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      } else {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
     }
   }
 
@@ -87,6 +102,12 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.isFullScreen().then((isFS) {
+        if (mounted) setState(() => _isFullscreen = isFS);
+      }).catchError((_) {});
+    }
 
     // Start POS local network server for Waiter Mobile App
     LocalServerService.instance.startServer();
@@ -418,6 +439,19 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                       ),
 
                       const SizedBox(width: 12),
+
+                      // Full Screen Toggle Button
+                      IconButton(
+                        icon: Icon(
+                          _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        tooltip: isEng
+                            ? (_isFullscreen ? 'Exit Full Screen' : 'Full Screen')
+                            : (_isFullscreen ? 'إلغاء ملء الشاشة' : 'تكبير ملء الشاشة'),
+                        onPressed: _toggleFullscreen,
+                      ),
 
                       // Logout Button
                       IconButton(

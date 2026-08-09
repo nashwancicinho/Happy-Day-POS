@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -12,6 +13,66 @@ import '../../models/salary_payment.dart';
 import '../../features/settings/settings_provider.dart';
 
 class PrintService {
+  static pw.Font? _cachedArabicFont;
+  static pw.Font? _cachedArabicFontBold;
+
+  /// جلب الخطوط العربية المعتمدة للطباعة (من الأصول المحلية أولاً لضمان العمل 100% بدون إنترنت)
+  static Future<Map<String, pw.Font>> getArabicFonts() async {
+    if (_cachedArabicFont != null && _cachedArabicFontBold != null) {
+      return {
+        'regular': _cachedArabicFont!,
+        'bold': _cachedArabicFontBold!,
+      };
+    }
+
+    // 1. Try loading from local assets (fastest & works 100% offline)
+    try {
+      final regularData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
+      final boldData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
+      _cachedArabicFont = pw.Font.ttf(regularData);
+      _cachedArabicFontBold = pw.Font.ttf(boldData);
+      debugPrint('Successfully loaded Cairo local font assets for PDF printing');
+      return {
+        'regular': _cachedArabicFont!,
+        'bold': _cachedArabicFontBold!,
+      };
+    } catch (e) {
+      debugPrint('Could not load local font assets, attempting online Google Fonts fallback: $e');
+    }
+
+    // 2. Fallback to PdfGoogleFonts.cairo
+    try {
+      _cachedArabicFont = await PdfGoogleFonts.cairoRegular();
+      _cachedArabicFontBold = await PdfGoogleFonts.cairoBold();
+      return {
+        'regular': _cachedArabicFont!,
+        'bold': _cachedArabicFontBold!,
+      };
+    } catch (e) {
+      debugPrint('Could not fetch Cairo Google font: $e');
+    }
+
+    // 3. Fallback to PdfGoogleFonts.amiri
+    try {
+      _cachedArabicFont = await PdfGoogleFonts.amiriRegular();
+      _cachedArabicFontBold = await PdfGoogleFonts.amiriBold();
+      return {
+        'regular': _cachedArabicFont!,
+        'bold': _cachedArabicFontBold!,
+      };
+    } catch (e) {
+      debugPrint('Could not fetch Amiri Google font: $e');
+    }
+
+    // 4. Final safety fallback
+    _cachedArabicFont ??= pw.Font.helvetica();
+    _cachedArabicFontBold ??= pw.Font.helveticaBold();
+    return {
+      'regular': _cachedArabicFont!,
+      'bold': _cachedArabicFontBold!,
+    };
+  }
+
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر مستخدمين الحزمة الرسمية للنظام
   static Future<List<Printer>> getSystemPrinters() async {
@@ -214,15 +275,9 @@ class PrintService {
     double changeDue = 0.0,
   }) async {
     try {
-      pw.Font arabicFont;
-      pw.Font arabicFontBold;
-      try {
-        arabicFont = await PdfGoogleFonts.amiriRegular();
-        arabicFontBold = await PdfGoogleFonts.amiriBold();
-      } catch (_) {
-        arabicFont = await PdfGoogleFonts.cairoRegular();
-        arabicFontBold = await PdfGoogleFonts.cairoBold();
-      }
+      final fonts = await getArabicFonts();
+      final arabicFont = fonts['regular']!;
+      final arabicFontBold = fonts['bold']!;
 
       // Load logo image if path exists
       pw.MemoryImage? logoImage;
@@ -724,15 +779,9 @@ class PrintService {
         return true;
       }
 
-      pw.Font arabicFont;
-      pw.Font arabicFontBold;
-      try {
-        arabicFont = await PdfGoogleFonts.amiriRegular();
-        arabicFontBold = await PdfGoogleFonts.amiriBold();
-      } catch (_) {
-        arabicFont = await PdfGoogleFonts.cairoRegular();
-        arabicFontBold = await PdfGoogleFonts.cairoBold();
-      }
+      final fonts = await getArabicFonts();
+      final arabicFont = fonts['regular']!;
+      final arabicFontBold = fonts['bold']!;
 
       // Group items by target kitchen printer
       final Map<String, List<OrderItemModel>> itemsByPrinter = {};
@@ -884,8 +933,9 @@ class PrintService {
     required SettingsProvider settings,
   }) async {
     try {
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+      final fonts = await getArabicFonts();
+      final arabicFont = fonts['regular']!;
+      final arabicFontBold = fonts['bold']!;
 
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
@@ -1530,8 +1580,9 @@ Write-Output "False"
     required SettingsProvider settings,
   }) async {
     try {
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+      final fonts = await getArabicFonts();
+      final arabicFont = fonts['regular']!;
+      final arabicFontBold = fonts['bold']!;
 
       final barcodeData =
           (product.barcode != null && product.barcode!.isNotEmpty)
@@ -1621,15 +1672,9 @@ Write-Output "False"
     required SettingsProvider settings,
   }) async {
     try {
-      pw.Font arabicFont;
-      pw.Font arabicFontBold;
-      try {
-        arabicFont = await PdfGoogleFonts.amiriRegular();
-        arabicFontBold = await PdfGoogleFonts.amiriBold();
-      } catch (_) {
-        arabicFont = await PdfGoogleFonts.cairoRegular();
-        arabicFontBold = await PdfGoogleFonts.cairoBold();
-      }
+      final fonts = await getArabicFonts();
+      final arabicFont = fonts['regular']!;
+      final arabicFontBold = fonts['bold']!;
 
       final pdf = pw.Document();
       final pageFormat = PdfPageFormat(220, double.infinity, marginAll: 8);
