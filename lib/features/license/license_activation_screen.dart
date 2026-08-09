@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/license_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/manager_auth_dialog.dart';
+import '../../core/widgets/owner_auth_dialog.dart';
 import '../../core/widgets/top_notification.dart';
 import '../settings/settings_provider.dart';
 
@@ -82,10 +82,10 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
 
   void _showOwnerKeyGeneratorDialog() async {
     final isEng = context.read<SettingsProvider>().isEnglish;
-    final authorized = await ManagerAuthDialog.show(
+    final authorized = await OwnerAuthDialog.show(
       context,
-      title: 'رمز أمان صاحب النظام 🔒',
-      reason: 'أداة توليد كود التفعيل المخصص لجهاز العميل تتطلب كلمة سر المدير/المالك',
+      title: 'رمز إذن مالك البرنامج (المبرمج) 🔒',
+      reason: 'توليد أكواد التفعيل السنوية مقتصر فقط على (مالك البرنامج). مدير المطعم لا يملك صلاحية توليد الأكواد.',
     );
 
     if (authorized != true || !mounted) return;

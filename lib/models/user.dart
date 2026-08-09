@@ -19,7 +19,8 @@ class UserModel {
     this.permissions,
   });
 
-  bool get isManager => role == 'مدير';
+  bool get isOwner => role == 'مالك البرنامج';
+  bool get isManager => role == 'مدير' || role == 'مالك البرنامج';
 
   UserModel copyWith({
     int? id,

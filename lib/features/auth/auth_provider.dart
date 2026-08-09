@@ -17,7 +17,8 @@ class AuthProvider extends ChangeNotifier {
   List<UserModel> get users => _users;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _currentUser != null;
-  bool get isManager => _currentUser?.role == 'مدير';
+  bool get isOwner => _currentUser?.role == 'مالك البرنامج';
+  bool get isManager => _currentUser?.role == 'مدير' || _currentUser?.role == 'مالك البرنامج';
   String get currentUserName => _currentUser?.username ?? 'غير مسجل';
   String get currentUserRole => _currentUser?.role ?? 'زائر';
 
@@ -102,12 +103,37 @@ class AuthProvider extends ChangeNotifier {
       final db = await _dbHelper.database;
       final maps = await db.query(
         'users',
-        where: 'username = ? AND password = ? AND role = ? AND is_active = 1',
-        whereArgs: [username.trim(), password.trim(), 'مدير'],
+        where: 'username = ? AND password = ? AND (role = ? OR role = ?) AND is_active = 1',
+        whereArgs: [username.trim(), password.trim(), 'مدير', 'مالك البرنامج'],
       );
       if (maps.isNotEmpty) return true;
     } catch (e) {
       debugPrint('Verify manager credentials error: $e');
+    }
+    return false;
+  }
+
+  Future<bool> verifyOwnerCredentials(String username, String password) async {
+    try {
+      final db = await _dbHelper.database;
+      // 1. Check if matching user with role 'مالك البرنامج' exists
+      final maps = await db.query(
+        'users',
+        where: 'username = ? AND password = ? AND role = ? AND is_active = 1',
+        whereArgs: [username.trim(), password.trim(), 'مالك البرنامج'],
+      );
+      if (maps.isNotEmpty) return true;
+
+      // 2. If no owner user exists yet in database, fall back to checking Manager credentials
+      final ownerCount = Sqflite.firstIntValue(
+        await db.rawQuery("SELECT COUNT(*) FROM users WHERE role = 'مالك البرنامج' AND is_active = 1"),
+      ) ?? 0;
+
+      if (ownerCount == 0) {
+        return await verifyManagerCredentials(username, password);
+      }
+    } catch (e) {
+      debugPrint('Verify owner credentials error: $e');
     }
     return false;
   }

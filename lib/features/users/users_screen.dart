@@ -55,7 +55,8 @@ class UsersScreen extends StatelessWidget {
 
     String formatRole(String role) {
       if (!isEng) return role;
-      if (role == 'مدير') return 'Manager';
+      if (role == 'مالك البرنامج') return 'Software Owner';
+      if (role == 'مدير') return 'Restaurant Manager';
       if (role == 'كاشير') return 'Cashier';
       return role;
     }
@@ -311,8 +312,9 @@ class UsersScreen extends StatelessWidget {
                     initialValue: selectedRole,
                     decoration: InputDecoration(labelText: isEng ? 'Permission Role' : 'نوع الصلاحية'),
                     items: [
-                      DropdownMenuItem(value: 'كاشير', child: Text(isEng ? 'Cashier (Regular Staff)' : 'كاشير (مستخدم عادي)')),
-                      DropdownMenuItem(value: 'مدير', child: Text(isEng ? 'Manager (Full Access)' : 'مدير (صلاحية كاملة)')),
+                      DropdownMenuItem(value: 'كاشير', child: Text(isEng ? 'Cashier (Regular Staff)' : 'كاشير (موظف كاشير)')),
+                      DropdownMenuItem(value: 'مدير', child: Text(isEng ? 'Restaurant Manager' : 'مدير المطعم / العمل')),
+                      DropdownMenuItem(value: 'مالك البرنامج', child: Text(isEng ? 'Software Owner (Key Generator)' : 'مالك البرنامج (صلاحية + توليد أكواد التفعيل)')),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => selectedRole = val);
