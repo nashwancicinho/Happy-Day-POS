@@ -94,11 +94,17 @@ class PrintService {
     if (printers.isEmpty) return null;
 
     final rawName = printerName.trim();
-    if (rawName.isEmpty) {
+    final rawLower = rawName.toLowerCase();
+
+    // 0. If default configuration text or requested default printer, use default system printer directly
+    if (rawName.isEmpty ||
+        rawName == 'طابعة الكاشير الرئيسية (POS-80)' ||
+        rawName == 'طابعة المطبخ الحرارية (KOT-Kitchen)' ||
+        rawName == 'طابعة النظام الافتراضية (Default Printer)' ||
+        rawLower.contains('الافتراضية') ||
+        rawLower.contains('default')) {
       return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
     }
-
-    final rawLower = rawName.toLowerCase();
 
     // 1. Check if name has text inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
     final matchInParen = RegExp(r'\((.*?)\)').firstMatch(rawName);
@@ -213,12 +219,7 @@ class PrintService {
     }).firstOrNull;
     if (thermalPrinter != null) return thermalPrinter;
 
-    // 6. Check explicitly if user requested default printer
-    if (rawLower.contains('الافتراضية') || rawLower.contains('default')) {
-      return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
-    }
-
-    // 7. Fallback to default printer or first available printer
+    // 6. Fallback to default printer or first available printer
     return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
   }
 
@@ -232,6 +233,7 @@ class PrintService {
       final targetPrinter = await findTargetPrinter(printerNameConfig);
 
       if (targetPrinter != null) {
+        // Attempt 1: Direct print with roll80 format
         try {
           final success = await Printing.directPrintPdf(
             printer: targetPrinter,
@@ -242,13 +244,32 @@ class PrintService {
           );
           if (success) {
             debugPrint(
-              'Successfully printed directly to ${targetPrinter.name}',
+              'Successfully printed directly to ${targetPrinter.name} (Attempt 1)',
             );
             return true;
           }
         } catch (e) {
           debugPrint(
-            'Printing.directPrintPdf failed on ${targetPrinter.name}: $e',
+            'Printing.directPrintPdf attempt 1 failed on ${targetPrinter.name}: $e',
+          );
+        }
+
+        // Attempt 2: Direct print standard mode without forcing driver overrides
+        try {
+          final success = await Printing.directPrintPdf(
+            printer: targetPrinter,
+            onLayout: (format) async => pdfBytes,
+            name: docName,
+          );
+          if (success) {
+            debugPrint(
+              'Successfully printed directly to ${targetPrinter.name} (Attempt 2)',
+            );
+            return true;
+          }
+        } catch (e) {
+          debugPrint(
+            'Printing.directPrintPdf attempt 2 failed on ${targetPrinter.name}: $e',
           );
         }
       }
@@ -772,12 +793,8 @@ class PrintService {
   }) async {
     try {
       final kitchenItems = items.where((item) => item.printToKitchen).toList();
-      if (kitchenItems.isEmpty) {
-        debugPrint(
-          'No items in this order have printToKitchen enabled. Skipping kitchen printing.',
-        );
-        return true;
-      }
+      final itemsToPrint = kitchenItems.isNotEmpty ? kitchenItems : items;
+      if (itemsToPrint.isEmpty) return true;
 
       final fonts = await getArabicFonts();
       final arabicFont = fonts['regular']!;
@@ -785,7 +802,7 @@ class PrintService {
 
       // Group items by target kitchen printer
       final Map<String, List<OrderItemModel>> itemsByPrinter = {};
-      for (var item in kitchenItems) {
+      for (var item in itemsToPrint) {
         final targetPrinter =
             (item.kitchenPrinter != null && item.kitchenPrinter!.isNotEmpty)
             ? item.kitchenPrinter!
