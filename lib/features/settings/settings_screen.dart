@@ -2468,13 +2468,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   style: TextStyle(fontSize: 12, color: Colors.green.shade900, fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 4),
-                                SelectableText(
-                                  supportPhone,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                    letterSpacing: 1.0,
+                                Directionality(
+                                  textDirection: TextDirection.ltr,
+                                  child: SelectableText(
+                                    supportPhone,
+                                    textDirection: TextDirection.ltr,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                      letterSpacing: 1.0,
+                                    ),
                                   ),
                                 ),
                               ],
