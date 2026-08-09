@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/license_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
+import '../../core/widgets/manager_auth_dialog.dart';
 import '../settings/settings_provider.dart';
 
 class LicenseActivationScreen extends StatefulWidget {
@@ -209,42 +210,66 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Key Generator Utility Box for Admin
-                    ExpansionTile(
-                      leading: const Icon(Icons.admin_panel_settings, color: Colors.purple),
-                      title: Text(
-                        isEng ? 'Admin Key Generator Tool 🔑' : 'أداة توليد كود تفعيل (للمدير / صاحب النظام)',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.purple),
+                    // Customer Support Info Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.blue.shade200),
                       ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
+                      child: Column(
+                        children: [
+                          Row(
                             children: [
-                              Text(
-                                isEng
-                                    ? 'Click below to generate a valid 1-year annual key for this machine or customer:'
-                                    : 'اضغط أدناه لتوليد كود تفعيل سنوي صالحة لـ 365 يوماً:',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 10),
-                              OutlinedButton.icon(
-                                onPressed: _generateAdminSampleKey,
-                                icon: const Icon(Icons.vpn_key_rounded, size: 18),
-                                label: Text(isEng ? 'Generate New Key' : 'توليد كود تفعيل سنوي جديد 🔑'),
-                              ),
-                              if (_generatedSampleKey != null) ...[
-                                const SizedBox(height: 8),
-                                SelectableText(
-                                  _generatedSampleKey!,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.purple),
+                              const Icon(Icons.support_agent_rounded, color: Colors.blue, size: 24),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  isEng
+                                      ? 'To purchase or request an annual subscription code, please contact system support.'
+                                      : 'للحصول على كود التفعيل السنوي وتجديد الاشتراك، يرجى التواصل مع خدمة العملاء أو مالك النظام.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue.shade900,
+                                    height: 1.4,
+                                  ),
                                 ),
-                              ],
+                              ),
                             ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+
+                    const SizedBox(height: 16),
+
+                    // Admin Secret Key Generator (Protected by Manager Password)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final authorized = await ManagerAuthDialog.show(
+                          context,
+                          title: 'رمز أمان صاحب النظام 🔒',
+                          reason: 'أداة توليد كود التفعيل السنوي خاصة بمالك النظام وتتطلب كلمة سر المدير',
+                        );
+                        if (authorized == true) {
+                          _generateAdminSampleKey();
+                        }
+                      },
+                      icon: const Icon(Icons.admin_panel_settings_outlined, size: 16, color: Colors.grey),
+                      label: Text(
+                        isEng ? 'Owner / Admin Generator 🔒' : 'توليد كود تفعيل (خاص بمالك النظام 🔒)',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                    if (_generatedSampleKey != null) ...[
+                      const SizedBox(height: 8),
+                      SelectableText(
+                        'كود التفعيل المولد: $_generatedSampleKey',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.purple),
+                      ),
+                    ],
                   ],
                 ),
               ),
