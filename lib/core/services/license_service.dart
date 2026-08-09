@@ -8,6 +8,7 @@ class LicenseInfo {
   final DateTime firstLaunchDate;
   final DateTime? expiryDate;
   final String? activationKey;
+  final String machineId;
   final bool isExpired;
 
   LicenseInfo({
@@ -17,6 +18,7 @@ class LicenseInfo {
     required this.firstLaunchDate,
     this.expiryDate,
     this.activationKey,
+    required this.machineId,
     required this.isExpired,
   });
 }
@@ -29,9 +31,25 @@ class LicenseService {
   static const String _secretSalt = 'HAPPY_DAY_POS_SALT_KEY_2026_ANNUAL_SUB';
   static const int trialDurationDays = 30;
 
-  /// Initialize license on startup. Ensures first launch date is recorded.
+  /// Get or generate unique hardware Machine ID for this installation
+  Future<String> getDeviceMachineId() async {
+    final settings = await _settingsRepository.getAllSettings();
+    String? machineId = settings['license_machine_id'];
+    if (machineId == null || machineId.isEmpty) {
+      final nowStr = DateTime.now().millisecondsSinceEpoch.toString();
+      final rawHash = base64UrlEncode(utf8.encode('MACHINE-$nowStr-$_secretSalt')).replaceAll('=', '').toUpperCase();
+      final p1 = rawHash.substring(0, 4);
+      final p2 = rawHash.substring(4, 8);
+      machineId = 'HD-$p1-$p2';
+      await _settingsRepository.saveSetting('license_machine_id', machineId);
+    }
+    return machineId;
+  }
+
+  /// Initialize license on startup. Ensures first launch date & machine ID are recorded.
   Future<LicenseInfo> initAndGetLicenseInfo() async {
     final settings = await _settingsRepository.getAllSettings();
+    final machineId = await getDeviceMachineId();
 
     String? firstLaunchStr = settings['license_first_launch_date'];
     if (firstLaunchStr == null || firstLaunchStr.isEmpty) {
@@ -55,7 +73,6 @@ class LicenseService {
         daysRemaining = diff > 0 ? diff : 0;
         isExpired = DateTime.now().isAfter(expiryDate);
       } else {
-        // Lifetime or active without explicit expiry date
         daysRemaining = 365;
         isExpired = false;
       }
@@ -73,16 +90,17 @@ class LicenseService {
       firstLaunchDate: firstLaunchDate,
       expiryDate: expiryDate,
       activationKey: activationKey,
+      machineId: machineId,
       isExpired: isExpired,
     );
   }
 
-  /// Cryptographic key validation algorithm
-  bool validateKey(String key) {
+  /// Validate key specifically for a given Machine ID (Hardware Locked & Single-Use)
+  bool validateKeyForMachine(String key, String machineId) {
     final cleanKey = key.trim().toUpperCase().replaceAll(' ', '');
-    if (cleanKey.isEmpty) return false;
+    final cleanMachineId = machineId.trim().toUpperCase().replaceAll(' ', '');
+    if (cleanKey.isEmpty || cleanMachineId.isEmpty) return false;
 
-    // Expected format: HD-XXXX-YYYY-ZZZZ (or HDPOS-XXXX-YYYY-ZZZZ)
     final parts = cleanKey.split('-');
     if (parts.length != 4) return false;
 
@@ -93,14 +111,15 @@ class LicenseService {
     final p2 = parts[2];
     final checksumPart = parts[3];
 
-    // Compute expected checksum
-    final expectedChecksum = _computeChecksum('$prefix-$p1-$p2');
+    // Compute expected checksum locked to this specific Machine ID
+    final expectedChecksum = _computeChecksumForMachine(cleanMachineId, '$prefix-$p1-$p2');
     return checksumPart == expectedChecksum;
   }
 
-  /// Activate subscription with a valid key for 1 year (365 days)
+  /// Activate subscription with a valid hardware-locked key for 1 year (365 days)
   Future<bool> activateLicense(String key) async {
-    if (!validateKey(key)) return false;
+    final machineId = await getDeviceMachineId();
+    if (!validateKeyForMachine(key, machineId)) return false;
 
     final cleanKey = key.trim().toUpperCase().replaceAll(' ', '');
     final now = DateTime.now();
@@ -114,21 +133,20 @@ class LicenseService {
     return true;
   }
 
-  /// Helper to generate a valid annual key for customers
-  static String generateAnnualKey({int seedOffset = 0}) {
-    final now = DateTime.now();
-    final seed = '${now.millisecondsSinceEpoch + seedOffset}';
-    final rawHash = base64UrlEncode(utf8.encode('$seed-$_secretSalt')).replaceAll('=', '').toUpperCase();
-    
+  /// Generator helper for owner: Generates a 1-time annual key locked to customer's Machine ID
+  static String generateAnnualKeyForMachine(String targetMachineId) {
+    final cleanMachineId = targetMachineId.trim().toUpperCase().replaceAll(' ', '');
+    final rawHash = base64UrlEncode(utf8.encode('$cleanMachineId-$_secretSalt')).replaceAll('=', '').toUpperCase();
+
     final p1 = rawHash.substring(0, 4).padRight(4, 'A');
     final p2 = rawHash.substring(4, 8).padRight(4, 'B');
-    final checksum = _computeChecksum('HD-$p1-$p2');
+    final checksum = _computeChecksumForMachine(cleanMachineId, 'HD-$p1-$p2');
 
     return 'HD-$p1-$p2-$checksum';
   }
 
-  static String _computeChecksum(String data) {
-    final combined = '$data-$_secretSalt';
+  static String _computeChecksumForMachine(String machineId, String data) {
+    final combined = '$machineId-$data-$_secretSalt';
     int hash = 0;
     for (int i = 0; i < combined.length; i++) {
       hash = (hash * 31 + combined.codeUnitAt(i)) & 0xFFFFFFFF;

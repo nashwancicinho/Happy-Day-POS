@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/license_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/top_notification.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
+import '../../core/widgets/top_notification.dart';
 import '../settings/settings_provider.dart';
 
 class LicenseActivationScreen extends StatefulWidget {
@@ -23,10 +23,10 @@ class LicenseActivationScreen extends StatefulWidget {
 
 class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
   final _keyController = TextEditingController();
+  final _adminMachineIdController = TextEditingController();
   bool _isLoading = true;
   bool _isActivating = false;
   LicenseInfo? _licenseInfo;
-  String? _generatedSampleKey;
 
   @override
   void initState() {
@@ -40,6 +40,7 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
     if (mounted) {
       setState(() {
         _licenseInfo = info;
+        _adminMachineIdController.text = info.machineId;
         _isLoading = false;
       });
     }
@@ -61,7 +62,7 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
 
     if (success) {
       if (mounted) {
-        TopNotification.showSuccess(context, '🎉 تم تفعيل الاشتراك السنوي بنجاح لـ 365 يوماً!');
+        TopNotification.showSuccess(context, '🎉 تم تفعيل الاشتراك السنوي بنجاح لهذا الجهاز لـ 365 يوماً!');
       }
       await _loadLicenseStatus();
       if (!mounted) return;
@@ -73,20 +74,120 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
       if (mounted) {
         TopNotification.showError(
           context,
-          '❌ كود التفعيل غير صحيح! تأكد من إدخال الرمز بالصيغة الصحيحة (مثال: HD-XXXX-YYYY-ZZZZ)',
+          '❌ كود التفعيل غير صحيح أو مخصص لجهاز آخر! تأكد من الكود الخاص بهذا الجهاز.',
         );
       }
     }
   }
 
-  void _generateAdminSampleKey() {
-    final key = LicenseService.generateAnnualKey();
-    setState(() {
-      _generatedSampleKey = key;
-      _keyController.text = key;
-    });
-    Clipboard.setData(ClipboardData(text: key));
-    TopNotification.showSuccess(context, 'تم توليد كود تفعيل سنوي ونسخه للحافظة: $key 🔑');
+  void _showOwnerKeyGeneratorDialog() async {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final authorized = await ManagerAuthDialog.show(
+      context,
+      title: 'رمز أمان صاحب النظام 🔒',
+      reason: 'أداة توليد كود التفعيل المخصص لجهاز العميل تتطلب كلمة سر المدير/المالك',
+    );
+
+    if (authorized != true || !mounted) return;
+
+    String? generatedKey;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.vpn_key_rounded, color: Colors.purple),
+              const SizedBox(width: 10),
+              Text(
+                isEng ? 'Owner Single-Use Key Generator 🔑' : 'أداة توليد كود مفرد لجهاز عميل 🔑',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEng
+                    ? 'Enter customer Machine ID to generate a 1-time annual key locked to their PC:'
+                    : 'أدخل رقم معرّف جهاز العميل (Machine ID) لتوليد كود تفعيل سنوي يعمل على جهازه فقط:',
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _adminMachineIdController,
+                decoration: InputDecoration(
+                  labelText: isEng ? 'Customer Machine ID' : 'رقم جهاز العميل (Machine ID)',
+                  hintText: 'HD-XXXX-YYYY',
+                  prefixIcon: const Icon(Icons.important_devices, color: Colors.purple),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    final targetId = _adminMachineIdController.text.trim();
+                    if (targetId.isEmpty) {
+                      TopNotification.showWarning(dialogCtx, 'يرجى كتابة رقم جهاز العميل أولاً!');
+                      return;
+                    }
+                    final key = LicenseService.generateAnnualKeyForMachine(targetId);
+                    setDialogState(() {
+                      generatedKey = key;
+                    });
+                    Clipboard.setData(ClipboardData(text: key));
+                    TopNotification.showSuccess(dialogCtx, 'تم توليد كود التفعيل المخصص ونسخه للحافظة! 🔑');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.key_rounded),
+                  label: Text(isEng ? 'Generate Key for Machine' : 'توليد كود التفعيل لهذا الجهاز 🔑'),
+                ),
+              ),
+              if (generatedKey != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.purple.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('كود التفعيل السنوي المخصص للعميل:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple)),
+                      const SizedBox(height: 4),
+                      SelectableText(
+                        generatedKey!,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple, letterSpacing: 1.2),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text('(تم نسخ الكود للحافظة تلقائياً لإرساله بالواتساب)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(isEng ? 'Close' : 'إغلاق'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -169,14 +270,61 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                       style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.4),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
+
+                    // Customer Machine ID Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                isEng ? 'Machine ID Code:' : 'رقم معرّف هذا الجهاز (Machine ID):',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                              ),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4)),
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: _licenseInfo!.machineId));
+                                  TopNotification.showSuccess(context, 'تم نسخ رقم الجهاز للحافظة! 📋');
+                                },
+                                icon: const Icon(Icons.copy_rounded, size: 14),
+                                label: Text(isEng ? 'Copy ID' : 'نسخ رقم الجهاز 📋', style: const TextStyle(fontSize: 11)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          SelectableText(
+                            _licenseInfo!.machineId,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: 1.5),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isEng
+                                ? 'Send this Machine ID code via WhatsApp to get your custom activation key.'
+                                : 'أرسل رقم الجهاز أعلاه للمالك عبر الواتساب للحصول على كود التفعيل المخصص لهذا الجهاز فقط.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
 
                     // Activation Form Section
                     TextField(
                       controller: _keyController,
                       style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 16),
                       decoration: InputDecoration(
-                        labelText: isEng ? 'Annual Subscription Key' : 'كود التفعيل السنوي (Activation Key)',
+                        labelText: isEng ? 'Annual Subscription Key' : 'كود التفعيل السنوي المخصص (Activation Key)',
                         hintText: 'HD-XXXX-YYYY-ZZZZ',
                         prefixIcon: Icon(Icons.key, color: AppColors.primary),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
@@ -208,68 +356,17 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
-
-                    // Customer Support Info Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.support_agent_rounded, color: Colors.blue, size: 24),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  isEng
-                                      ? 'To purchase or request an annual subscription code, please contact system support.'
-                                      : 'للحصول على كود التفعيل السنوي وتجديد الاشتراك، يرجى التواصل مع خدمة العملاء أو مالك النظام.',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blue.shade900,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     // Admin Secret Key Generator (Protected by Manager Password)
                     TextButton.icon(
-                      onPressed: () async {
-                        final authorized = await ManagerAuthDialog.show(
-                          context,
-                          title: 'رمز أمان صاحب النظام 🔒',
-                          reason: 'أداة توليد كود التفعيل السنوي خاصة بمالك النظام وتتطلب كلمة سر المدير',
-                        );
-                        if (authorized == true) {
-                          _generateAdminSampleKey();
-                        }
-                      },
+                      onPressed: _showOwnerKeyGeneratorDialog,
                       icon: const Icon(Icons.admin_panel_settings_outlined, size: 16, color: Colors.grey),
                       label: Text(
-                        isEng ? 'Owner / Admin Generator 🔒' : 'توليد كود تفعيل (خاص بمالك النظام 🔒)',
+                        isEng ? 'Owner Key Generator (Locked) 🔒' : 'توليد كود جهاز لعميل (خاص بمالك النظام 🔒)',
                         style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
-                    if (_generatedSampleKey != null) ...[
-                      const SizedBox(height: 8),
-                      SelectableText(
-                        'كود التفعيل المولد: $_generatedSampleKey',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.purple),
-                      ),
-                    ],
                   ],
                 ),
               ),
