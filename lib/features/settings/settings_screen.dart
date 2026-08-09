@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
@@ -1090,6 +1091,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'icon': Icons.engineering_rounded,
         'color': Colors.red,
       },
+      {
+        'title': isEng ? 'About App' : 'حول البرنامج',
+        'subtitle': isEng ? 'App name, version & support contact' : 'اسم ورقم إصدار البرنامج ومعلومات الدعم',
+        'icon': Icons.info_outline_rounded,
+        'color': Colors.indigo,
+      },
     ];
 
     return Scaffold(
@@ -1318,6 +1325,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _buildBackupAndUpdatesTab(context, settings, isEng);
       case 4:
         return _buildMaintenanceTab(context, settings, isEng);
+      case 5:
+        return _buildAboutAppSection(context, settings, isEng);
       default:
         return _buildStoreAndReceiptTab(context, settings, isEng);
     }
@@ -2309,6 +2318,215 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAboutAppSection(BuildContext context, SettingsProvider settings, bool isEng) {
+    const supportPhone = '+9647502198213';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          child: Padding(
+            padding: const EdgeInsets.all(28.0),
+            child: Column(
+              children: [
+                // App Logo Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.storefront_rounded, size: 54, color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+
+                // App Name
+                Text(
+                  isEng ? 'HAPPY DAY POS SYSTEM' : 'نظام هابي داي لنقاط البيع المباشرة',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isEng
+                      ? 'Integrated Point of Sale & Restaurant Management System'
+                      : 'النظام المتكامل لإدارة المطاعم والعمليات والكاشير والمبيعات',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+
+                // App Version Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.indigo.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade700,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.verified_rounded, color: Colors.white, size: 26),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEng ? 'Software Version' : 'رقم إصدار البرنامج',
+                              style: TextStyle(fontSize: 12, color: Colors.indigo.shade900, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'v$_currentAppVersion',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.indigo),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isEng ? 'Latest Official Stable Release' : 'الإصدار الرسمي المعتمد للنظام',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          isEng ? 'Active License ✅' : 'مرخص ومفعل ✅',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Support Phone Number Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade700,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEng ? 'Technical Support Contact' : 'رقم الدعم الفني المباشر',
+                                  style: TextStyle(fontSize: 12, color: Colors.green.shade900, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                SelectableText(
+                                  supportPhone,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Clipboard.setData(const ClipboardData(text: supportPhone));
+                                TopNotification.showSuccess(
+                                  context,
+                                  isEng ? 'Support phone number copied: $supportPhone 📋' : 'تم نسخ رقم الدعم الفني بنجاح: $supportPhone 📋',
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              label: Text(
+                                isEng ? 'Copy Number 📋' : 'نسخ رقم الدعم 📋',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Copyright & Rights
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.copyright_rounded, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 6),
+                    Text(
+                      isEng
+                          ? 'Happy Day POS System © 2026. All Rights Reserved.'
+                          : 'حقوق الطبع والنشر © 2026 - نظام هابي داي لنقاط البيع. جميع الحقوق محفوظة.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
                 ),
               ],
             ),
