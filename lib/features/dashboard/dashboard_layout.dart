@@ -429,7 +429,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         selected: isSelected,
         selectedTileColor: primaryColor.withValues(alpha: 0.12),
@@ -465,7 +467,8 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           });
         },
       ),
-    );
+    ),
+  );
   }
 
 
