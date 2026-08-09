@@ -22,6 +22,8 @@ import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
 import 'settings_provider.dart';
+import '../../core/services/license_service.dart';
+import '../license/license_activation_screen.dart';
 
 
 class SettingsScreen extends StatefulWidget {
@@ -1931,6 +1933,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildLicenseSubscriptionSection(context, settings),
+        const SizedBox(height: 20),
         _buildBackupRestoreSection(context, settings),
         const SizedBox(height: 20),
 
@@ -2007,6 +2011,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLicenseSubscriptionSection(BuildContext context, SettingsProvider settings) {
+    final isEng = settings.isEnglish;
+    return FutureBuilder<LicenseInfo>(
+      future: LicenseService.instance.initAndGetLicenseInfo(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        final isActivated = info?.isActivated ?? false;
+        final daysRemaining = info?.daysRemaining ?? 0;
+        final isExpired = info?.isExpired ?? false;
+
+        return Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: isActivated
+                          ? Colors.green
+                          : (isExpired ? Colors.red : Colors.amber.shade800),
+                      child: Icon(
+                        isActivated
+                            ? Icons.verified_user_rounded
+                            : (isExpired ? Icons.lock_clock_rounded : Icons.hourglass_top_rounded),
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEng ? 'Software Subscription & License' : 'إدارة اشتراك وترخيص النظام',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isActivated
+                                ? (isEng
+                                    ? 'Annual Subscription Active (${daysRemaining}d remaining)'
+                                    : 'اشتراك سنوي مفعّل بنجاح (متبقي $daysRemaining يوماً)')
+                                : (isExpired
+                                    ? (isEng ? 'Trial Expired 🔒' : 'انتهت الفترة التجريبية (30 يوم) 🔒')
+                                    : (isEng
+                                        ? 'Free Trial Period ($daysRemaining days remaining)'
+                                        : 'فترة تجريبية مجانية (متبقي $daysRemaining يوماً من أصل 30 يوماً)')),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isActivated
+                                  ? Colors.green.shade800
+                                  : (isExpired ? Colors.red.shade800 : Colors.amber.shade900),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+                Text(
+                  isActivated
+                      ? (isEng
+                          ? 'Your annual subscription key is active. Key: ${info?.activationKey ?? ''}'
+                          : 'الاشتراك السنوي لـ HAPPY DAY POS مفعّل بنجاح. رمز التفعيل: ${info?.activationKey ?? ''}')
+                      : (isEng
+                          ? 'The app is running in free 30-day trial mode. Activate annual key anytime to extend.'
+                          : 'البرنامج يعمل حالياً بالنسخة التجريبية المجانية لمدة 30 يوماً. يمكنك إدخال رمز الاشتراك السنوي في أي وقت للتفعيل.'),
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LicenseActivationScreen(),
+                        ),
+                      );
+                      setState(() {});
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isActivated ? Colors.green.shade700 : AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: Icon(isActivated ? Icons.key_rounded : Icons.vpn_key_rounded),
+                    label: Text(
+                      isActivated
+                          ? (isEng ? 'Manage Subscription Key' : 'إدارة / تحديث كود الاشتراك 🔑')
+                          : (isEng ? 'Activate Annual Subscription 🔑' : 'إدخال كود التفعيل السنوي 🔑'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

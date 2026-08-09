@@ -26,6 +26,8 @@ import '../settings/sync_qr_widget.dart';
 import '../tables/tables_provider.dart';
 import '../orders/orders_provider.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
+import '../../core/services/license_service.dart';
+import '../license/license_activation_screen.dart';
 
 
 
@@ -39,6 +41,7 @@ class DashboardLayout extends StatefulWidget {
 class _DashboardLayoutState extends State<DashboardLayout> {
   int selectedIndex = 0;
   late final AppLifecycleListener _lifecycleListener;
+  LicenseInfo? _licenseInfo;
 
   @override
   void initState() {
@@ -56,6 +59,31 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       }
     });
 
+    _checkLicenseStatus();
+  }
+
+  Future<void> _checkLicenseStatus() async {
+    final info = await LicenseService.instance.initAndGetLicenseInfo();
+    if (!mounted) return;
+    setState(() {
+      _licenseInfo = info;
+    });
+
+    if (info.isExpired) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => LicenseActivationScreen(
+            isModalDialog: true,
+            onActivated: () {
+              _checkLicenseStatus();
+            },
+          ),
+        );
+      });
+    }
   }
 
   @override
@@ -250,6 +278,56 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                   ),
 
                   const SizedBox(width: 12),
+
+                  // License / Subscription Badge
+                  if (_licenseInfo != null) ...[
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LicenseActivationScreen(
+                              onActivated: () => _checkLicenseStatus(),
+                            ),
+                          ),
+                        );
+                        _checkLicenseStatus();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _licenseInfo!.isActivated
+                              ? Colors.green.shade800
+                              : (_licenseInfo!.isExpired ? Colors.red.shade800 : Colors.amber.shade900),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _licenseInfo!.isActivated
+                                  ? Icons.verified_user
+                                  : (_licenseInfo!.isExpired ? Icons.lock : Icons.hourglass_top),
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _licenseInfo!.isActivated
+                                  ? (isEng ? 'Annual (${_licenseInfo!.daysRemaining}d)' : 'اشتراك سنوي (${_licenseInfo!.daysRemaining} يوم)')
+                                  : (_licenseInfo!.isExpired
+                                      ? (isEng ? 'Expired 🔒' : 'منتهي 🔒')
+                                      : (isEng ? 'Trial (${_licenseInfo!.daysRemaining}d)' : 'تجريبي (متبقي ${_licenseInfo!.daysRemaining} يوم)')),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
 
                   // Waiter App Mobile Sync Button
                   ElevatedButton.icon(
