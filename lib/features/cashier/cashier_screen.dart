@@ -1112,7 +1112,6 @@ class _CashierScreenState extends State<CashierScreen> {
     if (!mounted) return;
     final ordersProvider = context.read<OrdersProvider>();
     final settingsProvider = context.read<SettingsProvider>();
-    final authProvider = context.read<AuthProvider>();
     final shiftsProvider = context.read<ShiftsProvider>();
 
     final completedCartCopy = List<OrderItemModel>.from(_cart);
@@ -2686,7 +2685,6 @@ class _CashierScreenState extends State<CashierScreen> {
                                 ),
                               ),
                             ],
-                          ),
                           ),
                         ),
                       ),
