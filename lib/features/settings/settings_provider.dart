@@ -37,6 +37,7 @@ class SettingsProvider extends ChangeNotifier {
   Locale get locale => Locale(appLanguage);
   bool get showTopNotifications => (_settings['show_top_notifications'] ?? 'false') == 'true';
   double get screenScale => double.tryParse(_settings['app_screen_scale'] ?? '1.0') ?? 1.0;
+  bool get autoOpenCashDrawer => (_settings['auto_open_cash_drawer'] ?? 'true') == 'true';
 
   Future<void> setShowTopNotifications(bool value) async {
     TopNotification.enabled = value;
