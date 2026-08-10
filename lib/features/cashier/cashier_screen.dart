@@ -1926,87 +1926,89 @@ class _CashierScreenState extends State<CashierScreen> {
     final isEng = context.watch<SettingsProvider>().isEnglish;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. كاش (Cash)
-          Expanded(
-            child: _aroniumActionButton(
-              label: isEng ? 'Pay Cash 💵' : 'الدفع Cash',
-              icon: Icons.payments_rounded,
-              color: Colors.green.shade700,
-              onTap: () => _submitOrderAndPrint(paymentMethod: 'CASH'),
-            ),
-          ),
-          const SizedBox(width: 8),
+          Row(
+            children: [
+              // 1. كاش (Cash)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: isEng ? 'Cash 💵' : 'الدفع Cash',
+                  icon: Icons.payments_rounded,
+                  color: Colors.green.shade700,
+                  onTap: () => _submitOrderAndPrint(paymentMethod: 'CASH'),
+                ),
+              ),
+              const SizedBox(width: 4),
 
-          // 2. تعليق الفاتورة (Hold / Park)
-          Expanded(
-            child: _aroniumActionButton(
-              label: isEng ? 'Hold Order ⏸️' : 'تعليق الفاتورة',
-              icon: Icons.pause_circle_filled_rounded,
-              color: Colors.deepOrange,
-              onTap: _holdOrderOnTable,
-            ),
-          ),
-          const SizedBox(width: 8),
+              // 2. تعليق الفاتورة (Hold / Park)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: isEng ? 'Hold ⏸️' : 'تعليق الفاتورة',
+                  icon: Icons.pause_circle_filled_rounded,
+                  color: Colors.deepOrange,
+                  onTap: _holdOrderOnTable,
+                ),
+              ),
+              const SizedBox(width: 4),
 
-          // 3. خصم (Discount)
-          Expanded(
-            child: _aroniumActionButton(
-              label: _discountAmount > 0
-                  ? (isEng ? 'Discount (${_discountAmount.toStringAsFixed(0)})' : 'خصم (${_discountAmount.toStringAsFixed(0)})')
-                  : (isEng ? 'Add Discount' : 'إضافة خصم'),
-              icon: Icons.percent_rounded,
-              color: Colors.purple.shade700,
-              badge: _discountAmount > 0 ? (isEng ? 'Active' : 'مفعل') : null,
-              onTap: _showDiscountDialog,
-            ),
+              // 3. خصم (Discount)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: _discountAmount > 0
+                      ? (isEng ? 'Disc (${_discountAmount.toStringAsFixed(0)})' : 'خصم (${_discountAmount.toStringAsFixed(0)})')
+                      : (isEng ? 'Add Disc' : 'إضافة خصم'),
+                  icon: Icons.percent_rounded,
+                  color: Colors.purple.shade700,
+                  badge: _discountAmount > 0 ? (isEng ? 'Active' : 'مفعل') : null,
+                  onTap: _showDiscountDialog,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              // 4. آجل / ديون (Credit / Debt)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: isEng ? 'Credit 📝' : 'الدفع آجل',
+                  icon: Icons.account_balance_wallet_rounded,
+                  color: Colors.indigo.shade700,
+                  onTap: () => _submitOrderAndPrint(paymentMethod: 'CREDIT'),
+                ),
+              ),
+              const SizedBox(width: 4),
 
-          // 4. آجل / ديون (Credit / Debt)
-          Expanded(
-            child: _aroniumActionButton(
-              label: isEng ? 'Credit / Debt 📝' : 'الدفع آجل (ديون)',
-              icon: Icons.account_balance_wallet_rounded,
-              color: Colors.indigo.shade700,
-              onTap: () => _submitOrderAndPrint(paymentMethod: 'CREDIT'),
-            ),
-          ),
-          const SizedBox(width: 8),
+              // 5. فتح الدرج (Open Drawer)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: isEng ? 'Drawer 🔑' : 'فتح الدرج',
+                  icon: Icons.meeting_room_rounded,
+                  color: Colors.teal.shade800,
+                  onTap: _openCashDrawer,
+                ),
+              ),
+              const SizedBox(width: 4),
 
-          // 5. فتح الدرج (Open Drawer)
-          Expanded(
-            child: _aroniumActionButton(
-              label: isEng ? 'Open Drawer 🔑' : 'فتح الدرج',
-              icon: Icons.meeting_room_rounded,
-              color: Colors.teal.shade800,
-              onTap: _openCashDrawer,
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // 6. استرجاع الفواتير (Refund)
-          Expanded(
-            child: _aroniumActionButton(
-              label: isEng ? 'Refund Receipts ↩️' : 'استرجاع الفواتير',
-              icon: Icons.assignment_return_rounded,
-              color: Colors.red.shade700,
-              onTap: _showRefundDialog,
-            ),
+              // 6. استرجاع الفواتير (Refund)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: isEng ? 'Refund ↩️' : 'استرجاع الفواتير',
+                  icon: Icons.assignment_return_rounded,
+                  color: Colors.red.shade700,
+                  onTap: _showRefundDialog,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -2144,73 +2146,11 @@ class _CashierScreenState extends State<CashierScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Row(
               children: [
-                // Left Pane: Categories / Items Grid View
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Aronium Quick Action Bar
-                      _buildAroniumQuickActionBar(context),
-
-                      // Search Bar (Full Width)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'ابحث عن صنف أو منتج...',
-                            prefixIcon: const Icon(Icons.search),
-                            isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          onChanged: (val) => productsProvider.setSearchQuery(val),
-                        ),
-                      ),
-
-                      // View Header Title
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                        child: Row(
-                          children: [
-                            Icon(
-                              showingCategoriesView ? Icons.category : Icons.fastfood,
-                              color: AppColors.primary,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              showingCategoriesView
-                                  ? (isEng ? 'Select Category to view items:' : 'اختر التصنيف لعرض الأصناف بداخله:')
-                                  : (isEng ? 'Category items: ${_getCategoryName(categoriesProvider, selectedCategoryId)}' : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}'),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Main Content View (Categories Grid OR Items Grid)
-                      Expanded(
-                        child: showingCategoriesView
-                            ? _buildCategoriesGrid(context, categoriesProvider, productsProvider)
-                            : _buildItemsGrid(context, productsProvider),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const VerticalDivider(width: 1),
-
-                // Right Pane: Cart Panel & Table Action Buttons
+                // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
                 Container(
-                  width: 390,
+                  width: 380,
                   color: Colors.white,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -2242,7 +2182,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         const SizedBox(height: 6),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.orange.shade50,
                             borderRadius: BorderRadius.circular(10),
@@ -2269,7 +2209,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         ),
                       ],
 
-                      const Divider(height: 20),
+                      const Divider(height: 14),
 
                       // Cart List
                       Expanded(
@@ -2278,9 +2218,9 @@ class _CashierScreenState extends State<CashierScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.remove_shopping_cart_outlined, size: 60, color: Colors.grey),
-                                    const SizedBox(height: 10),
-                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                                    const Icon(Icons.remove_shopping_cart_outlined, size: 55, color: Colors.grey),
+                                    const SizedBox(height: 8),
+                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: const TextStyle(color: Colors.grey, fontSize: 15)),
                                     const SizedBox(height: 4),
                                     Text(isEng ? 'Select an item from the list to add' : 'اختر المادة من القائمة لإضافتها', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                   ],
@@ -2294,7 +2234,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   return InkWell(
                                     onLongPress: () => _showEditCartItemDialog(index),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
                                       child: Row(
                                         children: [
                                           Expanded(
@@ -2303,61 +2243,80 @@ class _CashierScreenState extends State<CashierScreen> {
                                               children: [
                                                 Text(
                                                   item.productName ?? (isEng ? 'Item' : 'صنف'),
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
                                                 ),
                                                 Text(
                                                   '${item.price.toStringAsFixed(0)} $_currencySymbol',
-                                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
                                                 ),
                                                 if (item.notes != null && item.notes!.isNotEmpty)
                                                   Text(
                                                     '📌 ${item.notes}',
-                                                    style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
+                                                    style: const TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
                                                   ),
                                               ],
                                             ),
                                           ),
                                           Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
                                               IconButton(
-                                                icon: const Icon(Icons.remove_circle_outline, size: 20),
+                                                constraints: const BoxConstraints(),
+                                                padding: const EdgeInsets.all(2),
+                                                icon: const Icon(Icons.remove_circle_outline, size: 18),
                                                 onPressed: () => _updateQuantity(index, -1),
                                               ),
+                                              const SizedBox(width: 2),
                                               InkWell(
                                                 onTap: () => _showEditCartItemDialog(index),
                                                 child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                                   decoration: BoxDecoration(
                                                     color: AppColors.primary.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    borderRadius: BorderRadius.circular(4),
                                                   ),
                                                   child: Text(
                                                     item.formattedQuantity,
-                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
                                                   ),
                                                 ),
                                               ),
+                                              const SizedBox(width: 2),
                                               IconButton(
-                                                icon: const Icon(Icons.add_circle_outline, size: 20),
+                                                constraints: const BoxConstraints(),
+                                                padding: const EdgeInsets.all(2),
+                                                icon: const Icon(Icons.add_circle_outline, size: 18),
                                                 onPressed: () => _updateQuantity(index, 1),
                                               ),
                                             ],
                                           ),
+                                          const SizedBox(width: 2),
                                           IconButton(
-                                            icon: const Icon(Icons.edit_note, size: 20, color: Colors.blue),
+                                            constraints: const BoxConstraints(),
+                                            padding: const EdgeInsets.all(2),
+                                            icon: const Icon(Icons.edit_note, size: 18, color: Colors.blue),
                                             tooltip: isEng ? 'Edit price or qty' : 'تعديل السعر أو الوزن',
                                             onPressed: () => _showEditCartItemDialog(index),
                                           ),
-                                          SizedBox(
-                                            width: 70,
-                                            child: Text(
-                                              '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
-                                              textAlign: TextAlign.end,
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                              ),
                                             ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                                            constraints: const BoxConstraints(),
+                                            padding: const EdgeInsets.all(2),
+                                            icon: const Icon(Icons.close, size: 16, color: Colors.grey),
                                             onPressed: () => _removeFromCart(index),
                                           ),
                                         ],
@@ -2368,33 +2327,33 @@ class _CashierScreenState extends State<CashierScreen> {
                               ),
                       ),
 
-                      const Divider(height: 20),
+                      const Divider(height: 14),
 
                       // Order Total Details
                       if (_discountAmount > 0) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
-                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
-                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 13, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 13, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Net Total:' : 'الصافي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Net Total:' : 'الصافي:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             Text(
                               '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                           ],
                         ),
@@ -2402,21 +2361,21 @@ class _CashierScreenState extends State<CashierScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             Text(
                               '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                           ],
                         ),
                       ],
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
 
                       // Action Button (Cancel Invoice)
                       SizedBox(
                         width: double.infinity,
-                        height: 46,
+                        height: 40,
                         child: ElevatedButton(
                           onPressed: _cancelOrderAndGoHome,
                           style: ElevatedButton.styleFrom(
@@ -2426,9 +2385,46 @@ class _CashierScreenState extends State<CashierScreen> {
                           ),
                           child: const Text(
                             'إلغاء الفاتورة',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                         ),
+                      ),
+
+                      // Quick Action Buttons (Under Cart)
+                      _buildAroniumQuickActionBar(context),
+                    ],
+                  ),
+                ),
+
+                const VerticalDivider(width: 1),
+
+                // Left Pane (In RTL): Search Bar + Max-Expanded Products & Categories Grid View
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Search Bar (Full Width)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'ابحث عن صنف أو منتج...',
+                            prefixIcon: const Icon(Icons.search),
+                            isDense: true,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          onChanged: (val) => productsProvider.setSearchQuery(val),
+                        ),
+                      ),
+
+                      // Main Content View (Categories Grid OR Items Grid) - Maximized Space!
+                      Expanded(
+                        child: showingCategoriesView
+                            ? _buildCategoriesGrid(context, categoriesProvider, productsProvider)
+                            : _buildItemsGrid(context, productsProvider),
                       ),
                     ],
                   ),
@@ -2521,12 +2517,12 @@ class _CashierScreenState extends State<CashierScreen> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 130,
+        maxCrossAxisExtent: 105,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
@@ -2734,12 +2730,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final totalGridItems = products.length + 1;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 130,
+        maxCrossAxisExtent: 105,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
