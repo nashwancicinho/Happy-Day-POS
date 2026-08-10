@@ -1009,8 +1009,9 @@ class _CashierScreenState extends State<CashierScreen> {
     String? customerPhone;
     String? customerAddress;
 
+    final authProvider = context.read<AuthProvider>();
+
     if (paymentMethod == 'CREDIT') {
-      final authProvider = context.read<AuthProvider>();
       if (!authProvider.hasPermission(context, 'perm_cashier_allow_debt_sale')) {
         final authorized = await ManagerAuthDialog.show(
           context,
@@ -1065,7 +1066,6 @@ class _CashierScreenState extends State<CashierScreen> {
       await context.read<ProductsProvider>().loadProducts();
 
       if (!mounted) return;
-      final authProvider = context.read<AuthProvider>();
       final completedOrder = OrderModel(
         id: orderId,
         tableId: widget.selectedTable?.id,
@@ -2685,11 +2685,8 @@ class _CashierScreenState extends State<CashierScreen> {
                                   fontSize: 12,
                                 ),
                               ),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-
-                              ),
                             ],
+                          ),
                           ),
                         ),
                       ),
