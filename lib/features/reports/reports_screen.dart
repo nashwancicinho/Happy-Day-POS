@@ -883,14 +883,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     final generalPct = totalSales > 0 ? (generalExpenses / totalSales) * 100 : 0.0;
 
                     final customHeaders = isEng
-                        ? ['P&L Statement Line Item', 'Total Amount', '% of Gross Sales']
-                        : ['بند قائمة الأرباح والخسائر', 'المبلغ الإجمالي', 'النسبة المئوية من المبيعات'];
+                        ? ['P&L Line Item', 'Total Amount', '% Gross']
+                        : ['بند قائمة الأرباح والخسائر', 'المبلغ الإجمالي', 'النسبة'];
                     final customDataRows = [
-                      ['إجمالي مبيعات وإيرادات المتجر (100%)', '${totalSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '100.0%'],
-                      ['تكلفة المواد الأولية وخامات الأصناف (-)', '-${materialsCost.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${materialsPct.toStringAsFixed(1)}%'],
-                      ['مصاريف رواتب ومستحقات الموظفين (-)', '-${salaryExpenses.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${salaryPct.toStringAsFixed(1)}%'],
-                      ['النفقات والمصاريف التشغيلية الخزينة (-)', '-${generalExpenses.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${generalPct.toStringAsFixed(1)}%'],
-                      ['صافي ربح المتجر النهائي والأخير (=)', '${netStoreProfit.toStringAsFixed(0)} ${settingsProvider.currencySymbol}', '${netMarginPct.toStringAsFixed(1)}%'],
+                      [
+                        'إجمالي مبيعات وإيرادات المتجر (100%)',
+                        '${totalSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
+                        '100.0%',
+                      ],
+                      [
+                        'تكلفة المواد الأولية وخامات الأصناف (-)',
+                        '${materialsCost == 0 ? "0" : "-${materialsCost.toStringAsFixed(0)}"} ${settingsProvider.currencySymbol}',
+                        '${materialsPct.toStringAsFixed(1)}%',
+                      ],
+                      [
+                        'مصاريف رواتب ومستحقات الموظفين (-)',
+                        '${salaryExpenses == 0 ? "0" : "-${salaryExpenses.toStringAsFixed(0)}"} ${settingsProvider.currencySymbol}',
+                        '${salaryPct.toStringAsFixed(1)}%',
+                      ],
+                      [
+                        'النفقات والمصاريف التشغيلية الخزينة (-)',
+                        '${generalExpenses == 0 ? "0" : "-${generalExpenses.toStringAsFixed(0)}"} ${settingsProvider.currencySymbol}',
+                        '${generalPct.toStringAsFixed(1)}%',
+                      ],
+                      [
+                        'صافي ربح المتجر النهائي والأخير (=)',
+                        '${netStoreProfit.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
+                        '${netMarginPct.toStringAsFixed(1)}%',
+                      ],
                     ];
 
                     TopNotification.showInfo(context, isEng ? 'Sending Store P&L Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير أرباح وخسائر المتجر لـ [${settingsProvider.reportsPrinter}] وطباعته...');

@@ -895,12 +895,67 @@ class PrintService {
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
           margin: const pw.EdgeInsets.only(
-            right: 34,
-            left: 16,
+            right: 10,
+            left: 10,
             top: 6,
             bottom: 6,
           ),
           build: (pw.Context context) {
+            final headersList = customHeaders ?? ['اسم الصنف / المنتج', 'الكمية', 'المجموع'];
+            final rowsList = customDataRows ??
+                productBreakdown
+                    .map(
+                      (p) => [
+                        p['name'].toString(),
+                        '${p['qty']}',
+                        '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
+                      ],
+                    )
+                    .toList();
+
+            final int colCount = headersList.length;
+
+            Map<int, pw.TableColumnWidth> colWidths = {};
+            Map<int, pw.Alignment> cellAligns = {};
+            Map<int, pw.Alignment> headerAligns = {};
+
+            if (colCount == 3) {
+              colWidths = {
+                0: const pw.FlexColumnWidth(2.8),
+                1: const pw.FlexColumnWidth(2.2),
+                2: const pw.FlexColumnWidth(1.4),
+              };
+              cellAligns = {
+                0: pw.Alignment.centerRight,
+                1: pw.Alignment.centerLeft,
+                2: pw.Alignment.center,
+              };
+              headerAligns = {
+                0: pw.Alignment.centerRight,
+                1: pw.Alignment.centerLeft,
+                2: pw.Alignment.center,
+              };
+            } else if (colCount == 7) {
+              colWidths = {
+                0: const pw.FlexColumnWidth(2.0),
+                1: const pw.FlexColumnWidth(1.0),
+                2: const pw.FlexColumnWidth(1.3),
+                3: const pw.FlexColumnWidth(1.3),
+                4: const pw.FlexColumnWidth(1.3),
+                5: const pw.FlexColumnWidth(1.3),
+                6: const pw.FlexColumnWidth(1.5),
+              };
+              for (int i = 0; i < colCount; i++) {
+                cellAligns[i] = i == 0 ? pw.Alignment.centerRight : pw.Alignment.center;
+                headerAligns[i] = i == 0 ? pw.Alignment.centerRight : pw.Alignment.center;
+              }
+            } else {
+              for (int i = 0; i < colCount; i++) {
+                cellAligns[i] = i == 0 ? pw.Alignment.centerRight : pw.Alignment.centerLeft;
+                headerAligns[i] = i == 0 ? pw.Alignment.centerRight : pw.Alignment.centerLeft;
+              }
+            }
+
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Padding(
@@ -1077,37 +1132,24 @@ class PrintService {
 
                     // 4. Product Breakdown Table (Balanced column widths to prevent overflow)
                     pw.TableHelper.fromTextArray(
-                      headers:
-                          customHeaders ??
-                          ['اسم الصنف / المنتج', 'الكمية', 'المجموع'],
-                      data:
-                          customDataRows ??
-                          productBreakdown
-                              .map(
-                                (p) => [
-                                  p['name'].toString(),
-                                  '${p['qty']}',
-                                  '${(p['total'] as double).toStringAsFixed(0)} ${settings.currencySymbol}',
-                                ],
-                              )
-                              .toList(),
+                      headers: headersList,
+                      data: rowsList,
                       headerStyle: pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
                         fontSize: 8,
                       ),
-                      cellStyle: const pw.TextStyle(fontSize: 8),
+                      cellStyle: const pw.TextStyle(fontSize: 7.5),
                       border: pw.TableBorder.all(
-                        color: PdfColors.grey300,
+                        color: PdfColors.grey400,
                         width: 0.5,
                       ),
                       headerDecoration: const pw.BoxDecoration(
                         color: PdfColors.grey200,
                       ),
-                      columnWidths: {
-                        0: const pw.FlexColumnWidth(3.2),
-                        1: const pw.FlexColumnWidth(1.2),
-                        2: const pw.FlexColumnWidth(2.2),
-                      },
+                      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 3),
+                      cellAlignments: cellAligns,
+                      headerAlignments: headerAligns,
+                      columnWidths: colWidths.isNotEmpty ? colWidths : null,
                     ),
 
                     pw.SizedBox(height: 10),
