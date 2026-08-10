@@ -1083,7 +1083,19 @@ class _CashierScreenState extends State<CashierScreen> {
       final cartItemsCopy = List<OrderItemModel>.from(_cart);
       final settingsProvider = context.read<SettingsProvider>();
 
-      PrintService.printCustomerReceipt(
+      // 1. Print Kitchen Order Ticket (KOT) if needed
+      await PrintService.printKitchenTicket(
+        order: completedOrder,
+        items: cartItemsCopy,
+        settings: settingsProvider,
+        tableName: widget.selectedTable?.name,
+      ).catchError((e) {
+        debugPrint('Credit kitchen print error: $e');
+        return false;
+      });
+
+      // 2. Print Customer Receipt
+      await PrintService.printCustomerReceipt(
         order: completedOrder,
         items: cartItemsCopy,
         settings: settingsProvider,
@@ -1147,24 +1159,26 @@ class _CashierScreenState extends State<CashierScreen> {
       createdAt: DateTime.now().toIso8601String(),
     );
 
-    // 1. Direct Background Customer Receipt Print
-    PrintService.printCustomerReceipt(
+    // 1. Print Kitchen Order Ticket (KOT) first
+    await PrintService.printKitchenTicket(
       order: completedOrder,
       items: completedCartCopy,
       settings: settingsProvider,
       tableName: widget.selectedTable?.name,
     ).catchError((e) {
-      debugPrint('Direct print error: $e');
+      debugPrint('Kitchen ticket print error: $e');
       return false;
     });
 
-    // 2. Open Cash Drawer with retries after printing finishes so printer port is freed
-    Future.delayed(const Duration(milliseconds: 700), () async {
-      for (int i = 0; i < 3; i++) {
-        final success = await PrintService.openCashDrawer(settingsProvider);
-        if (success) break;
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
+    // 2. Print Customer Receipt
+    await PrintService.printCustomerReceipt(
+      order: completedOrder,
+      items: completedCartCopy,
+      settings: settingsProvider,
+      tableName: widget.selectedTable?.name,
+    ).catchError((e) {
+      debugPrint('Customer receipt print error: $e');
+      return false;
     });
 
 
