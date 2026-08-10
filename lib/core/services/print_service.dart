@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,66 +12,6 @@ import '../../models/salary_payment.dart';
 import '../../features/settings/settings_provider.dart';
 
 class PrintService {
-  static pw.Font? _cachedArabicFont;
-  static pw.Font? _cachedArabicFontBold;
-
-  /// جلب الخطوط العربية المعتمدة للطباعة (من الأصول المحلية أولاً لضمان العمل 100% بدون إنترنت)
-  static Future<Map<String, pw.Font>> getArabicFonts() async {
-    if (_cachedArabicFont != null && _cachedArabicFontBold != null) {
-      return {
-        'regular': _cachedArabicFont!,
-        'bold': _cachedArabicFontBold!,
-      };
-    }
-
-    // 1. Try loading from local assets (fastest & works 100% offline)
-    try {
-      final regularData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-      final boldData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
-      _cachedArabicFont = pw.Font.ttf(regularData);
-      _cachedArabicFontBold = pw.Font.ttf(boldData);
-      debugPrint('Successfully loaded Cairo local font assets for PDF printing');
-      return {
-        'regular': _cachedArabicFont!,
-        'bold': _cachedArabicFontBold!,
-      };
-    } catch (e) {
-      debugPrint('Could not load local font assets, attempting online Google Fonts fallback: $e');
-    }
-
-    // 2. Fallback to PdfGoogleFonts.cairo
-    try {
-      _cachedArabicFont = await PdfGoogleFonts.cairoRegular();
-      _cachedArabicFontBold = await PdfGoogleFonts.cairoBold();
-      return {
-        'regular': _cachedArabicFont!,
-        'bold': _cachedArabicFontBold!,
-      };
-    } catch (e) {
-      debugPrint('Could not fetch Cairo Google font: $e');
-    }
-
-    // 3. Fallback to PdfGoogleFonts.amiri
-    try {
-      _cachedArabicFont = await PdfGoogleFonts.amiriRegular();
-      _cachedArabicFontBold = await PdfGoogleFonts.amiriBold();
-      return {
-        'regular': _cachedArabicFont!,
-        'bold': _cachedArabicFontBold!,
-      };
-    } catch (e) {
-      debugPrint('Could not fetch Amiri Google font: $e');
-    }
-
-    // 4. Final safety fallback
-    _cachedArabicFont ??= pw.Font.helvetica();
-    _cachedArabicFontBold ??= pw.Font.helveticaBold();
-    return {
-      'regular': _cachedArabicFont!,
-      'bold': _cachedArabicFontBold!,
-    };
-  }
-
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر مستخدمين الحزمة الرسمية للنظام
   static Future<List<Printer>> getSystemPrinters() async {
@@ -88,7 +27,7 @@ class PrintService {
     }
   }
 
-  /// البحث عن طابعة محددة بالاسم أو إرجاع الطابعة المناسبة
+  /// البحث عن طابعة محددة بالاسم أو إرجاع الطابعة الافتراضية
   static Future<Printer?> findTargetPrinter(String printerName) async {
     final printers = await getSystemPrinters();
     if (printers.isEmpty) return null;
@@ -100,17 +39,7 @@ class PrintService {
 
     final rawLower = rawName.toLowerCase();
 
-    // 1. Exact match on raw name or URL
-    final exact = printers
-        .where(
-          (p) =>
-              p.name.toLowerCase() == rawLower ||
-              p.url.toLowerCase() == rawLower,
-        )
-        .firstOrNull;
-    if (exact != null) return exact;
-
-    // 2. Extract model inside parentheses e.g. "طابعة الكاشير الرئيسية (POS-80)" -> "POS-80"
+    // 1. Check if name has text inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
     final matchInParen = RegExp(r'\((.*?)\)').firstMatch(rawName);
     if (matchInParen != null) {
       final inside = matchInParen
@@ -119,7 +48,7 @@ class PrintService {
           .toLowerCase()
           .replaceAll('_', ' ')
           .replaceAll('-', ' ');
-      if (inside.isNotEmpty && !inside.contains('default')) {
+      if (inside.isNotEmpty && inside != 'default printer') {
         final parenMatch = printers.where((p) {
           final pName = p.name
               .toLowerCase()
@@ -137,7 +66,7 @@ class PrintService {
       }
     }
 
-    // 3. Strip common Arabic terms to find actual printer model name
+    // 2. Strip common Arabic prefixes to leave clean printer model name
     String cleanName = rawName
         .replaceAll(
           RegExp(r'طابعة\s*الكاشير\s*الرئيسية', caseSensitive: false),
@@ -154,7 +83,7 @@ class PrintService {
         .replaceAll('_', ' ')
         .replaceAll('-', ' ');
 
-    if (cleanName.isNotEmpty && !cleanName.contains('default')) {
+    if (cleanName.isNotEmpty) {
       final match = printers.where((p) {
         final pName = p.name
             .toLowerCase()
@@ -172,24 +101,45 @@ class PrintService {
       if (match != null) return match;
     }
 
-    // 4. If explicitly asking for default printer
-    if (rawLower.contains('الافتراضية') || rawLower.contains('default')) {
-      return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
-    }
+    // 3. Exact match on raw string
+    final exact = printers
+        .where(
+          (p) =>
+              p.name.toLowerCase() == rawLower ||
+              p.url.toLowerCase() == rawLower,
+        )
+        .firstOrNull;
+    if (exact != null) return exact;
 
-    // 5. Smart auto-detect POS / thermal printer model
+    // 4. Substring match on raw string
+    final cleanTrimmed = rawLower.replaceAll('_', ' ').replaceAll('-', ' ');
+    final matchPartial = printers.where((p) {
+      final pNameLower = p.name
+          .toLowerCase()
+          .replaceAll('_', ' ')
+          .replaceAll('-', ' ');
+      final pUrlLower = p.url
+          .toLowerCase()
+          .replaceAll('_', ' ')
+          .replaceAll('-', ' ');
+      return cleanTrimmed.contains(pNameLower) ||
+          pNameLower.contains(cleanTrimmed) ||
+          pUrlLower.contains(cleanTrimmed);
+    }).firstOrNull;
+    if (matchPartial != null) return matchPartial;
+
+    // 5. Smart auto-detect thermal / receipt / label printer models
     final thermalKeywords = [
-      'pos',
-      'xprint',
       'xprinter',
       'xp-',
       '365b',
       '420b',
+      'pos',
       'receipt',
       'thermal',
+      'tsc',
       'epson',
       'star',
-      'tsc',
       'gprinter',
       'bixolon',
       'citizen',
@@ -202,11 +152,16 @@ class PrintService {
     }).firstOrNull;
     if (thermalPrinter != null) return thermalPrinter;
 
-    // 6. Fallback to OS default printer
+    // 6. Check explicitly if user requested default printer
+    if (rawLower.contains('الافتراضية') || rawLower.contains('default')) {
+      return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
+    }
+
+    // 7. Fallback to default printer or first available printer
     return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
   }
 
-  /// إرسال مستند PDF للطباعة المباشرة على طابعة الكاشير أو المطبخ
+  /// إرسال مستند PDF للطباعة مع دعم متكامل ومضمون 100% لنظام macOS و Windows و Linux
   static Future<bool> sendPdfToPrinter({
     required Uint8List pdfBytes,
     required String printerNameConfig,
@@ -216,42 +171,23 @@ class PrintService {
       final targetPrinter = await findTargetPrinter(printerNameConfig);
 
       if (targetPrinter != null) {
-        // Attempt 1: Direct print with roll80 format
         try {
           final success = await Printing.directPrintPdf(
             printer: targetPrinter,
             onLayout: (format) async => pdfBytes,
             name: docName,
             format: PdfPageFormat.roll80,
+            usePrinterSettings: true,
           );
           if (success) {
             debugPrint(
-              'Successfully printed directly to ${targetPrinter.name} (Attempt 1)',
+              'Successfully printed directly to ${targetPrinter.name}',
             );
             return true;
           }
         } catch (e) {
           debugPrint(
-            'Printing.directPrintPdf attempt 1 failed on ${targetPrinter.name}: $e',
-          );
-        }
-
-        // Attempt 2: Direct print without format override
-        try {
-          final success = await Printing.directPrintPdf(
-            printer: targetPrinter,
-            onLayout: (format) async => pdfBytes,
-            name: docName,
-          );
-          if (success) {
-            debugPrint(
-              'Successfully printed directly to ${targetPrinter.name} (Attempt 2)',
-            );
-            return true;
-          }
-        } catch (e) {
-          debugPrint(
-            'Printing.directPrintPdf attempt 2 failed on ${targetPrinter.name}: $e',
+            'Printing.directPrintPdf failed on ${targetPrinter.name}: $e',
           );
         }
       }
@@ -278,9 +214,15 @@ class PrintService {
     double changeDue = 0.0,
   }) async {
     try {
-      final fonts = await getArabicFonts();
-      final arabicFont = fonts['regular']!;
-      final arabicFontBold = fonts['bold']!;
+      pw.Font arabicFont;
+      pw.Font arabicFontBold;
+      try {
+        arabicFont = await PdfGoogleFonts.amiriRegular();
+        arabicFontBold = await PdfGoogleFonts.amiriBold();
+      } catch (_) {
+        arabicFont = await PdfGoogleFonts.cairoRegular();
+        arabicFontBold = await PdfGoogleFonts.cairoBold();
+      }
 
       // Load logo image if path exists
       pw.MemoryImage? logoImage;
@@ -737,22 +679,27 @@ class PrintService {
 
       final pdfBytes = await pdf.save();
 
-      // 1. Send Customer Invoice PDF to printer first
+      // 1. Send instant raw cash drawer pulse BEFORE PDF spooling locks the printer port
+      openCashDrawer(settings).catchError((e) {
+        debugPrint('Pre-spool open cash drawer error: $e');
+        return false;
+      });
+
+      // 2. Send Customer Invoice PDF to printer
       final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
         printerNameConfig: settings.cashierPrinter,
         docName: 'Invoice_${order.id ?? 1}',
       );
 
-      // 2. Open Cash Drawer AFTER PDF printing completes (prevents USB spooler port collisions)
-      if (printResult) {
-        Future.delayed(const Duration(milliseconds: 250), () {
-          openCashDrawer(settings).catchError((e) {
-            debugPrint('Post-print open cash drawer error: $e');
-            return false;
-          });
-        });
-      }
+      // 3. Backup attempt: retry cash drawer pulse after PDF spooling releases printer handle
+      Future.delayed(const Duration(milliseconds: 700), () async {
+        for (int attempt = 0; attempt < 3; attempt++) {
+          final success = await openCashDrawer(settings);
+          if (success) break;
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      });
 
       return printResult;
     } catch (e) {
@@ -770,16 +717,26 @@ class PrintService {
   }) async {
     try {
       final kitchenItems = items.where((item) => item.printToKitchen).toList();
-      final itemsToPrint = kitchenItems.isNotEmpty ? kitchenItems : items;
-      if (itemsToPrint.isEmpty) return true;
+      if (kitchenItems.isEmpty) {
+        debugPrint(
+          'No items in this order have printToKitchen enabled. Skipping kitchen printing.',
+        );
+        return true;
+      }
 
-      final fonts = await getArabicFonts();
-      final arabicFont = fonts['regular']!;
-      final arabicFontBold = fonts['bold']!;
+      pw.Font arabicFont;
+      pw.Font arabicFontBold;
+      try {
+        arabicFont = await PdfGoogleFonts.amiriRegular();
+        arabicFontBold = await PdfGoogleFonts.amiriBold();
+      } catch (_) {
+        arabicFont = await PdfGoogleFonts.cairoRegular();
+        arabicFontBold = await PdfGoogleFonts.cairoBold();
+      }
 
       // Group items by target kitchen printer
       final Map<String, List<OrderItemModel>> itemsByPrinter = {};
-      for (var item in itemsToPrint) {
+      for (var item in kitchenItems) {
         final targetPrinter =
             (item.kitchenPrinter != null && item.kitchenPrinter!.isNotEmpty)
             ? item.kitchenPrinter!
@@ -927,9 +884,8 @@ class PrintService {
     required SettingsProvider settings,
   }) async {
     try {
-      final fonts = await getArabicFonts();
-      final arabicFont = fonts['regular']!;
-      final arabicFontBold = fonts['bold']!;
+      final arabicFont = await PdfGoogleFonts.cairoRegular();
+      final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
@@ -1158,7 +1114,7 @@ class PrintService {
                     pw.Divider(thickness: 0.5),
                     pw.Center(
                       child: pw.Text(
-                        'نظام CASHBOX POS للتقارير',
+                        'نظام HAPPY DAY POS للتقارير',
                         style: const pw.TextStyle(fontSize: 7.5),
                         textAlign: pw.TextAlign.center,
                       ),
@@ -1406,24 +1362,83 @@ Write-Output "False"
           }
         }
 
-        // Clean target queue name for CUPS (e.g. Xprinter XP-365B -> Xprinter_XP_365B)
-        final cleanQ = queueName.trim().replaceAll(' ', '_');
-
-        if (cleanQ.isNotEmpty) {
-          try {
-            await Process.run('cupsenable', [cleanQ]);
-            await Process.run('cupsaccept', [cleanQ]);
-          } catch (_) {}
-
-          final res = await Process.run('lpr', ['-P', cleanQ, file.path]);
-          if (res.exitCode == 0) return true;
+        final queueNames = <String>{};
+        if (queueName.isNotEmpty) {
+          queueNames.add(queueName);
+          queueNames.add(queueName.replaceAll(' ', '_'));
         }
 
-        // Fallback default lpr
+        // Get exact system CUPS queue names via lpstat -e & lpstat -p
         try {
-          final resDefault = await Process.run('lpr', [file.path]);
-          if (resDefault.exitCode == 0) return true;
+          final res = await Process.run('lpstat', ['-e']);
+          if (res.exitCode == 0) {
+            final lines = res.stdout.toString().split('\n');
+            for (var l in lines) {
+              final q = l.trim();
+              if (q.isNotEmpty) {
+                queueNames.add(q);
+                queueNames.add(q.replaceAll(' ', '_'));
+              }
+            }
+          }
         } catch (_) {}
+
+        try {
+          final systemPrinters = await Printing.listPrinters();
+          for (var p in systemPrinters) {
+            if (p.name.isNotEmpty && !p.name.contains('الافتراضية')) {
+              queueNames.add(p.name);
+              queueNames.add(p.name.replaceAll(' ', '_'));
+            }
+          }
+        } catch (_) {}
+
+        // Auto-enable & accept any paused or offline CUPS queues on macOS/Linux
+        for (var q in queueNames) {
+          try {
+            await Process.run('cupsenable', [q]);
+            await Process.run('cupsaccept', [q]);
+          } catch (_) {}
+        }
+
+        bool anySuccess = false;
+        for (var qName in queueNames) {
+          final List<List<String>> commandsToTry = [
+            ['lpr', '-P', qName, '-o', 'raw', file.path],
+            ['lpr', '-P', qName, file.path],
+            ['lp', '-d', qName, '-o', 'raw', file.path],
+            ['lp', '-d', qName, file.path],
+          ];
+
+          for (var cmd in commandsToTry) {
+            final res = await Process.run(cmd[0], cmd.sublist(1));
+            debugPrint(
+              'macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}',
+            );
+            if (res.exitCode == 0) {
+              anySuccess = true;
+              break;
+            }
+          }
+        }
+
+        // Fallback default lpr/lp
+        if (!anySuccess) {
+          for (var cmd in [
+            ['lpr', '-o', 'raw', file.path],
+            ['lpr', file.path],
+            ['lp', '-o', 'raw', file.path],
+            ['lp', file.path],
+          ]) {
+            final res = await Process.run(cmd[0], cmd.sublist(1));
+            if (res.exitCode == 0) {
+              anySuccess = true;
+              break;
+            }
+          }
+        }
+
+        if (anySuccess) return true;
       } catch (e) {
         debugPrint('macOS/Linux raw spool failed: $e');
       }
@@ -1515,9 +1530,8 @@ Write-Output "False"
     required SettingsProvider settings,
   }) async {
     try {
-      final fonts = await getArabicFonts();
-      final arabicFont = fonts['regular']!;
-      final arabicFontBold = fonts['bold']!;
+      final arabicFont = await PdfGoogleFonts.cairoRegular();
+      final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
       final barcodeData =
           (product.barcode != null && product.barcode!.isNotEmpty)
@@ -1607,9 +1621,15 @@ Write-Output "False"
     required SettingsProvider settings,
   }) async {
     try {
-      final fonts = await getArabicFonts();
-      final arabicFont = fonts['regular']!;
-      final arabicFontBold = fonts['bold']!;
+      pw.Font arabicFont;
+      pw.Font arabicFontBold;
+      try {
+        arabicFont = await PdfGoogleFonts.amiriRegular();
+        arabicFontBold = await PdfGoogleFonts.amiriBold();
+      } catch (_) {
+        arabicFont = await PdfGoogleFonts.cairoRegular();
+        arabicFontBold = await PdfGoogleFonts.cairoBold();
+      }
 
       final pdf = pw.Document();
       final pageFormat = PdfPageFormat(220, double.infinity, marginAll: 8);
@@ -1755,4 +1775,3 @@ Write-Output "False"
     }
   }
 }
-
