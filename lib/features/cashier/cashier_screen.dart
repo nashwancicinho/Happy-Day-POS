@@ -2274,8 +2274,8 @@ class _CashierScreenState extends State<CashierScreen> {
                                       padding: const EdgeInsets.symmetric(vertical: 4),
                                       child: Row(
                                         children: [
-                                          // Product Name & Unit Price
-                                          Expanded(
+                                          // Product Name & Unit Price Column (Far Right)
+                                          Flexible(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               mainAxisSize: MainAxisSize.min,
@@ -2301,7 +2301,9 @@ class _CashierScreenState extends State<CashierScreen> {
                                               ],
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
+
+                                          // Large dynamic gap between Product Name (المادة) and minus "-" button (علامة -)
+                                          const Spacer(),
 
                                           // Quantity Controls (- 1 +)
                                           Row(

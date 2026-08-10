@@ -88,25 +88,29 @@ class PrintService {
     }
   }
 
-  /// البحث عن طابعة محددة بالاسم أو إرجاع الطابعة الافتراضية
+  /// البحث عن طابعة محددة بالاسم أو إرجاع الطابعة المناسبة
   static Future<Printer?> findTargetPrinter(String printerName) async {
     final printers = await getSystemPrinters();
     if (printers.isEmpty) return null;
 
     final rawName = printerName.trim();
-    final rawLower = rawName.toLowerCase();
-
-    // 0. If default configuration text or requested default printer, use default system printer directly
-    if (rawName.isEmpty ||
-        rawName == 'طابعة الكاشير الرئيسية (POS-80)' ||
-        rawName == 'طابعة المطبخ الحرارية (KOT-Kitchen)' ||
-        rawName == 'طابعة النظام الافتراضية (Default Printer)' ||
-        rawLower.contains('الافتراضية') ||
-        rawLower.contains('default')) {
+    if (rawName.isEmpty) {
       return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
     }
 
-    // 1. Check if name has text inside parentheses e.g. "طابعة الكاشير الرئيسية (Xprinter XP-365B)" -> "Xprinter XP-365B"
+    final rawLower = rawName.toLowerCase();
+
+    // 1. Exact match on raw name or URL
+    final exact = printers
+        .where(
+          (p) =>
+              p.name.toLowerCase() == rawLower ||
+              p.url.toLowerCase() == rawLower,
+        )
+        .firstOrNull;
+    if (exact != null) return exact;
+
+    // 2. Extract model inside parentheses e.g. "طابعة الكاشير الرئيسية (POS-80)" -> "POS-80"
     final matchInParen = RegExp(r'\((.*?)\)').firstMatch(rawName);
     if (matchInParen != null) {
       final inside = matchInParen
@@ -115,7 +119,7 @@ class PrintService {
           .toLowerCase()
           .replaceAll('_', ' ')
           .replaceAll('-', ' ');
-      if (inside.isNotEmpty && inside != 'default printer') {
+      if (inside.isNotEmpty && !inside.contains('default')) {
         final parenMatch = printers.where((p) {
           final pName = p.name
               .toLowerCase()
@@ -133,7 +137,7 @@ class PrintService {
       }
     }
 
-    // 2. Strip common Arabic prefixes to leave clean printer model name
+    // 3. Strip common Arabic terms to find actual printer model name
     String cleanName = rawName
         .replaceAll(
           RegExp(r'طابعة\s*الكاشير\s*الرئيسية', caseSensitive: false),
@@ -150,7 +154,7 @@ class PrintService {
         .replaceAll('_', ' ')
         .replaceAll('-', ' ');
 
-    if (cleanName.isNotEmpty) {
+    if (cleanName.isNotEmpty && !cleanName.contains('default')) {
       final match = printers.where((p) {
         final pName = p.name
             .toLowerCase()
@@ -168,45 +172,23 @@ class PrintService {
       if (match != null) return match;
     }
 
-    // 3. Exact match on raw string
-    final exact = printers
-        .where(
-          (p) =>
-              p.name.toLowerCase() == rawLower ||
-              p.url.toLowerCase() == rawLower,
-        )
-        .firstOrNull;
-    if (exact != null) return exact;
+    // 4. If explicitly asking for default printer
+    if (rawLower.contains('الافتراضية') || rawLower.contains('default')) {
+      return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
+    }
 
-    // 4. Substring match on raw string
-    final cleanTrimmed = rawLower.replaceAll('_', ' ').replaceAll('-', ' ');
-    final matchPartial = printers.where((p) {
-      final pNameLower = p.name
-          .toLowerCase()
-          .replaceAll('_', ' ')
-          .replaceAll('-', ' ');
-      final pUrlLower = p.url
-          .toLowerCase()
-          .replaceAll('_', ' ')
-          .replaceAll('-', ' ');
-      return cleanTrimmed.contains(pNameLower) ||
-          pNameLower.contains(cleanTrimmed) ||
-          pUrlLower.contains(cleanTrimmed);
-    }).firstOrNull;
-    if (matchPartial != null) return matchPartial;
-
-    // 5. Smart auto-detect thermal / receipt / label printer models
+    // 5. Smart auto-detect POS / thermal printer model
     final thermalKeywords = [
+      'pos',
       'xprinter',
       'xp-',
       '365b',
       '420b',
-      'pos',
       'receipt',
       'thermal',
-      'tsc',
       'epson',
       'star',
+      'tsc',
       'gprinter',
       'bixolon',
       'citizen',
@@ -219,11 +201,11 @@ class PrintService {
     }).firstOrNull;
     if (thermalPrinter != null) return thermalPrinter;
 
-    // 6. Fallback to default printer or first available printer
+    // 6. Fallback to OS default printer
     return printers.where((p) => p.isDefault).firstOrNull ?? printers.first;
   }
 
-  /// إرسال مستند PDF للطباعة مع دعم متكامل ومضمون 100% لنظام macOS و Windows و Linux
+  /// إرسال مستند PDF للطباعة المباشرة على طابعة الكاشير أو المطبخ
   static Future<bool> sendPdfToPrinter({
     required Uint8List pdfBytes,
     required String printerNameConfig,
@@ -240,7 +222,6 @@ class PrintService {
             onLayout: (format) async => pdfBytes,
             name: docName,
             format: PdfPageFormat.roll80,
-            usePrinterSettings: true,
           );
           if (success) {
             debugPrint(
@@ -254,7 +235,7 @@ class PrintService {
           );
         }
 
-        // Attempt 2: Direct print standard mode without forcing driver overrides
+        // Attempt 2: Direct print without format override
         try {
           final success = await Printing.directPrintPdf(
             printer: targetPrinter,
@@ -755,27 +736,22 @@ class PrintService {
 
       final pdfBytes = await pdf.save();
 
-      // 1. Send instant raw cash drawer pulse BEFORE PDF spooling locks the printer port
-      openCashDrawer(settings).catchError((e) {
-        debugPrint('Pre-spool open cash drawer error: $e');
-        return false;
-      });
-
-      // 2. Send Customer Invoice PDF to printer
+      // 1. Send Customer Invoice PDF to printer first
       final printResult = await sendPdfToPrinter(
         pdfBytes: pdfBytes,
         printerNameConfig: settings.cashierPrinter,
         docName: 'Invoice_${order.id ?? 1}',
       );
 
-      // 3. Backup attempt: retry cash drawer pulse after PDF spooling releases printer handle
-      Future.delayed(const Duration(milliseconds: 700), () async {
-        for (int attempt = 0; attempt < 3; attempt++) {
-          final success = await openCashDrawer(settings);
-          if (success) break;
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
-      });
+      // 2. Open Cash Drawer AFTER PDF printing completes (prevents USB spooler port collisions)
+      if (printResult) {
+        Future.delayed(const Duration(milliseconds: 250), () {
+          openCashDrawer(settings).catchError((e) {
+            debugPrint('Post-print open cash drawer error: $e');
+            return false;
+          });
+        });
+      }
 
       return printResult;
     } catch (e) {
@@ -1837,3 +1813,4 @@ Write-Output "False"
     }
   }
 }
+
