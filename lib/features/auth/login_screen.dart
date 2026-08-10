@@ -663,40 +663,53 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Header Logo & Branding
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.storefront_rounded,
-                                size: 36,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isEng ? 'CashBox POS System' : 'نظام CashBox POS لنقاط البيع',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                Text(
-                                  isEng ? 'Please sign in to continue' : 'يرجى تسجيل الدخول لمتابعة العمل',
-                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                          ],
+                            child: Image.asset(
+                              'assets/images/cashbox_logo.png',
+                              height: 85,
+                              fit: BoxFit.contain,
+                              errorBuilder: (ctx, err, stack) => Icon(
+                                Icons.point_of_sale,
+                                size: 65,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                isEng ? 'CashBox POS System' : 'نظام CashBox POS لنقاط البيع',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                isEng ? 'Please sign in to continue' : 'يرجى تسجيل الدخول لمتابعة العمل',
+                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 18),
 
