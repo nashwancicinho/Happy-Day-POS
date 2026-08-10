@@ -1181,7 +1181,7 @@ class PrintService {
                     pw.Divider(thickness: 0.5),
                     pw.Center(
                       child: pw.Text(
-                        'نظام HAPPY DAY POS للتقارير',
+                        'نظام CASHBOX POS للتقارير',
                         style: const pw.TextStyle(fontSize: 7.5),
                         textAlign: pw.TextAlign.center,
                       ),

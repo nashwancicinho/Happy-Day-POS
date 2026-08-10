@@ -256,7 +256,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                           const Icon(Icons.storefront, size: 44, color: Colors.white),
                           const SizedBox(height: 8),
                           const Text(
-                            "HAPPY DAY POS",
+                            "CASHBOX POS",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -313,7 +313,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                 ),
               ),
               title: const Text(
-                "HAPPY DAY POS",
+                "CASHBOX POS",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               actions: [

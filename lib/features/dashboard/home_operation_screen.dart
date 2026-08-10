@@ -18,7 +18,7 @@ class HomeOperationScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isEng ? "Welcome to HAPPY DAY POS 👋" : "مرحباً بك في نظام HAPPY DAY POS 👋",
+            isEng ? "Welcome to CASHBOX POS 👋" : "مرحباً بك في نظام CASHBOX POS 👋",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),

@@ -1,7 +1,7 @@
 class AppTranslation {
   static const Map<String, Map<String, String>> _localizedValues = {
     'ar': {
-      'app_title': 'HAPPY DAY POS - نظام إدارة المبيعات',
+      'app_title': 'CASHBOX POS - نظام إدارة المبيعات',
       'language_title': 'لغة البرنامج (Language)',
       'select_language': 'اختر لغة واجهة النظام:',
       'arabic': 'العربية (Arabic)',
@@ -65,7 +65,7 @@ class AppTranslation {
       'table': 'الطاولة',
     },
     'en': {
-      'app_title': 'HAPPY DAY POS System',
+      'app_title': 'CASHBOX POS System',
       'language_title': 'App Language',
       'select_language': 'Select Application Interface Language:',
       'arabic': 'العربية (Arabic)',

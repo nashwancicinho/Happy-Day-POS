@@ -118,7 +118,7 @@ class LocalServerService extends ChangeNotifier {
       if (request.method == 'GET' && path == '/api/info') {
         await _jsonResponse(request.response, {
           'status': 'online',
-          'appName': 'Happy Day POS',
+          'appName': 'CashBox POS',
           'ip': _serverIp,
           'port': _port,
         });

@@ -109,7 +109,7 @@ class HappyDayPOS extends StatelessWidget {
           final isMobile = Platform.isAndroid || Platform.isIOS;
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: isMobile ? 'تطبيق النادل - Happy Day POS' : 'Happy Day POS (Aronium Edition)',
+            title: isMobile ? 'تطبيق النادل - CashBox POS' : 'CashBox POS',
             theme: AppTheme.getTheme(settings.primaryColor),
             locale: settings.locale,
             supportedLocales: const [

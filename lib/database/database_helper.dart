@@ -167,7 +167,7 @@ class DatabaseHelper {
       ''');
       final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM settings')) ?? 0;
       if (count == 0) {
-        await db.insert('settings', {'key': 'store_name', 'value': 'HAPPY DAY POS'});
+        await db.insert('settings', {'key': 'store_name', 'value': 'CASHBOX POS'});
         await db.insert('settings', {'key': 'store_phone', 'value': ''});
         await db.insert('settings', {'key': 'store_address', 'value': ''});
         await db.insert('settings', {'key': 'tax_rate', 'value': '0.0'});
@@ -427,7 +427,7 @@ class DatabaseHelper {
 
   Future<void> _seedMinimalDefaults(Database db) async {
     // Default Settings
-    await db.insert('settings', {'key': 'store_name', 'value': 'HAPPY DAY POS'});
+    await db.insert('settings', {'key': 'store_name', 'value': 'CASHBOX POS'});
     await db.insert('settings', {'key': 'store_phone', 'value': ''});
     await db.insert('settings', {'key': 'store_address', 'value': ''});
     await db.insert('settings', {'key': 'tax_rate', 'value': '0.0'});

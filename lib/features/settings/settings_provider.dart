@@ -15,7 +15,7 @@ class SettingsProvider extends ChangeNotifier {
   Map<String, String> get settings => _settings;
   bool get isLoading => _isLoading;
 
-  String get storeName => _settings['store_name'] ?? 'HAPPY DAY POS';
+  String get storeName => _settings['store_name'] ?? 'CASHBOX POS';
   String get storePhone => _settings['store_phone'] ?? '';
   String get storeAddress => _settings['store_address'] ?? '';
   double get taxRate => double.tryParse(_settings['tax_rate'] ?? '0.0') ?? 0.0;

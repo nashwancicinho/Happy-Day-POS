@@ -2364,7 +2364,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // App Name
                 Text(
-                  isEng ? 'HAPPY DAY POS SYSTEM' : 'نظام هابي داي لنقاط البيع المباشرة',
+                  isEng ? 'CASHBOX POS SYSTEM' : 'نظام CashBox POS لنقاط البيع المباشرة',
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                   textAlign: TextAlign.center,
                 ),
@@ -2526,8 +2526,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 6),
                     Text(
                       isEng
-                          ? 'Happy Day POS System © 2026. All Rights Reserved.'
-                          : 'حقوق الطبع والنشر © 2026 - نظام هابي داي لنقاط البيع. جميع الحقوق محفوظة.',
+                          ? 'CashBox POS System © 2026. All Rights Reserved.'
+                          : 'حقوق الطبع والنشر © 2026 - نظام CashBox POS لنقاط البيع. جميع الحقوق محفوظة.',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],

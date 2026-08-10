@@ -7,7 +7,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("HAPPY DAY POS"),
+        title: const Text("CASHBOX POS"),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
@@ -70,7 +70,7 @@ class DashboardScreen extends StatelessWidget {
           const Expanded(
             child: Center(
               child: Text(
-                "مرحبًا بك في HAPPY DAY POS",
+                "مرحبًا بك في CASHBOX POS",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ),

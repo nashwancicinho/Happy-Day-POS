@@ -683,7 +683,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  isEng ? 'Happy Day POS System' : 'نظام هابي داي لنقاط البيع',
+                                  isEng ? 'CashBox POS System' : 'نظام CashBox POS لنقاط البيع',
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,

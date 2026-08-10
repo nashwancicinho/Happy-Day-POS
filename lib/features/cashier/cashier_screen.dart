@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -2184,7 +2183,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
                 // Right Pane: Cart Panel & Table Action Buttons
                 Container(
-                  width: 320,
+                  width: MediaQuery.of(context).size.width < 1200 ? 330.0 : (MediaQuery.of(context).size.width < 1600 ? 360.0 : 390.0),
                   color: Colors.white,
                   padding: const EdgeInsets.all(10),
                   child: Column(
@@ -2527,11 +2526,14 @@ class _CashierScreenState extends State<CashierScreen> {
     final totalGridCount = categories.length + directProducts.length;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
 
+    final screenW = MediaQuery.of(context).size.width;
+    final gridMaxExtent = screenW < 1200 ? 115.0 : (screenW < 1600 ? 130.0 : 145.0);
+
     return GridView.builder(
       padding: const EdgeInsets.all(6),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 80,
-        childAspectRatio: 0.95,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: gridMaxExtent,
+        childAspectRatio: 1.0,
         crossAxisSpacing: 6,
         mainAxisSpacing: 6,
       ),
@@ -2540,98 +2542,73 @@ class _CashierScreenState extends State<CashierScreen> {
         if (index < categories.length) {
           final category = categories[index];
           final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
-          final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
           final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
-          final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
+          final isDarkBg = category.color != null && bgColor.computeLuminance() < 0.5;
           final textColor = isDarkBg ? Colors.white : Colors.black87;
           final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
           final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
 
           return Card(
-            elevation: 3,
-            color: hasImage ? Colors.black : bgColor,
+            elevation: 2,
+            color: bgColor,
             clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               onTap: () {
                 productsProvider.selectCategory(category.id);
               },
               onSecondaryTap: () => _customizeCategoryAppearance(context, category),
               onLongPress: () => _customizeCategoryAppearance(context, category),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: bgColor,
-                          gradient: (category.color == null && !hasImage)
-                              ? LinearGradient(
-                                  colors: [Colors.orange.shade50, Colors.white],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                )
-                              : null,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: category.color == null
+                      ? LinearGradient(
+                          colors: [Colors.orange.shade50, Colors.white],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        )
+                      : null,
+                ),
+                padding: const EdgeInsets.all(6),
+                child: Center(
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          category.name,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ),
-                    if (hasImage)
-                      Positioned.fill(
-                        child: Image.file(
-                          File(category.image!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) => Container(color: bgColor),
-                        ),
-                      ),
-                    if (hasImage)
-                      Positioned.fill(
-                        child: Container(color: Colors.black.withValues(alpha: 0.55)),
-                      ),
-                    Positioned.fill(
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Center(
-                          child: SingleChildScrollView(
-                            physics: const NeverScrollableScrollPhysics(),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  category.name,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: badgeBg,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: badgeTextColor,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: badgeTextColor,
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -2640,91 +2617,70 @@ class _CashierScreenState extends State<CashierScreen> {
 
         // Direct Main Screen Product Item
         final product = directProducts[index - categories.length];
-        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
         final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
-        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final isDarkBg = product.color != null && bgColor.computeLuminance() < 0.5;
         final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
-          elevation: 3,
-          color: hasImage ? Colors.black : bgColor,
+          elevation: 2,
+          color: bgColor,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: product.isAvailable ? Colors.purple.shade200 : Colors.red.shade200,
-              width: 1.2,
+              color: product.isAvailable ? Colors.purple.shade100 : Colors.red.shade200,
+              width: 1,
             ),
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             onTap: () => _addToCart(product),
             onSecondaryTap: () => _customizeProductAppearance(context, product),
             onLongPress: () => _customizeProductAppearance(context, product),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(color: bgColor),
-                  ),
-                  if (hasImage)
-                    Positioned.fill(
-                      child: Image.file(
-                        File(product.image!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+            child: Container(
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(5),
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  if (hasImage)
-                    Positioned.fill(
-                      child: Container(color: Colors.black.withValues(alpha: 0.45)),
-                    ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(3),
-                      child: Center(
-                        child: SingleChildScrollView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                product.name,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: Text(
-                                  '${product.price.toStringAsFixed(0)} $currencySym',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: priceColor,
-                                  ),
-                                ),
-                              ),
-                            ],
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${product.price.toStringAsFixed(0)} $currencySym',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: priceColor,
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -2742,11 +2698,14 @@ class _CashierScreenState extends State<CashierScreen> {
         : productsProvider.products.where((p) => p.displayLocation == 'BOTH' || p.displayLocation == 'CATEGORY_ONLY').toList();
     final totalGridItems = products.length + 1;
 
+    final screenW = MediaQuery.of(context).size.width;
+    final gridMaxExtent = screenW < 1200 ? 115.0 : (screenW < 1600 ? 130.0 : 145.0);
+
     return GridView.builder(
       padding: const EdgeInsets.all(6),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 80,
-        childAspectRatio: 0.95,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: gridMaxExtent,
+        childAspectRatio: 1.0,
         crossAxisSpacing: 6,
         mainAxisSpacing: 6,
       ),
@@ -2759,52 +2718,55 @@ class _CashierScreenState extends State<CashierScreen> {
               productsProvider.setSearchQuery('');
             },
             child: Card(
-              elevation: 3,
+              elevation: 2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Colors.grey.shade300, width: 1.2),
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   color: Colors.grey.shade100,
                 ),
-                padding: const EdgeInsets.all(6),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: 20,
-                          color: Colors.black87,
+                padding: const EdgeInsets.all(4),
+                child: Center(
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.arrow_back,
+                            size: 16,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'الرجوع',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black87,
+                        const SizedBox(height: 2),
+                        const Text(
+                          'الرجوع',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 1),
-                      Text(
-                        '← القائمة',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                        const Text(
+                          '← القائمة',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -2813,110 +2775,97 @@ class _CashierScreenState extends State<CashierScreen> {
         }
 
         final product = products[index - 1];
-        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
         final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
-        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final isDarkBg = product.color != null && bgColor.computeLuminance() < 0.5;
         final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
-          elevation: 3,
-          color: hasImage ? Colors.black : bgColor,
+          elevation: 2,
+          color: bgColor,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: product.isAvailable ? Colors.transparent : Colors.red.shade200,
             ),
           ),
           child: InkWell(
-
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             onTap: () => _addToCart(product),
             onSecondaryTap: () => _customizeProductAppearance(context, product),
             onLongPress: () => _customizeProductAppearance(context, product),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(color: bgColor),
-                  ),
-                  if (hasImage)
-                    Positioned.fill(
-                      child: Image.file(
-                        File(product.image!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+            child: Container(
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(5),
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
+                          color: textColor,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  if (hasImage)
-                    Positioned.fill(
-                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
-                    ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                      child: Center(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                product.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: textColor,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${product.price.toStringAsFixed(0)} $_currencySymbol',
-                                style: TextStyle(
-                                  color: priceColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              if (product.isWeighted || product.allowPriceChange) ...[
-                                const SizedBox(height: 2),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    if (product.isWeighted)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                                        decoration: BoxDecoration(
-                                          color: Colors.purple.shade50,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text('⚖️ موزونة', style: TextStyle(fontSize: 8, color: Colors.purple, fontWeight: FontWeight.bold)),
-                                      ),
-                                    if (product.allowPriceChange)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade50,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text('🏷️ سعر متغير', style: TextStyle(fontSize: 8, color: Colors.blue, fontWeight: FontWeight.bold)),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ],
+                      const SizedBox(height: 3),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                          style: TextStyle(
+                            color: priceColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
                           ),
                         ),
                       ),
-                    ),
+                      if (product.isWeighted || product.allowPriceChange) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (product.isWeighted)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                margin: const EdgeInsets.symmetric(horizontal: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text('⚖️ موزونة', style: TextStyle(fontSize: 8, color: Colors.purple, fontWeight: FontWeight.bold)),
+                              ),
+                            if (product.allowPriceChange)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                margin: const EdgeInsets.symmetric(horizontal: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text('🏷️ سعر متغير', style: TextStyle(fontSize: 8, color: Colors.blue, fontWeight: FontWeight.bold)),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
