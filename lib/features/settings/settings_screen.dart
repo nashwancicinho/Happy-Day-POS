@@ -1775,11 +1775,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
                     ),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لااختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
+                    helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
                   ),
                 ),
 
-
+                const SizedBox(height: 24),
 
                 TextField(
                   controller: _kitchenPrinterController,
@@ -1796,7 +1796,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 TextField(
                   controller: _reportsPrinterController,
@@ -1813,7 +1813,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 TextField(
                   controller: _barcodePrinterController,
