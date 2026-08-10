@@ -412,7 +412,7 @@ class PrintService {
                         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
                       ),
                       child: pw.Text(
-                        'الكاشير: ${order.cashierName != null && order.cashierName!.isNotEmpty ? order.cashierName! : 'الرئيسي'}',
+                        'المستخدم / الكاشير: ${order.cashierName != null && order.cashierName!.isNotEmpty ? order.cashierName! : 'الرئيسي'}',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
                         textAlign: pw.TextAlign.center,
                       ),

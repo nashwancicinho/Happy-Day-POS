@@ -275,7 +275,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'الكاشير: ${widget.order.cashierName != null && widget.order.cashierName!.isNotEmpty ? widget.order.cashierName! : 'الرئيسي'}',
+                'المستخدم / الكاشير: ${widget.order.cashierName != null && widget.order.cashierName!.isNotEmpty ? widget.order.cashierName! : 'الرئيسي'}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 textAlign: TextAlign.center,
               ),

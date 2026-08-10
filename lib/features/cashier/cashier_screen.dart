@@ -1065,6 +1065,7 @@ class _CashierScreenState extends State<CashierScreen> {
       await context.read<ProductsProvider>().loadProducts();
 
       if (!mounted) return;
+      final authProvider = context.read<AuthProvider>();
       final completedOrder = OrderModel(
         id: orderId,
         tableId: widget.selectedTable?.id,
@@ -1073,6 +1074,7 @@ class _CashierScreenState extends State<CashierScreen> {
         customerPhone: customerPhone,
         customerAddress: customerAddress,
         paymentMethod: paymentMethod,
+        cashierName: authProvider.currentUserName,
         total: _totalAmount,
         subtotal: _subtotalAmount,
         discountAmount: _discountAmount,
@@ -1140,6 +1142,7 @@ class _CashierScreenState extends State<CashierScreen> {
       customerPhone: customerPhone,
       customerAddress: customerAddress,
       paymentMethod: paymentMethod,
+      cashierName: authProvider.currentUserName,
       total: _totalAmount,
       subtotal: _subtotalAmount,
       discountAmount: _discountAmount,
@@ -2598,22 +2601,6 @@ class _CashierScreenState extends State<CashierScreen> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: badgeBg,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: badgeTextColor,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -2698,14 +2685,9 @@ class _CashierScreenState extends State<CashierScreen> {
                                   fontSize: 12,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: const Text('⭐ رئيسية', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
+
                               ),
                             ],
                           ),
