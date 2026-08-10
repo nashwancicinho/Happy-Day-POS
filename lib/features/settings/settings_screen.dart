@@ -2224,7 +2224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   isActivated
                       ? (isEng
                           ? 'Your annual subscription key is active. Key: ${info?.activationKey ?? ''}'
-                          : 'الاشتراك السنوي لـ HAPPY DAY POS مفعّل بنجاح. رمز التفعيل: ${info?.activationKey ?? ''}')
+                          : 'الاشتراك السنوي لـ CASHBOX POS مفعّل بنجاح. رمز التفعيل: ${info?.activationKey ?? ''}')
                       : (isEng
                           ? 'The app is running in free 30-day trial mode. Activate annual key anytime to extend.'
                           : 'البرنامج يعمل حالياً بالنسخة التجريبية المجانية لمدة 30 يوماً. يمكنك إدخال رمز الاشتراك السنوي في أي وقت للتفعيل.'),

@@ -64,6 +64,10 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
 
     _settings = await _repository.getAllSettings();
+    if (_settings['store_name'] == null || (_settings['store_name'] ?? '').contains('HAPPY DAY')) {
+      _settings['store_name'] = 'CASHBOX POS';
+      await _repository.saveSetting('store_name', 'CASHBOX POS');
+    }
     TopNotification.enabled = showTopNotifications;
     _isLoading = false;
     notifyListeners();
