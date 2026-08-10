@@ -12,19 +12,45 @@ class HomeOperationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isEng = context.watch<SettingsProvider>().isEnglish;
 
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Centered CashBox Logo Image
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/images/cashbox_logo.png',
+              height: 140,
+              fit: BoxFit.contain,
+              errorBuilder: (ctx, err, stack) => const Icon(Icons.point_of_sale, size: 100, color: Colors.orange),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Centered Welcome Title & Subtitle
           Text(
             isEng ? "Welcome to CASHBOX POS 👋" : "مرحباً بك في نظام CASHBOX POS 👋",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             isEng ? "Select operation mode to start taking orders or view tables" : "اختر نوع العملية للبدء بإدخال الطلبات أو متابعة الصالة والتقرير اليومي",
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
 
@@ -68,7 +94,7 @@ class HomeOperationScreen extends StatelessWidget {
     required Widget page,
   }) {
     return Card(
-      elevation: 6,
+      elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -80,9 +106,9 @@ class HomeOperationScreen extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                radius: 36,
+                radius: 34,
                 backgroundColor: color.withValues(alpha: 0.15),
-                child: Icon(icon, size: 40, color: color),
+                child: Icon(icon, size: 38, color: color),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -93,7 +119,7 @@ class HomeOperationScreen extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -113,4 +139,3 @@ class HomeOperationScreen extends StatelessWidget {
     );
   }
 }
-

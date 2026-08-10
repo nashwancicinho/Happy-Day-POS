@@ -74,6 +74,7 @@ flutter:
   assets:
     - assets/fonts/Cairo-Regular.ttf
     - assets/fonts/Cairo-Bold.ttf
+    - assets/images/cashbox_logo.png
 
   fonts:
     - family: Cairo
