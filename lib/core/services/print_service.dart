@@ -1406,8 +1406,6 @@ Write-Output "False"
           }
         }
 
-        final queueNames = <String>{};
-        if (queueName.isNotEmpty) {
         // Clean target queue name for CUPS (e.g. Xprinter XP-365B -> Xprinter_XP_365B)
         final cleanQ = queueName.trim().replaceAll(' ', '_');
 
