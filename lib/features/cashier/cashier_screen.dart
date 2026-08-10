@@ -1160,14 +1160,7 @@ class _CashierScreenState extends State<CashierScreen> {
       return false;
     });
 
-    // 2. Open Cash Drawer with retries after printing finishes so printer port is freed
-    Future.delayed(const Duration(milliseconds: 700), () async {
-      for (int i = 0; i < 3; i++) {
-        final success = await PrintService.openCashDrawer(settingsProvider);
-        if (success) break;
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-    });
+
 
 
     if (!mounted) return;
