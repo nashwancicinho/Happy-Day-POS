@@ -2503,7 +2503,7 @@ class _CashierScreenState extends State<CashierScreen> {
     }
   }
 
-  // 1. Grid View for Categories
+  // 1. Grid View for Categories & Main Screen Products
 
   Widget _buildCategoriesGrid(
     BuildContext context,
@@ -2511,10 +2511,12 @@ class _CashierScreenState extends State<CashierScreen> {
     ProductsProvider productsProvider,
   ) {
     final categories = categoriesProvider.categories;
+    final mainProducts = productsProvider.mainScreenProducts;
+    final totalGridItems = categories.length + mainProducts.length;
 
-    if (categories.isEmpty) {
+    if (totalGridItems == 0) {
       return const Center(
-        child: Text('لا توجد تصنيفات معرفة حالياً', style: TextStyle(fontSize: 18)),
+        child: Text('لا توجد تصنيفات أو مواد مخصصة للشاشة الرئيسية حالياً', style: TextStyle(fontSize: 18)),
       );
     }
 
@@ -2526,52 +2528,144 @@ class _CashierScreenState extends State<CashierScreen> {
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: categories.length,
+      itemCount: totalGridItems,
       itemBuilder: (context, index) {
-        final category = categories[index];
-        final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
-        final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
-        final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
-        final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
-        final textColor = isDarkBg ? Colors.white : Colors.black87;
-        final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
-        final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
+        if (index < categories.length) {
+          final category = categories[index];
+          final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
+          final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
+          final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
+          final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
+          final textColor = isDarkBg ? Colors.white : Colors.black87;
+          final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
+          final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
+
+          return Card(
+            elevation: 3,
+            color: hasImage ? Colors.black : bgColor,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                productsProvider.selectCategory(category.id);
+              },
+              onSecondaryTap: () => _customizeCategoryAppearance(context, category),
+              onLongPress: () => _customizeCategoryAppearance(context, category),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          gradient: (category.color == null && !hasImage)
+                              ? LinearGradient(
+                                  colors: [Colors.orange.shade50, Colors.white],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                    if (hasImage)
+                      Positioned.fill(
+                        child: Image.file(
+                          File(category.image!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+                        ),
+                      ),
+                    if (hasImage)
+                      Positioned.fill(
+                        child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                      ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Center(
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  category.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: badgeBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: badgeTextColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Main Screen Products (displayLocation == 'BOTH' or 'MAIN_ONLY')
+        final product = mainProducts[index - categories.length];
+        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
+        final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
+        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
+        final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
           elevation: 3,
           color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          child: InkWell(
-
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              productsProvider.selectCategory(category.id);
-            },
-            onSecondaryTap: () => _customizeCategoryAppearance(context, category),
-            onLongPress: () => _customizeCategoryAppearance(context, category),
+            side: BorderSide(
+              color: product.isAvailable ? AppColors.primary.withValues(alpha: 0.3) : Colors.red.shade200,
+              width: 1.2,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _addToCart(product),
+            onSecondaryTap: () => _customizeProductAppearance(context, product),
+            onLongPress: () => _customizeProductAppearance(context, product),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        gradient: (category.color == null && !hasImage)
-                            ? LinearGradient(
-                                colors: [Colors.orange.shade50, Colors.white],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              )
-                            : null,
-                      ),
-                    ),
+                    child: Container(color: bgColor),
                   ),
                   if (hasImage)
                     Positioned.fill(
                       child: Image.file(
-                        File(category.image!),
+                        File(product.image!),
                         fit: BoxFit.cover,
                         errorBuilder: (ctx, err, stack) => Container(color: bgColor),
                       ),
@@ -2582,39 +2676,40 @@ class _CashierScreenState extends State<CashierScreen> {
                     ),
                   Positioned.fill(
                     child: Padding(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                       child: Center(
                         child: SingleChildScrollView(
-                          physics: const NeverScrollableScrollPhysics(),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                category.name,
+                                product.name,
                                 style: TextStyle(
-                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                   color: textColor,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                                style: TextStyle(
+                                  color: priceColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                 decoration: BoxDecoration(
-                                  color: badgeBg,
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: AppColors.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text(
-                                  context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: badgeTextColor,
-                                  ),
-                                ),
+                                child: const Text('⭐ رئيسية', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -2627,10 +2722,7 @@ class _CashierScreenState extends State<CashierScreen> {
             ),
           ),
         );
-
-
       },
-
     );
   }
 

@@ -440,6 +440,47 @@ class _DashboardLayoutState extends State<DashboardLayout> {
 
                       const SizedBox(width: 12),
 
+                      // Screen Zoom Out Button (-)
+                      IconButton(
+                        icon: const Icon(Icons.zoom_out, color: Colors.white, size: 22),
+                        tooltip: isEng ? 'Zoom Out (-)' : 'تصغير الشاشة (-)',
+                        onPressed: () {
+                          final newScale = (currentScale - 0.1).clamp(0.7, 1.5);
+                          context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
+                        },
+                      ),
+
+                      // Current Zoom Scale Reset Badge (100%)
+                      InkWell(
+                        onTap: () {
+                          context.read<SettingsProvider>().setScreenScale(1.0);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${(currentScale * 100).toInt()}%',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                      ),
+
+                      // Screen Zoom In Button (+)
+                      IconButton(
+                        icon: const Icon(Icons.zoom_in, color: Colors.white, size: 22),
+                        tooltip: isEng ? 'Zoom In (+)' : 'تكبير الشاشة (+)',
+                        onPressed: () {
+                          final newScale = (currentScale + 0.1).clamp(0.7, 1.5);
+                          context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
+                        },
+                      ),
+
+                      const SizedBox(width: 8),
+
                       // Full Screen Toggle Button
                       IconButton(
                         icon: Icon(
