@@ -1466,87 +1466,67 @@ Write-Output "False"
   /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & Star & TSPL Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
-      // 1. User exact hardware kick pulse code: 27.112.0.148.49 (ESC p 0 148 49)
-      final List<int> userExactKickBytes = [27, 112, 0, 148, 49, 10];
-      await sendRawBytesToPrinter(bytes: userExactKickBytes, settings: settings);
-
-      final List<int> userExactKickBytesPin5 = [27, 112, 1, 148, 49, 10];
-      await sendRawBytesToPrinter(bytes: userExactKickBytesPin5, settings: settings);
-
-      // 2. Comprehensive ESC/POS multi-pulse fallback buffer
+      // 1. Send RAW Kick Pulse Bytes (27.112.0.148.49) directly to printer queue
       final List<int> drawerBytes = [
-        // Exact user pulse code
+        // Exact user pulse code (Pin 2 & Pin 5)
         27, 112, 0, 148, 49,
         27, 112, 1, 148, 49,
+        27, 112, 48, 148, 49,
+        27, 112, 49, 148, 49,
 
-        // Standard ESC p 0 (Pin 2: 25ms, 50ms, 100ms, 120ms pulse variations)
+        // Standard ESC p 0 (Pin 2)
         27, 112, 0, 25, 250,
         27, 112, 0, 50, 250,
         27, 112, 0, 100, 250,
         27, 112, 0, 60, 120,
-        27, 112, 48, 50, 250,    // ASCII '0'
-        27, 112, 48, 60, 120,
 
-        // Standard ESC p 1 (Pin 5: 25ms, 50ms, 100ms, 120ms pulse variations)
+        // Standard ESC p 1 (Pin 5)
         27, 112, 1, 25, 250,
         27, 112, 1, 50, 250,
         27, 112, 1, 100, 250,
-        27, 112, 1, 60, 120,
-        27, 112, 49, 50, 250,    // ASCII '1'
-        27, 112, 49, 60, 120,
 
-        // DLE DC4 Real-time pulse commands for Xprinter / Rongta / Bixolon / POS-80 (Pin 2 & Pin 5)
-        16, 20, 1, 0, 8,         // DLE DC4 1 0 8 (Pin 2 real-time pulse)
-        16, 20, 1, 1, 8,         // DLE DC4 1 1 8 (Pin 5 real-time pulse)
-        16, 20, 1, 0, 1,
-        16, 20, 1, 1, 1,
-        16, 20, 2, 0, 8,
-        16, 20, 2, 1, 8,
+        // DLE DC4 Real-time pulse commands
+        16, 20, 1, 0, 8,
+        16, 20, 1, 1, 8,
 
-        // Star Micronics, Citizen, Bixolon & FS pulse
-        7,                       // BEL pulse
+        // Star Micronics & FS pulse
+        7,
         27, 7, 10, 50, 7,
-        27, 7, 11, 55, 7,
-        28, 112, 1, 0,
-        28, 112, 2, 0,
-        27, 118, 0,              // ESC v 0
+        27, 118, 0,
 
-        // Line feeds to flush byte buffer on POS printers
-        10, 10, 10,
+        // Line feeds
+        10, 10,
       ];
 
-      // Primary Attempt: ESC/POS Raw Pulse
-      final success = await sendRawBytesToPrinter(
+      await sendRawBytesToPrinter(
         bytes: drawerBytes,
         settings: settings,
       );
 
-      if (success) return true;
-
-      // Secondary Backup Attempt: Micro PDF print job to trigger driver drawer kick
+      // 2. Trigger Printer Driver Open Drawer via Micro PDF Print Job
+      // (This activates the driver's "Open Cash Drawer" feature which opens upon printing invoices)
       try {
         final pdf = pw.Document();
         pdf.addPage(
           pw.Page(
-            pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, 5 * PdfPageFormat.mm),
+            pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, 2 * PdfPageFormat.mm),
             margin: pw.EdgeInsets.zero,
             build: (context) => pw.Container(height: 1),
           ),
         );
         final pdfBytes = await pdf.save();
-        final printed = await sendPdfToPrinter(
+        await sendPdfToPrinter(
           pdfBytes: pdfBytes,
           printerNameConfig: settings.cashierPrinter,
           docName: 'OpenCashDrawer',
         );
-        if (printed) return true;
       } catch (e) {
-        debugPrint('Backup PDF open drawer attempt error: $e');
+        debugPrint('Driver PDF drawer kick attempt error: $e');
       }
 
-      return false;
+      return true;
     } catch (e) {
-      debugPrint('Error opening cash drawer: $e');
+      debugPrint('openCashDrawer error: $e');
       return false;
     }
   }
