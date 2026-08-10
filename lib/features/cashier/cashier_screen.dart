@@ -2350,14 +2350,14 @@ class _CashierScreenState extends State<CashierScreen> {
                                           const SizedBox(width: 4),
 
                                           // Subtotal Price
-                                          SizedBox(
-                                            width: 58,
-                                            child: Text(
-                                              '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                              textAlign: TextAlign.end,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                          Flexible(
+                                            child: FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                              ),
                                             ),
                                           ),
 
