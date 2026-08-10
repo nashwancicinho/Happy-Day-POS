@@ -273,8 +273,8 @@ class PrintService {
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
           margin: const pw.EdgeInsets.only(
-            right: 34,
-            left: 16,
+            right: 24,
+            left: 8,
             top: 6,
             bottom: 6,
           ),
@@ -679,11 +679,13 @@ class PrintService {
 
       final pdfBytes = await pdf.save();
 
-      // 1. Send instant raw cash drawer pulse BEFORE PDF spooling locks the printer port
-      openCashDrawer(settings).catchError((e) {
-        debugPrint('Pre-spool open cash drawer error: $e');
-        return false;
-      });
+      // 1. Send single cash drawer pulse if auto-open is enabled in settings
+      if (settings.autoOpenCashDrawer) {
+        openCashDrawer(settings).catchError((e) {
+          debugPrint('Auto open cash drawer error: $e');
+          return false;
+        });
+      }
 
       // 2. Send Customer Invoice PDF to printer
       final printResult = await sendPdfToPrinter(
@@ -691,15 +693,6 @@ class PrintService {
         printerNameConfig: settings.cashierPrinter,
         docName: 'Invoice_${order.id ?? 1}',
       );
-
-      // 3. Backup attempt: retry cash drawer pulse after PDF spooling releases printer handle
-      Future.delayed(const Duration(milliseconds: 700), () async {
-        for (int attempt = 0; attempt < 3; attempt++) {
-          final success = await openCashDrawer(settings);
-          if (success) break;
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
-      });
 
       return printResult;
     } catch (e) {
@@ -895,8 +888,8 @@ class PrintService {
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
           margin: const pw.EdgeInsets.only(
-            right: 10,
-            left: 10,
+            right: 24,
+            left: 4,
             top: 6,
             bottom: 6,
           ),
@@ -1508,65 +1501,12 @@ Write-Output "False"
   /// إرسال إشارة نبض كهربائي لفتح درج النقدية الإلكتروني (ESC/POS & Star & TSPL Cash Drawer Kick)
   static Future<bool> openCashDrawer(SettingsProvider settings) async {
     try {
-      // 1. Send RAW Kick Pulse Bytes (27.112.0.148.49) directly to printer queue
-      final List<int> drawerBytes = [
-        // Exact user pulse code (Pin 2 & Pin 5)
-        27, 112, 0, 148, 49,
-        27, 112, 1, 148, 49,
-        27, 112, 48, 148, 49,
-        27, 112, 49, 148, 49,
-
-        // Standard ESC p 0 (Pin 2)
-        27, 112, 0, 25, 250,
-        27, 112, 0, 50, 250,
-        27, 112, 0, 100, 250,
-        27, 112, 0, 60, 120,
-
-        // Standard ESC p 1 (Pin 5)
-        27, 112, 1, 25, 250,
-        27, 112, 1, 50, 250,
-        27, 112, 1, 100, 250,
-
-        // DLE DC4 Real-time pulse commands
-        16, 20, 1, 0, 8,
-        16, 20, 1, 1, 8,
-
-        // Star Micronics & FS pulse
-        7,
-        27, 7, 10, 50, 7,
-        27, 118, 0,
-
-        // Line feeds
-        10, 10,
-      ];
-
-      await sendRawBytesToPrinter(
-        bytes: drawerBytes,
+      // Send single exact user kick pulse command: 27.112.0.148.49
+      final List<int> singleKickBytes = [27, 112, 0, 148, 49, 10];
+      return await sendRawBytesToPrinter(
+        bytes: singleKickBytes,
         settings: settings,
       );
-
-      // 2. Trigger Printer Driver Open Drawer via Micro PDF Print Job
-      // (This activates the driver's "Open Cash Drawer" feature which opens upon printing invoices)
-      try {
-        final pdf = pw.Document();
-        pdf.addPage(
-          pw.Page(
-            pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, 2 * PdfPageFormat.mm),
-            margin: pw.EdgeInsets.zero,
-            build: (context) => pw.Container(height: 1),
-          ),
-        );
-        final pdfBytes = await pdf.save();
-        await sendPdfToPrinter(
-          pdfBytes: pdfBytes,
-          printerNameConfig: settings.cashierPrinter,
-          docName: 'OpenCashDrawer',
-        );
-      } catch (e) {
-        debugPrint('Driver PDF drawer kick attempt error: $e');
-      }
-
-      return true;
     } catch (e) {
       debugPrint('openCashDrawer error: $e');
       return false;
