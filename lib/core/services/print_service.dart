@@ -180,6 +180,7 @@ class PrintService {
     // 5. Smart auto-detect POS / thermal printer model
     final thermalKeywords = [
       'pos',
+      'xprint',
       'xprinter',
       'xp-',
       '365b',
