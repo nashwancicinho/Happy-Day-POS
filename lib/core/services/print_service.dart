@@ -1368,7 +1368,23 @@ Write-Output "False"
           queueNames.add(queueName.replaceAll(' ', '_'));
         }
 
-        // Get exact system CUPS queue names via lpstat -e & lpstat -p
+        // 1. Get system default CUPS printer queue destination via lpstat -d
+        try {
+          final resDef = await Process.run('lpstat', ['-d']);
+          if (resDef.exitCode == 0) {
+            final out = resDef.stdout.toString();
+            final matchDef = RegExp(r':\s*(.+)').firstMatch(out);
+            if (matchDef != null) {
+              final dName = matchDef.group(1)!.trim();
+              if (dName.isNotEmpty) {
+                queueNames.add(dName);
+                queueNames.add(dName.replaceAll(' ', '_'));
+              }
+            }
+          }
+        } catch (_) {}
+
+        // 2. Get exact system CUPS queue names via lpstat -e & lpstat -p
         try {
           final res = await Process.run('lpstat', ['-e']);
           if (res.exitCode == 0) {
