@@ -1407,81 +1407,24 @@ Write-Output "False"
 
         final queueNames = <String>{};
         if (queueName.isNotEmpty) {
-          queueNames.add(queueName);
-          queueNames.add(queueName.replaceAll(' ', '_'));
-        }
+        // Clean target queue name for CUPS (e.g. Xprinter XP-365B -> Xprinter_XP_365B)
+        final cleanQ = queueName.trim().replaceAll(' ', '_');
 
-        // Get exact system CUPS queue names via lpstat -e & lpstat -p
-        try {
-          final res = await Process.run('lpstat', ['-e']);
-          if (res.exitCode == 0) {
-            final lines = res.stdout.toString().split('\n');
-            for (var l in lines) {
-              final q = l.trim();
-              if (q.isNotEmpty) {
-                queueNames.add(q);
-                queueNames.add(q.replaceAll(' ', '_'));
-              }
-            }
-          }
-        } catch (_) {}
-
-        try {
-          final systemPrinters = await Printing.listPrinters();
-          for (var p in systemPrinters) {
-            if (p.name.isNotEmpty && !p.name.contains('الافتراضية')) {
-              queueNames.add(p.name);
-              queueNames.add(p.name.replaceAll(' ', '_'));
-            }
-          }
-        } catch (_) {}
-
-        // Auto-enable & accept any paused or offline CUPS queues on macOS/Linux
-        for (var q in queueNames) {
+        if (cleanQ.isNotEmpty) {
           try {
-            await Process.run('cupsenable', [q]);
-            await Process.run('cupsaccept', [q]);
+            await Process.run('cupsenable', [cleanQ]);
+            await Process.run('cupsaccept', [cleanQ]);
           } catch (_) {}
+
+          final res = await Process.run('lpr', ['-P', cleanQ, file.path]);
+          if (res.exitCode == 0) return true;
         }
 
-        bool anySuccess = false;
-        for (var qName in queueNames) {
-          final List<List<String>> commandsToTry = [
-            ['lpr', '-P', qName, '-o', 'raw', file.path],
-            ['lpr', '-P', qName, file.path],
-            ['lp', '-d', qName, '-o', 'raw', file.path],
-            ['lp', '-d', qName, file.path],
-          ];
-
-          for (var cmd in commandsToTry) {
-            final res = await Process.run(cmd[0], cmd.sublist(1));
-            debugPrint(
-              'macOS/Linux print attempt ${cmd.join(" ")}: exit=${res.exitCode}',
-            );
-            if (res.exitCode == 0) {
-              anySuccess = true;
-              break;
-            }
-          }
-        }
-
-        // Fallback default lpr/lp
-        if (!anySuccess) {
-          for (var cmd in [
-            ['lpr', '-o', 'raw', file.path],
-            ['lpr', file.path],
-            ['lp', '-o', 'raw', file.path],
-            ['lp', file.path],
-          ]) {
-            final res = await Process.run(cmd[0], cmd.sublist(1));
-            if (res.exitCode == 0) {
-              anySuccess = true;
-              break;
-            }
-          }
-        }
-
-        if (anySuccess) return true;
+        // Fallback default lpr
+        try {
+          final resDefault = await Process.run('lpr', [file.path]);
+          if (resDefault.exitCode == 0) return true;
+        } catch (_) {}
       } catch (e) {
         debugPrint('macOS/Linux raw spool failed: $e');
       }
