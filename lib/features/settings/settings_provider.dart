@@ -15,7 +15,7 @@ class SettingsProvider extends ChangeNotifier {
   Map<String, String> get settings => _settings;
   bool get isLoading => _isLoading;
 
-  String get storeName => _settings['store_name'] ?? 'CASHBOX POS';
+  String get storeName => _settings['store_name'] ?? 'HAPPY DAY POS';
   String get storePhone => _settings['store_phone'] ?? '';
   String get storeAddress => _settings['store_address'] ?? '';
   double get taxRate => double.tryParse(_settings['tax_rate'] ?? '0.0') ?? 0.0;
@@ -36,15 +36,10 @@ class SettingsProvider extends ChangeNotifier {
   TextDirection get textDirection => isEnglish ? TextDirection.ltr : TextDirection.rtl;
   Locale get locale => Locale(appLanguage);
   bool get showTopNotifications => (_settings['show_top_notifications'] ?? 'false') == 'true';
-  double get screenScale => double.tryParse(_settings['app_screen_scale'] ?? '1.0') ?? 1.0;
 
   Future<void> setShowTopNotifications(bool value) async {
     TopNotification.enabled = value;
     await updateSetting('show_top_notifications', value.toString());
-  }
-
-  Future<void> setScreenScale(double value) async {
-    await updateSetting('app_screen_scale', value.toString());
   }
 
   Color get primaryColor {
@@ -64,10 +59,6 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
 
     _settings = await _repository.getAllSettings();
-    if (_settings['store_name'] == null || (_settings['store_name'] ?? '').contains('HAPPY DAY')) {
-      _settings['store_name'] = 'CASHBOX POS';
-      await _repository.saveSetting('store_name', 'CASHBOX POS');
-    }
     TopNotification.enabled = showTopNotifications;
     _isLoading = false;
     notifyListeners();

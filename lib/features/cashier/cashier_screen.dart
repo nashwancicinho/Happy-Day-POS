@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -46,7 +47,6 @@ class _CashierScreenState extends State<CashierScreen> {
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
-  bool _showAllItemsDirectly = false;
 
   String get _currencySymbol => context.watch<SettingsProvider>().currencySymbol;
 
@@ -1015,7 +1015,7 @@ class _CashierScreenState extends State<CashierScreen> {
         final authorized = await ManagerAuthDialog.show(
           context,
           title: 'إذن البيع بالآجل 🔒',
-          reason: 'إكمال عملية البيع بالآجل والديون يتطلب موافقة وإذن المدير',
+          reason: 'إكمال عملية البيع بالآجل والديون يتطلب موافقة وإذن مدير النظام',
         );
         if (!authorized) return;
       }
@@ -1083,19 +1083,7 @@ class _CashierScreenState extends State<CashierScreen> {
       final cartItemsCopy = List<OrderItemModel>.from(_cart);
       final settingsProvider = context.read<SettingsProvider>();
 
-      // 1. Print Kitchen Order Ticket (KOT) if needed
-      await PrintService.printKitchenTicket(
-        order: completedOrder,
-        items: cartItemsCopy,
-        settings: settingsProvider,
-        tableName: widget.selectedTable?.name,
-      ).catchError((e) {
-        debugPrint('Credit kitchen print error: $e');
-        return false;
-      });
-
-      // 2. Print Customer Receipt
-      await PrintService.printCustomerReceipt(
+      PrintService.printCustomerReceipt(
         order: completedOrder,
         items: cartItemsCopy,
         settings: settingsProvider,
@@ -1159,26 +1147,24 @@ class _CashierScreenState extends State<CashierScreen> {
       createdAt: DateTime.now().toIso8601String(),
     );
 
-    // 1. Print Kitchen Order Ticket (KOT) first
-    await PrintService.printKitchenTicket(
+    // 1. Direct Background Customer Receipt Print
+    PrintService.printCustomerReceipt(
       order: completedOrder,
       items: completedCartCopy,
       settings: settingsProvider,
       tableName: widget.selectedTable?.name,
     ).catchError((e) {
-      debugPrint('Kitchen ticket print error: $e');
+      debugPrint('Direct print error: $e');
       return false;
     });
 
-    // 2. Print Customer Receipt
-    await PrintService.printCustomerReceipt(
-      order: completedOrder,
-      items: completedCartCopy,
-      settings: settingsProvider,
-      tableName: widget.selectedTable?.name,
-    ).catchError((e) {
-      debugPrint('Customer receipt print error: $e');
-      return false;
+    // 2. Open Cash Drawer with retries after printing finishes so printer port is freed
+    Future.delayed(const Duration(milliseconds: 700), () async {
+      for (int i = 0; i < 3; i++) {
+        final success = await PrintService.openCashDrawer(settingsProvider);
+        if (success) break;
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
     });
 
 
@@ -1691,7 +1677,7 @@ class _CashierScreenState extends State<CashierScreen> {
       final authorized = await ManagerAuthDialog.show(
         context,
         title: 'إذن تطبيق الخصم 🔒',
-        reason: 'تطبيق خصم على الفاتورة يتطلب موافقة وإذن المدير',
+        reason: 'تطبيق خصم على الفاتورة يتطلب موافقة وإذن مدير النظام',
       );
       if (!authorized) return;
       if (!mounted) return;
@@ -2098,7 +2084,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
     final selectedCategoryId = productsProvider.selectedCategoryId;
     final searchQuery = productsProvider.searchQuery;
-    final showingCategoriesView = selectedCategoryId == null && searchQuery.isEmpty && !_showAllItemsDirectly;
+    final showingCategoriesView = selectedCategoryId == null && searchQuery.isEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -2183,6 +2169,31 @@ class _CashierScreenState extends State<CashierScreen> {
                         ),
                       ),
 
+                      // View Header Title
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                        child: Row(
+                          children: [
+                            Icon(
+                              showingCategoriesView ? Icons.category : Icons.fastfood,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              showingCategoriesView
+                                  ? (isEng ? 'Select Category to view items:' : 'اختر التصنيف لعرض الأصناف بداخله:')
+                                  : (isEng ? 'Category items: ${_getCategoryName(categoriesProvider, selectedCategoryId)}' : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       // Main Content View (Categories Grid OR Items Grid)
                       Expanded(
                         child: showingCategoriesView
@@ -2197,9 +2208,9 @@ class _CashierScreenState extends State<CashierScreen> {
 
                 // Right Pane: Cart Panel & Table Action Buttons
                 Container(
-                  width: MediaQuery.of(context).size.width < 1200 ? 330.0 : (MediaQuery.of(context).size.width < 1600 ? 360.0 : 390.0),
+                  width: 390,
                   color: Colors.white,
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -2208,21 +2219,19 @@ class _CashierScreenState extends State<CashierScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.shopping_cart_checkout, color: AppColors.primary, size: 20),
-                              const SizedBox(width: 6),
+                              Icon(Icons.shopping_cart_checkout, color: AppColors.primary),
+                              const SizedBox(width: 8),
                               Text(
                                 _existingOrderId != null
                                     ? (isEng ? 'Current Table Order' : 'طلب الطاولة الحالي')
                                     : (isEng ? 'Order Cart' : 'سلة الطلب'),
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
                           if (_cart.isNotEmpty)
                             IconButton(
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(4),
-                              icon: const Icon(Icons.delete_sweep, color: Colors.red, size: 20),
+                              icon: const Icon(Icons.delete_sweep, color: Colors.red),
                               tooltip: isEng ? 'Clear Cart' : 'تفريغ السلة',
                               onPressed: _clearCart,
                             ),
@@ -2233,10 +2242,10 @@ class _CashierScreenState extends State<CashierScreen> {
                         const SizedBox(height: 6),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.orange.shade50,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: Colors.orange.shade300),
                           ),
                           child: Row(
@@ -2244,23 +2253,23 @@ class _CashierScreenState extends State<CashierScreen> {
                             children: [
                               Text(
                                 isEng ? '${widget.selectedTable!.name} (Cap. ${widget.selectedTable!.capacity})' : '${widget.selectedTable!.name} (سعة ${widget.selectedTable!.capacity})',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange, fontSize: 12),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
                               ),
                               if (_existingOrderId != null)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.red.shade100,
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(isEng ? 'Open Order 📌' : 'طلب مفتوح 📌', style: const TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
+                                  child: Text(isEng ? 'Open Order 📌' : 'طلب مفتوح 📌', style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
                                 ),
                             ],
                           ),
                         ),
                       ],
 
-                      const Divider(height: 14),
+                      const Divider(height: 20),
 
                       // Cart List
                       Expanded(
@@ -2269,11 +2278,11 @@ class _CashierScreenState extends State<CashierScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.remove_shopping_cart_outlined, size: 48, color: Colors.grey),
-                                    const SizedBox(height: 8),
-                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                                    const Icon(Icons.remove_shopping_cart_outlined, size: 60, color: Colors.grey),
+                                    const SizedBox(height: 10),
+                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: const TextStyle(color: Colors.grey, fontSize: 16)),
                                     const SizedBox(height: 4),
-                                    Text(isEng ? 'Select an item from the list to add' : 'اختر المادة من القائمة لإضافتها', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                    Text(isEng ? 'Select an item from the list to add' : 'اختر المادة من القائمة لإضافتها', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                   ],
                                 ),
                               )
@@ -2285,103 +2294,70 @@ class _CashierScreenState extends State<CashierScreen> {
                                   return InkWell(
                                     onLongPress: () => _showEditCartItemDialog(index),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
                                       child: Row(
                                         children: [
-                                          // Product Name & Unit Price Column (Far Right)
-                                          Flexible(
+                                          Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
                                                   item.productName ?? (isEng ? 'Item' : 'صنف'),
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                                 ),
                                                 Text(
                                                   '${item.price.toStringAsFixed(0)} $_currencySymbol',
-                                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                                                  maxLines: 1,
+                                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                                                 ),
                                                 if (item.notes != null && item.notes!.isNotEmpty)
                                                   Text(
                                                     '📌 ${item.notes}',
-                                                    style: const TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
                                                   ),
                                               ],
                                             ),
                                           ),
-
-                                          // Large dynamic gap between Product Name (المادة) and minus "-" button (علامة -)
-                                          const Spacer(),
-
-                                          // Quantity Controls (- 1 +)
                                           Row(
-                                            mainAxisSize: MainAxisSize.min,
                                             children: [
                                               IconButton(
-                                                constraints: const BoxConstraints(),
-                                                padding: const EdgeInsets.all(2),
-                                                icon: const Icon(Icons.remove_circle_outline, size: 18),
+                                                icon: const Icon(Icons.remove_circle_outline, size: 20),
                                                 onPressed: () => _updateQuantity(index, -1),
                                               ),
-                                              const SizedBox(width: 2),
                                               InkWell(
                                                 onTap: () => _showEditCartItemDialog(index),
                                                 child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                   decoration: BoxDecoration(
                                                     color: AppColors.primary.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(4),
+                                                    borderRadius: BorderRadius.circular(6),
                                                   ),
                                                   child: Text(
                                                     item.formattedQuantity,
-                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
+                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 2),
                                               IconButton(
-                                                constraints: const BoxConstraints(),
-                                                padding: const EdgeInsets.all(2),
-                                                icon: const Icon(Icons.add_circle_outline, size: 18),
+                                                icon: const Icon(Icons.add_circle_outline, size: 20),
                                                 onPressed: () => _updateQuantity(index, 1),
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(width: 4),
-
-                                          // Notes / Edit Icon
                                           IconButton(
-                                            constraints: const BoxConstraints(),
-                                            padding: const EdgeInsets.all(2),
-                                            icon: const Icon(Icons.edit_note, size: 18, color: Colors.blue),
+                                            icon: const Icon(Icons.edit_note, size: 20, color: Colors.blue),
                                             tooltip: isEng ? 'Edit price or qty' : 'تعديل السعر أو الوزن',
                                             onPressed: () => _showEditCartItemDialog(index),
                                           ),
-                                          const SizedBox(width: 4),
-
-                                          // Subtotal Price
-                                          Flexible(
-                                            child: FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                              ),
+                                          SizedBox(
+                                            width: 70,
+                                            child: Text(
+                                              '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
+                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                              textAlign: TextAlign.end,
                                             ),
                                           ),
-
-                                          // Delete Item Button
                                           IconButton(
-                                            constraints: const BoxConstraints(),
-                                            padding: const EdgeInsets.all(2),
-                                            icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                            icon: const Icon(Icons.close, size: 18, color: Colors.grey),
                                             onPressed: () => _removeFromCart(index),
                                           ),
                                         ],
@@ -2392,33 +2368,33 @@ class _CashierScreenState extends State<CashierScreen> {
                               ),
                       ),
 
-                      const Divider(height: 14),
+                      const Divider(height: 20),
 
                       // Order Total Details
                       if (_discountAmount > 0) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
-                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 13, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
-                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 13, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Net Total:' : 'الصافي:', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Net Total:' : 'الصافي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             Text(
                               '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                           ],
                         ),
@@ -2426,21 +2402,21 @@ class _CashierScreenState extends State<CashierScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             Text(
                               '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                           ],
                         ),
                       ],
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 16),
 
                       // Action Button (Cancel Invoice)
                       SizedBox(
                         width: double.infinity,
-                        height: 42,
+                        height: 46,
                         child: ElevatedButton(
                           onPressed: _cancelOrderAndGoHome,
                           style: ElevatedButton.styleFrom(
@@ -2450,7 +2426,7 @@ class _CashierScreenState extends State<CashierScreen> {
                           ),
                           child: const Text(
                             'إلغاء الفاتورة',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -2460,6 +2436,15 @@ class _CashierScreenState extends State<CashierScreen> {
               ],
             ),
     );
+  }
+
+  String _getCategoryName(CategoriesProvider categoriesProvider, int? categoryId) {
+    if (categoryId == null) return 'الكل';
+    final match = categoriesProvider.categories.firstWhere(
+      (c) => c.id == categoryId,
+      orElse: () => categoriesProvider.categories.isNotEmpty ? categoriesProvider.categories.first : categoriesProvider.categories.first,
+    );
+    return match.name;
   }
 
   Color? _parseColor(String? hexString) {
@@ -2518,7 +2503,7 @@ class _CashierScreenState extends State<CashierScreen> {
     }
   }
 
-  // 1. Grid View for Categories & Direct Root Products
+  // 1. Grid View for Categories
 
   Widget _buildCategoriesGrid(
     BuildContext context,
@@ -2526,182 +2511,126 @@ class _CashierScreenState extends State<CashierScreen> {
     ProductsProvider productsProvider,
   ) {
     final categories = categoriesProvider.categories;
-    final directProducts = productsProvider.allProducts.where((p) => p.displayLocation == 'BOTH' || p.displayLocation == 'MAIN_ONLY' || p.categoryId == null).toList();
 
-    if (categories.isEmpty && directProducts.isEmpty) {
-      return Center(
-        child: Text(
-          context.watch<SettingsProvider>().isEnglish
-              ? 'No categories or main screen items added yet'
-              : 'لا توجد تصنيفات أو مواد في الشاشة الرئيسية حالياً',
-          style: const TextStyle(fontSize: 16, color: Colors.grey),
-        ),
+    if (categories.isEmpty) {
+      return const Center(
+        child: Text('لا توجد تصنيفات معرفة حالياً', style: TextStyle(fontSize: 18)),
       );
     }
 
-    final totalGridCount = categories.length + directProducts.length;
-    final currencySym = context.watch<SettingsProvider>().currencySymbol;
-
-    final screenW = MediaQuery.of(context).size.width;
-    final gridMaxExtent = screenW < 1200 ? 115.0 : (screenW < 1600 ? 130.0 : 145.0);
-
     return GridView.builder(
-      padding: const EdgeInsets.all(6),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: gridMaxExtent,
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 130,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
-      itemCount: totalGridCount,
+      itemCount: categories.length,
       itemBuilder: (context, index) {
-        if (index < categories.length) {
-          final category = categories[index];
-          final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
-          final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
-          final isDarkBg = category.color != null && bgColor.computeLuminance() < 0.5;
-          final textColor = isDarkBg ? Colors.white : Colors.black87;
-          final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
-          final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
-
-          return Card(
-            elevation: 2,
-            color: bgColor,
-            clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                productsProvider.selectCategory(category.id);
-              },
-              onSecondaryTap: () => _customizeCategoryAppearance(context, category),
-              onLongPress: () => _customizeCategoryAppearance(context, category),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: category.color == null
-                      ? LinearGradient(
-                          colors: [Colors.orange.shade50, Colors.white],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        )
-                      : null,
-                ),
-                padding: const EdgeInsets.all(6),
-                child: Center(
-                  child: SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          category.name,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: badgeBg,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: badgeTextColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-
-        // Direct Main Screen Product Item
-        final product = directProducts[index - categories.length];
-        final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
-        final isDarkBg = product.color != null && bgColor.computeLuminance() < 0.5;
-        final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
-        final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
+        final category = categories[index];
+        final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
+        final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
+        final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
+        final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
+        final textColor = isDarkBg ? Colors.white : Colors.black87;
+        final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
+        final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
 
         return Card(
-          elevation: 2,
-          color: bgColor,
+          elevation: 3,
+          color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: product.isAvailable ? Colors.purple.shade100 : Colors.red.shade200,
-              width: 1,
-            ),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _addToCart(product),
-            onSecondaryTap: () => _customizeProductAppearance(context, product),
-            onLongPress: () => _customizeProductAppearance(context, product),
-            child: Container(
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(5),
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        product.name,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              productsProvider.selectCategory(category.id);
+            },
+            onSecondaryTap: () => _customizeCategoryAppearance(context, category),
+            onLongPress: () => _customizeCategoryAppearance(context, category),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        gradient: (category.color == null && !hasImage)
+                            ? LinearGradient(
+                                colors: [Colors.orange.shade50, Colors.white],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              )
+                            : null,
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${product.price.toStringAsFixed(0)} $currencySym',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: priceColor,
+                    ),
+                  ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Image.file(
+                        File(category.image!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+                      ),
+                    ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                    ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Center(
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                category.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: badgeBg,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: badgeTextColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
         );
+
+
       },
+
     );
   }
 
@@ -2709,21 +2638,16 @@ class _CashierScreenState extends State<CashierScreen> {
 
   // 2. Grid View for Items/Products
   Widget _buildItemsGrid(BuildContext context, ProductsProvider productsProvider) {
-    final products = _showAllItemsDirectly
-        ? productsProvider.products
-        : productsProvider.products.where((p) => p.displayLocation == 'BOTH' || p.displayLocation == 'CATEGORY_ONLY').toList();
+    final products = productsProvider.products;
     final totalGridItems = products.length + 1;
 
-    final screenW = MediaQuery.of(context).size.width;
-    final gridMaxExtent = screenW < 1200 ? 115.0 : (screenW < 1600 ? 130.0 : 145.0);
-
     return GridView.builder(
-      padding: const EdgeInsets.all(6),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: gridMaxExtent,
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 130,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
@@ -2734,55 +2658,52 @@ class _CashierScreenState extends State<CashierScreen> {
               productsProvider.setSearchQuery('');
             },
             child: Card(
-              elevation: 2,
+              elevation: 3,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 side: BorderSide(color: Colors.grey.shade300, width: 1.2),
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   color: Colors.grey.shade100,
                 ),
-                padding: const EdgeInsets.all(4),
-                child: Center(
-                  child: SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.arrow_back,
-                            size: 16,
-                            color: Colors.black87,
-                          ),
+                padding: const EdgeInsets.all(6),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white,
+                        child: Icon(
+                          Icons.arrow_back,
+                          size: 20,
+                          color: Colors.black87,
                         ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'الرجوع',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                            color: Colors.black87,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'الرجوع',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Colors.black87,
                         ),
-                        const Text(
-                          '← القائمة',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 1),
+                      Text(
+                        '← القائمة',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -2791,97 +2712,110 @@ class _CashierScreenState extends State<CashierScreen> {
         }
 
         final product = products[index - 1];
+        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
         final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
-        final isDarkBg = product.color != null && bgColor.computeLuminance() < 0.5;
+        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
         final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
-          elevation: 2,
-          color: bgColor,
+          elevation: 3,
+          color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             side: BorderSide(
               color: product.isAvailable ? Colors.transparent : Colors.red.shade200,
             ),
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+
+            borderRadius: BorderRadius.circular(14),
             onTap: () => _addToCart(product),
             onSecondaryTap: () => _customizeProductAppearance(context, product),
             onLongPress: () => _customizeProductAppearance(context, product),
-            child: Container(
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(5),
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        product.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12.5,
-                          color: textColor,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(color: bgColor),
+                  ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Image.file(
+                        File(product.image!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
                       ),
-                      const SizedBox(height: 3),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text(
-                          '${product.price.toStringAsFixed(0)} $_currencySymbol',
-                          style: TextStyle(
-                            color: priceColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
+                    ),
+                  if (hasImage)
+                    Positioned.fill(
+                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                    ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Center(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                product.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: textColor,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                                style: TextStyle(
+                                  color: priceColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (product.isWeighted || product.allowPriceChange) ...[
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (product.isWeighted)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple.shade50,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('⚖️ موزونة', style: TextStyle(fontSize: 8, color: Colors.purple, fontWeight: FontWeight.bold)),
+                                      ),
+                                    if (product.allowPriceChange)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade50,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('🏷️ سعر متغير', style: TextStyle(fontSize: 8, color: Colors.blue, fontWeight: FontWeight.bold)),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
-                      if (product.isWeighted || product.allowPriceChange) ...[
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (product.isWeighted)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.shade50,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text('⚖️ موزونة', style: TextStyle(fontSize: 8, color: Colors.purple, fontWeight: FontWeight.bold)),
-                              ),
-                            if (product.allowPriceChange)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text('🏷️ سعر متغير', style: TextStyle(fontSize: 8, color: Colors.blue, fontWeight: FontWeight.bold)),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),

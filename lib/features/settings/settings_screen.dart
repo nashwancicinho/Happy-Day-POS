@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
@@ -23,8 +22,6 @@ import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
 import 'settings_provider.dart';
-import '../../core/services/license_service.dart';
-import '../license/license_activation_screen.dart';
 
 
 class SettingsScreen extends StatefulWidget {
@@ -705,7 +702,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    isExpanded: true,
                     initialValue: ['DAILY', 'WEEKLY', 'MONTHLY', 'OFF'].contains(settingsProvider.autoBackupFrequency)
                         ? settingsProvider.autoBackupFrequency
                         : 'DAILY',
@@ -719,31 +715,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     items: [
                       DropdownMenuItem(
                         value: 'DAILY',
-                        child: Text(
-                          isEng ? '📅 Daily Automatically (On Shift / EOD Closing)' : '📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)',
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(isEng ? '📅 Daily Automatically (On Shift / EOD Closing)' : '📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)'),
                       ),
                       DropdownMenuItem(
                         value: 'WEEKLY',
-                        child: Text(
-                          isEng ? '🗓️ Weekly Automatically (Every Week)' : '🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)',
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(isEng ? '🗓️ Weekly Automatically (Every Week)' : '🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)'),
                       ),
                       DropdownMenuItem(
                         value: 'MONTHLY',
-                        child: Text(
-                          isEng ? '📆 Monthly Automatically (Every Month)' : '📆 شهرياً أوتوماتيكياً (كل شهر)',
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(isEng ? '📆 Monthly Automatically (Every Month)' : '📆 شهرياً أوتوماتيكياً (كل شهر)'),
                       ),
                       DropdownMenuItem(
                         value: 'OFF',
-                        child: Text(
-                          isEng ? '🚫 Manual Only (Disable Auto-Backup)' : '🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)',
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(isEng ? '🚫 Manual Only (Disable Auto-Backup)' : '🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)'),
                       ),
                     ],
                     onChanged: (val) {
@@ -1089,12 +1073,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'icon': Icons.engineering_rounded,
         'color': Colors.red,
       },
-      {
-        'title': isEng ? 'About App' : 'حول البرنامج',
-        'subtitle': isEng ? 'App name, version & support contact' : 'اسم ورقم إصدار البرنامج ومعلومات الدعم',
-        'icon': Icons.info_outline_rounded,
-        'color': Colors.indigo,
-      },
     ];
 
     return Scaffold(
@@ -1323,8 +1301,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _buildBackupAndUpdatesTab(context, settings, isEng);
       case 4:
         return _buildMaintenanceTab(context, settings, isEng);
-      case 5:
-        return _buildAboutAppSection(context, settings, isEng);
       default:
         return _buildStoreAndReceiptTab(context, settings, isEng);
     }
@@ -1697,7 +1673,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // TAB 1: Printers & Multi-POS Networking Configuration
+  // TAB 1: Printers Configuration
   Widget _buildPrintersTab(BuildContext context, SettingsProvider settings, bool isEng) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1775,11 +1751,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onPressed: () => _showPrinterSelectionDialog(_cashierPrinterController, isEng ? 'Select Invoice Printer' : 'اختر طابعة الفواتير والكاشير الرئيسية'),
                     ),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لاختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
+                    helperText: isEng ? 'Click dropdown arrow to pick PC printer or type printer name directly' : 'انقر على السهم لااختيار طابعة الكمبيوتر أو اكتب اسم الطابعة المباشر',
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final settingsProvider = context.read<SettingsProvider>();
+                      final success = await PrintService.openCashDrawer(settingsProvider);
+                      if (context.mounted) {
+                        if (success) {
+                          TopNotification.showSuccess(context, isEng ? 'Cash Drawer kick command sent successfully! 🔑' : 'تم إرسال إشارة فتح درج النقدية بنجاح! 🔑');
+                        } else {
+                          TopNotification.showWarning(context, isEng ? 'Failed to open cash drawer. Check printer connection.' : 'فشل إرسال إشارة فتح الدرج، تأكد من توصيل الكابل بالطابعة واختيار الطابعة الصحيحة.');
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.key, size: 18),
+                    label: Text(isEng ? 'Test Open Cash Drawer 🔑' : 'اختبار فتح درج النقدية 🔑'),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
 
                 TextField(
                   controller: _kitchenPrinterController,
@@ -1796,7 +1793,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 TextField(
                   controller: _reportsPrinterController,
@@ -1813,7 +1810,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 TextField(
                   controller: _barcodePrinterController,
@@ -1830,7 +1827,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 20),
 
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade300),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.blue, size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          isEng
+                              ? '💡 Single Printer Setup (Kitchen + Invoice):\nTo use 1 physical printer without opening the drawer on kitchen tickets, add the printer twice in Windows on the same USB port (e.g. USB001):\n1. Name one "Cashier Printer" (Cash Drawer: Open After Printing).\n2. Name the second "Kitchen Printer" (Cash Drawer: Disabled).\n3. Map them in this settings page accordingly.'
+                              : '💡 طريقة ربط طابعة واحدة للمطبخ والكاشير مع فتح الدرج عند الفاتورة فقط:\nفي لوحة تحكم الويندوز (Devices & Printers)، قُم بإضافة الطابعة مرتين على نفس منفذ USB001:\n1. الأولى سمّها (طابعة الكاشير) واجعل خيار الدرج بها (Cash Drawer: Open After Printing).\n2. الثانية سمّها (طابعة المطبخ) واجعل خيار الدرج بها (Cash Drawer: Disabled).\n3. اختر الأولى لـ طابعة الكاشير والثانية لـ طابعة المطبخ من هذه الصفحة.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade900,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -1838,8 +1864,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ],
     );
   }
-
-
 
   // TAB 2: Appearance & Language
   Widget _buildThemeAndLanguageTab(BuildContext context, SettingsProvider settings, bool isEng) {
@@ -1907,8 +1931,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLicenseSubscriptionSection(context, settings),
-        const SizedBox(height: 20),
         _buildBackupRestoreSection(context, settings),
         const SizedBox(height: 20),
 
@@ -1988,117 +2010,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildLicenseSubscriptionSection(BuildContext context, SettingsProvider settings) {
-    final isEng = settings.isEnglish;
-    return FutureBuilder<LicenseInfo>(
-      future: LicenseService.instance.initAndGetLicenseInfo(),
-      builder: (context, snapshot) {
-        final info = snapshot.data;
-        final isActivated = info?.isActivated ?? false;
-        final daysRemaining = info?.daysRemaining ?? 0;
-        final isExpired = info?.isExpired ?? false;
-
-        return Card(
-          elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: isActivated
-                          ? Colors.green
-                          : (isExpired ? Colors.red : Colors.amber.shade800),
-                      child: Icon(
-                        isActivated
-                            ? Icons.verified_user_rounded
-                            : (isExpired ? Icons.lock_clock_rounded : Icons.hourglass_top_rounded),
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isEng ? 'Software Subscription & License' : 'إدارة اشتراك وترخيص النظام',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            isActivated
-                                ? (isEng
-                                    ? 'Annual Subscription Active (${daysRemaining}d remaining)'
-                                    : 'اشتراك سنوي مفعّل بنجاح (متبقي $daysRemaining يوماً)')
-                                : (isExpired
-                                    ? (isEng ? 'Trial Expired 🔒' : 'انتهت الفترة التجريبية (30 يوم) 🔒')
-                                    : (isEng
-                                        ? 'Free Trial Period ($daysRemaining days remaining)'
-                                        : 'فترة تجريبية مجانية (متبقي $daysRemaining يوماً من أصل 30 يوماً)')),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: isActivated
-                                  ? Colors.green.shade800
-                                  : (isExpired ? Colors.red.shade800 : Colors.amber.shade900),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Divider(height: 28),
-                Text(
-                  isActivated
-                      ? (isEng
-                          ? 'Your annual subscription key is active. Key: ${info?.activationKey ?? ''}'
-                          : 'الاشتراك السنوي لـ CASHBOX POS مفعّل بنجاح. رمز التفعيل: ${info?.activationKey ?? ''}')
-                      : (isEng
-                          ? 'The app is running in free 30-day trial mode. Activate annual key anytime to extend.'
-                          : 'البرنامج يعمل حالياً بالنسخة التجريبية المجانية لمدة 30 يوماً. يمكنك إدخال رمز الاشتراك السنوي في أي وقت للتفعيل.'),
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LicenseActivationScreen(),
-                        ),
-                      );
-                      setState(() {});
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isActivated ? Colors.green.shade700 : AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: Icon(isActivated ? Icons.key_rounded : Icons.vpn_key_rounded),
-                    label: Text(
-                      isActivated
-                          ? (isEng ? 'Manage Subscription Key' : 'إدارة / تحديث كود الاشتراك 🔑')
-                          : (isEng ? 'Activate Annual Subscription 🔑' : 'إدخال كود التفعيل السنوي 🔑'),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   // TAB 4: Maintenance & Factory Reset
   Widget _buildMaintenanceTab(BuildContext context, SettingsProvider settings, bool isEng) {
     return Column(
@@ -2151,219 +2062,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAboutAppSection(BuildContext context, SettingsProvider settings, bool isEng) {
-    const supportPhone = '+9647502198213';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-          child: Padding(
-            padding: const EdgeInsets.all(28.0),
-            child: Column(
-              children: [
-                // App Logo Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.storefront_rounded, size: 54, color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-
-                // App Name
-                Text(
-                  isEng ? 'CASHBOX POS SYSTEM' : 'نظام CashBox POS لنقاط البيع المباشرة',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  isEng
-                      ? 'Integrated Point of Sale & Restaurant Management System'
-                      : 'النظام المتكامل لإدارة المطاعم والعمليات والكاشير والمبيعات',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 20),
-
-                // App Version Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.indigo.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.indigo.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.indigo.shade700,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.verified_rounded, color: Colors.white, size: 26),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isEng ? 'Software Version' : 'رقم إصدار البرنامج',
-                              style: TextStyle(fontSize: 12, color: Colors.indigo.shade900, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'v$_currentAppVersion',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.indigo),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isEng ? 'Latest Official Stable Release' : 'الإصدار الرسمي المعتمد للنظام',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isEng ? 'Active License ✅' : 'مرخص ومفعل ✅',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade900),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Support Phone Number Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade700,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 26),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isEng ? 'Technical Support Contact' : 'رقم الدعم الفني المباشر',
-                                  style: TextStyle(fontSize: 12, color: Colors.green.shade900, fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 4),
-                                Directionality(
-                                  textDirection: TextDirection.ltr,
-                                  child: SelectableText(
-                                    supportPhone,
-                                    textDirection: TextDirection.ltr,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Clipboard.setData(const ClipboardData(text: supportPhone));
-                                TopNotification.showSuccess(
-                                  context,
-                                  isEng ? 'Support phone number copied: $supportPhone 📋' : 'تم نسخ رقم الدعم الفني بنجاح: $supportPhone 📋',
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade700,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              icon: const Icon(Icons.copy_rounded, size: 18),
-                              label: Text(
-                                isEng ? 'Copy Number 📋' : 'نسخ رقم الدعم 📋',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Copyright & Rights
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.copyright_rounded, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 6),
-                    Text(
-                      isEng
-                          ? 'CashBox POS System © 2026. All Rights Reserved.'
-                          : 'حقوق الطبع والنشر © 2026 - نظام CashBox POS لنقاط البيع. جميع الحقوق محفوظة.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                    ),
-                  ],
                 ),
               ],
             ),
