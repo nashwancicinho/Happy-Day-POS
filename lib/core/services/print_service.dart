@@ -21,12 +21,16 @@ class PrintService {
     if (isBold && _cachedArabicFontBold != null) return _cachedArabicFontBold!;
     if (!isBold && _cachedArabicFont != null) return _cachedArabicFont!;
 
-    final assetPath = isBold
+    final primaryAssetPath = isBold
         ? 'assets/fonts/Cairo-Bold.ttf'
         : 'assets/fonts/Cairo-Regular.ttf';
 
+    final secondaryAssetPath = isBold
+        ? 'assets/fonts/Amiri-Bold.ttf'
+        : 'assets/fonts/Amiri-Regular.ttf';
+
     try {
-      final fontData = await rootBundle.load(assetPath);
+      final fontData = await rootBundle.load(primaryAssetPath);
       final font = pw.Font.ttf(fontData);
       if (isBold) {
         _cachedArabicFontBold = font;
@@ -35,11 +39,10 @@ class PrintService {
       }
       return font;
     } catch (e) {
-      debugPrint('Error loading asset font ($assetPath): $e');
+      debugPrint('Error loading primary asset font ($primaryAssetPath): $e');
       try {
-        final font = isBold
-            ? await PdfGoogleFonts.cairoBold()
-            : await PdfGoogleFonts.cairoRegular();
+        final fontData = await rootBundle.load(secondaryAssetPath);
+        final font = pw.Font.ttf(fontData);
         if (isBold) {
           _cachedArabicFontBold = font;
         } else {
@@ -47,15 +50,38 @@ class PrintService {
         }
         return font;
       } catch (_) {
-        final font = isBold
-            ? await PdfGoogleFonts.amiriBold()
-            : await PdfGoogleFonts.amiriRegular();
-        if (isBold) {
-          _cachedArabicFontBold = font;
-        } else {
-          _cachedArabicFont = font;
+        try {
+          final fontData = await rootBundle.load('assets/fonts/DroidSansArabic.ttf');
+          final font = pw.Font.ttf(fontData);
+          if (isBold) {
+            _cachedArabicFontBold = font;
+          } else {
+            _cachedArabicFont = font;
+          }
+          return font;
+        } catch (_) {
+          try {
+            final font = isBold
+                ? await PdfGoogleFonts.cairoBold()
+                : await PdfGoogleFonts.cairoRegular();
+            if (isBold) {
+              _cachedArabicFontBold = font;
+            } else {
+              _cachedArabicFont = font;
+            }
+            return font;
+          } catch (_) {
+            final font = isBold
+                ? await PdfGoogleFonts.amiriBold()
+                : await PdfGoogleFonts.amiriRegular();
+            if (isBold) {
+              _cachedArabicFontBold = font;
+            } else {
+              _cachedArabicFont = font;
+            }
+            return font;
+          }
         }
-        return font;
       }
     }
   }
@@ -236,6 +262,22 @@ class PrintService {
           debugPrint(
             'Printing.directPrintPdf failed on ${targetPrinter.name}: $e',
           );
+        }
+
+        // Native lpr fallback for macOS & Linux
+        if (Platform.isMacOS || Platform.isLinux) {
+          try {
+            final tempDir = await getTemporaryDirectory();
+            final tempFile = File('${tempDir.path}/$docName.pdf');
+            await tempFile.writeAsBytes(pdfBytes);
+            final result = await Process.run('lpr', ['-P', targetPrinter.name, tempFile.path]);
+            if (result.exitCode == 0) {
+              debugPrint('Successfully printed via lpr to ${targetPrinter.name}');
+              return true;
+            }
+          } catch (e) {
+            debugPrint('lpr fallback failed: $e');
+          }
         }
       }
 
