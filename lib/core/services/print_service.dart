@@ -5,6 +5,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'package:flutter/services.dart' show rootBundle;
+
 import '../../models/order.dart';
 import '../../models/order_item.dart';
 import '../../models/product.dart';
@@ -12,6 +14,51 @@ import '../../models/salary_payment.dart';
 import '../../features/settings/settings_provider.dart';
 
 class PrintService {
+  static pw.Font? _cachedArabicFont;
+  static pw.Font? _cachedArabicFontBold;
+
+  static Future<pw.Font> _loadArabicFont({bool isBold = false}) async {
+    if (isBold && _cachedArabicFontBold != null) return _cachedArabicFontBold!;
+    if (!isBold && _cachedArabicFont != null) return _cachedArabicFont!;
+
+    final assetPath = isBold
+        ? 'assets/fonts/Cairo-Bold.ttf'
+        : 'assets/fonts/Cairo-Regular.ttf';
+
+    try {
+      final fontData = await rootBundle.load(assetPath);
+      final font = pw.Font.ttf(fontData);
+      if (isBold) {
+        _cachedArabicFontBold = font;
+      } else {
+        _cachedArabicFont = font;
+      }
+      return font;
+    } catch (e) {
+      debugPrint('Error loading asset font ($assetPath): $e');
+      try {
+        final font = isBold
+            ? await PdfGoogleFonts.cairoBold()
+            : await PdfGoogleFonts.cairoRegular();
+        if (isBold) {
+          _cachedArabicFontBold = font;
+        } else {
+          _cachedArabicFont = font;
+        }
+        return font;
+      } catch (_) {
+        final font = isBold
+            ? await PdfGoogleFonts.amiriBold()
+            : await PdfGoogleFonts.amiriRegular();
+        if (isBold) {
+          _cachedArabicFontBold = font;
+        } else {
+          _cachedArabicFont = font;
+        }
+        return font;
+      }
+    }
+  }
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر
   /// جلب كافة الطابعات المعرفة والمكتشفة على جهاز الكمبيوتر مستخدمين الحزمة الرسمية للنظام
   static Future<List<Printer>> getSystemPrinters() async {
@@ -214,15 +261,8 @@ class PrintService {
     double changeDue = 0.0,
   }) async {
     try {
-      pw.Font arabicFont;
-      pw.Font arabicFontBold;
-      try {
-        arabicFont = await PdfGoogleFonts.amiriRegular();
-        arabicFontBold = await PdfGoogleFonts.amiriBold();
-      } catch (_) {
-        arabicFont = await PdfGoogleFonts.cairoRegular();
-        arabicFontBold = await PdfGoogleFonts.cairoBold();
-      }
+      final arabicFont = await _loadArabicFont(isBold: false);
+      final arabicFontBold = await _loadArabicFont(isBold: true);
 
       // Load logo image if path exists
       pw.MemoryImage? logoImage;
@@ -709,15 +749,8 @@ class PrintService {
         return true;
       }
 
-      pw.Font arabicFont;
-      pw.Font arabicFontBold;
-      try {
-        arabicFont = await PdfGoogleFonts.amiriRegular();
-        arabicFontBold = await PdfGoogleFonts.amiriBold();
-      } catch (_) {
-        arabicFont = await PdfGoogleFonts.cairoRegular();
-        arabicFontBold = await PdfGoogleFonts.cairoBold();
-      }
+      final arabicFont = await _loadArabicFont(isBold: false);
+      final arabicFontBold = await _loadArabicFont(isBold: true);
 
       // Group items by target kitchen printer
       final Map<String, List<OrderItemModel>> itemsByPrinter = {};
@@ -869,8 +902,8 @@ class PrintService {
     required SettingsProvider settings,
   }) async {
     try {
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+      final arabicFont = await _loadArabicFont(isBold: false);
+      final arabicFontBold = await _loadArabicFont(isBold: true);
 
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
@@ -1535,8 +1568,8 @@ Write-Output "False"
     required SettingsProvider settings,
   }) async {
     try {
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicFontBold = await PdfGoogleFonts.cairoBold();
+      final arabicFont = await _loadArabicFont(isBold: false);
+      final arabicFontBold = await _loadArabicFont(isBold: true);
 
       final barcodeData =
           (product.barcode != null && product.barcode!.isNotEmpty)
@@ -1626,15 +1659,8 @@ Write-Output "False"
     required SettingsProvider settings,
   }) async {
     try {
-      pw.Font arabicFont;
-      pw.Font arabicFontBold;
-      try {
-        arabicFont = await PdfGoogleFonts.amiriRegular();
-        arabicFontBold = await PdfGoogleFonts.amiriBold();
-      } catch (_) {
-        arabicFont = await PdfGoogleFonts.cairoRegular();
-        arabicFontBold = await PdfGoogleFonts.cairoBold();
-      }
+      final arabicFont = await _loadArabicFont(isBold: false);
+      final arabicFontBold = await _loadArabicFont(isBold: true);
 
       final pdf = pw.Document();
       final pageFormat = PdfPageFormat(220, double.infinity, marginAll: 8);
