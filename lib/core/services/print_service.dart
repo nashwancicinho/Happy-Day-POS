@@ -22,12 +22,12 @@ class PrintService {
     if (!isBold && _cachedArabicFont != null) return _cachedArabicFont!;
 
     final primaryAssetPath = isBold
-        ? 'assets/fonts/Cairo-Bold.ttf'
-        : 'assets/fonts/Cairo-Regular.ttf';
-
-    final secondaryAssetPath = isBold
         ? 'assets/fonts/Amiri-Bold.ttf'
         : 'assets/fonts/Amiri-Regular.ttf';
+
+    final secondaryAssetPath = isBold
+        ? 'assets/fonts/Cairo-Bold.ttf'
+        : 'assets/fonts/Cairo-Regular.ttf';
 
     try {
       final fontData = await rootBundle.load(primaryAssetPath);
