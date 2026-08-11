@@ -13,7 +13,19 @@ class ProductsProvider extends ChangeNotifier {
   List<ProductModel> get products {
     return _products.where((prod) {
       final matchesCategory = _selectedCategoryId == null
-          ? (prod.displayLocation == 'BOTH' || prod.displayLocation == 'MAIN_ONLY')
+          ? true
+          : (prod.categoryId == _selectedCategoryId);
+      final matchesSearch = _searchQuery.isEmpty ||
+          prod.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (prod.barcode != null && prod.barcode!.toLowerCase().contains(_searchQuery.toLowerCase()));
+      return matchesCategory && matchesSearch;
+    }).toList();
+  }
+
+  List<ProductModel> get cashierProducts {
+    return _products.where((prod) {
+      final matchesCategory = _selectedCategoryId == null
+          ? true
           : (prod.categoryId == _selectedCategoryId && prod.displayLocation != 'MAIN_ONLY');
       final matchesSearch = _searchQuery.isEmpty ||
           prod.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||

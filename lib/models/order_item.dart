@@ -21,7 +21,7 @@ class OrderItemModel {
     required this.price,
     this.discount = 0.0,
     this.notes,
-    this.printToKitchen = true,
+    this.printToKitchen = false,
     this.kitchenPrinter,
   });
 
@@ -60,7 +60,7 @@ class OrderItemModel {
       price: (map['price'] as num).toDouble(),
       discount: (map['discount'] as num? ?? 0.0).toDouble(),
       notes: map['notes'] as String?,
-      printToKitchen: printToKitchen ?? ((map['print_to_kitchen'] as int? ?? 1) == 1),
+      printToKitchen: printToKitchen ?? ((map['print_to_kitchen'] as int? ?? 0) == 1),
       kitchenPrinter: kitchenPrinter ?? map['kitchen_printer'] as String?,
     );
   }

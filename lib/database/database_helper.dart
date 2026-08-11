@@ -86,13 +86,13 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'orders', 'customer_address', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'cashier_name', 'TEXT');
     await _addColumnIfMissing(db, 'orders', 'business_date', 'TEXT');
-    await _addColumnIfMissing(db, 'order_items', 'print_to_kitchen', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'order_items', 'print_to_kitchen', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'unit', "TEXT DEFAULT 'قطعة'");
     await _addColumnIfMissing(db, 'products', 'is_weighted', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'allow_price_change', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'barcode', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'buy_price', 'REAL DEFAULT 0');
-    await _addColumnIfMissing(db, 'products', 'display_location', "TEXT DEFAULT 'BOTH'");
+    await _addColumnIfMissing(db, 'products', 'display_location', "TEXT DEFAULT 'CATEGORY_ONLY'");
     await _addColumnIfMissing(db, 'raw_materials', 'cost_per_unit', 'REAL DEFAULT 0');
 
     // Employees table
@@ -146,7 +146,7 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'products', 'stock_quantity', 'REAL DEFAULT 100');
     await _addColumnIfMissing(db, 'products', 'track_stock', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'min_stock', 'REAL DEFAULT 5');
-    await _addColumnIfMissing(db, 'products', 'print_to_kitchen', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'products', 'print_to_kitchen', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'kitchen_printer', 'TEXT');
     await _addColumnIfMissing(db, 'order_items', 'kitchen_printer', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'color', 'TEXT');
@@ -475,6 +475,15 @@ class DatabaseHelper {
       await txn.delete('users');
       await txn.delete('customers');
       await txn.delete('daily_treasury');
+      await txn.delete('purchase_items');
+      await txn.delete('purchases');
+      await txn.delete('supplier_payments');
+      await txn.delete('suppliers');
+      await txn.delete('product_recipes');
+      await txn.delete('raw_materials');
+      await txn.delete('employee_advances');
+      await txn.delete('salary_payments');
+      await txn.delete('employees');
     });
     await _seedMinimalDefaults(db);
     await _ensureColumnsExist(db);

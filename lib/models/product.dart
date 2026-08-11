@@ -36,9 +36,9 @@ class ProductModel {
     this.image,
     this.color,
     this.isAvailable = true,
-    this.printToKitchen = true,
+    this.printToKitchen = false,
     this.kitchenPrinter,
-    this.displayLocation = 'BOTH',
+    this.displayLocation = 'CATEGORY_ONLY',
   });
 
   bool get isLowStock => trackStock && stockQuantity <= minStock;
@@ -133,9 +133,9 @@ class ProductModel {
       image: map['image'] as String?,
       color: map['color'] as String?,
       isAvailable: (map['is_available'] as int? ?? 1) == 1,
-      printToKitchen: (map['print_to_kitchen'] as int? ?? 1) == 1,
+      printToKitchen: (map['print_to_kitchen'] as int? ?? 0) == 1,
       kitchenPrinter: map['kitchen_printer'] as String?,
-      displayLocation: map['display_location'] as String? ?? 'BOTH',
+      displayLocation: map['display_location'] as String? ?? 'CATEGORY_ONLY',
     );
   }
 

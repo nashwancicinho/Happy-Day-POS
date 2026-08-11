@@ -2696,7 +2696,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
   // 2. Grid View for Items/Products
   Widget _buildItemsGrid(BuildContext context, ProductsProvider productsProvider) {
-    final products = productsProvider.products;
+    final products = productsProvider.cashierProducts;
     final totalGridItems = products.length + 1;
 
     return GridView.builder(

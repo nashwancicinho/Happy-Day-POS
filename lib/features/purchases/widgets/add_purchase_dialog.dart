@@ -227,41 +227,66 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 4),
                                 child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     // Product selection or Custom name
                                     Expanded(
                                       flex: 4,
-                                      child: DropdownButtonFormField<ProductModel?>(
-                                        initialValue: _items[i].selectedProduct,
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                          hintText: isEng ? 'Select or type item name' : 'اختر مادة أو اكتب اسمها',
-                                        ),
-                                        items: [
-                                          DropdownMenuItem<ProductModel?>(
-                                            value: null,
-                                            child: Text(isEng ? '-- New Custom Item --' : '-- مادة مخصصة جديدة --', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          DropdownButtonFormField<ProductModel?>(
+                                            initialValue: _items[i].selectedProduct,
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              hintText: isEng ? 'Select or custom item' : 'اختر مادة أو اكتب اسمها',
+                                            ),
+                                            items: [
+                                              DropdownMenuItem<ProductModel?>(
+                                                value: null,
+                                                child: Text(
+                                                  isEng ? '✏️ New Custom Item' : '✏️ مادة مخصصة جديدة',
+                                                  style: TextStyle(color: Colors.teal.shade800, fontSize: 12, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                              ...products.map((p) {
+                                                return DropdownMenuItem<ProductModel?>(
+                                                  value: p,
+                                                  child: Text(p.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                                );
+                                              }),
+                                            ],
+                                            onChanged: (prod) {
+                                              setState(() {
+                                                _items[i].selectedProduct = prod;
+                                                if (prod != null) {
+                                                  _items[i].nameController.text = prod.name;
+                                                  if (prod.buyPrice > 0) {
+                                                    _items[i].priceController.text = prod.buyPrice.toStringAsFixed(0);
+                                                  }
+                                                } else {
+                                                  _items[i].nameController.clear();
+                                                }
+                                              });
+                                            },
                                           ),
-                                          ...products.map((p) {
-                                            return DropdownMenuItem<ProductModel?>(
-                                              value: p,
-                                              child: Text(p.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                            );
-                                          }),
+                                          if (_items[i].selectedProduct == null) ...[
+                                            const SizedBox(height: 6),
+                                            TextFormField(
+                                              controller: _items[i].nameController,
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                                hintText: isEng ? 'Type custom item name *' : 'اكتب اسم المادة هنا *',
+                                                prefixIcon: const Icon(Icons.edit_note, size: 18, color: Colors.teal),
+                                              ),
+                                              onChanged: (_) => setState(() {}),
+                                            ),
+                                          ],
                                         ],
-                                        onChanged: (prod) {
-                                          setState(() {
-                                            _items[i].selectedProduct = prod;
-                                            if (prod != null) {
-                                              _items[i].nameController.text = prod.name;
-                                              if (prod.buyPrice > 0) {
-                                                _items[i].priceController.text = prod.buyPrice.toStringAsFixed(0);
-                                              }
-                                            }
-                                          });
-                                        },
                                       ),
                                     ),
                                     const SizedBox(width: 8),

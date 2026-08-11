@@ -319,13 +319,13 @@ class ProductsScreen extends StatelessWidget {
     final minStockController = TextEditingController(text: product != null ? product.minStock.toStringAsFixed(0) : '5');
 
     int? selectedCatId = product?.categoryId;
-    String selectedDisplayLocation = product?.displayLocation ?? 'BOTH';
+    String selectedDisplayLocation = product?.displayLocation ?? 'CATEGORY_ONLY';
     String selectedUnit = product?.unit ?? 'قطعة';
     bool isWeighted = product?.isWeighted ?? false;
     bool allowPriceChange = product?.allowPriceChange ?? false;
     bool trackStock = product?.trackStock ?? false;
     bool isAvailable = product?.isAvailable ?? true;
-    bool printToKitchen = product?.printToKitchen ?? true;
+    bool printToKitchen = product?.printToKitchen ?? false;
     String? selectedKitchenPrinter = product?.kitchenPrinter;
 
     List<dynamic> systemPrinters = [];
@@ -489,6 +489,14 @@ class ProductsScreen extends StatelessWidget {
                               ),
                               items: [
                                 DropdownMenuItem<String>(
+                                  value: 'CATEGORY_ONLY',
+                                  child: Text(
+                                    isEng ? '📂 Display Inside Selected Category Only' : '📂 عرض داخل التصنيف المحدد فقط',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem<String>(
                                   value: 'BOTH',
                                   child: Text(
                                     isEng ? '🌟 Display in Both (Main Screen + Inside Category)' : '🌟 عرض في الاثنين (الشاشة الرئيسية + داخل التصنيف)',
@@ -501,14 +509,6 @@ class ProductsScreen extends StatelessWidget {
                                   child: Text(
                                     isEng ? '📌 Display on Main Screen Only' : '📌 عرض في الشاشة الرئيسية المباشرة فقط',
                                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                DropdownMenuItem<String>(
-                                  value: 'CATEGORY_ONLY',
-                                  child: Text(
-                                    isEng ? '📂 Display Inside Selected Category Only' : '📂 عرض داخل التصنيف المحدد فقط',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),

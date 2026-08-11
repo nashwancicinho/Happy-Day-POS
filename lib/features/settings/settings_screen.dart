@@ -702,6 +702,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: ['DAILY', 'WEEKLY', 'MONTHLY', 'OFF'].contains(settingsProvider.autoBackupFrequency)
                         ? settingsProvider.autoBackupFrequency
                         : 'DAILY',
@@ -715,19 +716,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     items: [
                       DropdownMenuItem(
                         value: 'DAILY',
-                        child: Text(isEng ? '📅 Daily Automatically (On Shift / EOD Closing)' : '📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)'),
+                        child: Text(
+                          isEng ? '📅 Daily Automatically (On Shift / EOD Closing)' : '📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'WEEKLY',
-                        child: Text(isEng ? '🗓️ Weekly Automatically (Every Week)' : '🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)'),
+                        child: Text(
+                          isEng ? '🗓️ Weekly Automatically (Every Week)' : '🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'MONTHLY',
-                        child: Text(isEng ? '📆 Monthly Automatically (Every Month)' : '📆 شهرياً أوتوماتيكياً (كل شهر)'),
+                        child: Text(
+                          isEng ? '📆 Monthly Automatically (Every Month)' : '📆 شهرياً أوتوماتيكياً (كل شهر)',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'OFF',
-                        child: Text(isEng ? '🚫 Manual Only (Disable Auto-Backup)' : '🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)'),
+                        child: Text(
+                          isEng ? '🚫 Manual Only (Disable Auto-Backup)' : '🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                     onChanged: (val) {
