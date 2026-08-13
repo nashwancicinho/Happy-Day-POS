@@ -721,7 +721,7 @@ class OrdersRepository {
   Future<double> calculateNetProfit() async {
     final db = await _databaseHelper.database;
     final result = await db.rawQuery('''
-      SELECT SUM((oi.price - oi.buy_price) * oi.quantity - oi.discount) as net_profit
+      SELECT SUM((oi.price - oi.buy_price) * oi.quantity - COALESCE(oi.discount, 0)) as net_profit
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
       WHERE o.status = 'COMPLETED'
@@ -788,7 +788,7 @@ class OrdersRepository {
     }
 
     final result = await db.rawQuery('''
-      SELECT SUM((oi.price - oi.buy_price) * oi.quantity - oi.discount) as net_profit
+      SELECT SUM((oi.price - oi.buy_price) * oi.quantity - COALESCE(oi.discount, 0)) as net_profit
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
       $whereClause
@@ -909,18 +909,18 @@ class OrdersRepository {
     final maps = await db.rawQuery('''
       SELECT 
         oi.product_id,
-        p.name AS product_name,
+        COALESCE(p.name, 'صنف غير معروف') AS product_name,
         COALESCE(NULLIF(oi.buy_price, 0.0), p.buy_price, 0.0) AS buy_price,
         AVG(oi.price) AS sell_price,
         SUM(oi.quantity) AS total_qty,
-        SUM((oi.price * oi.quantity) - oi.discount) AS total_revenue,
+        SUM((oi.price * oi.quantity) - COALESCE(oi.discount, 0)) AS total_revenue,
         SUM(oi.quantity * COALESCE(NULLIF(oi.buy_price, 0.0), p.buy_price, 0.0)) AS total_cost,
-        SUM((oi.price * oi.quantity) - oi.discount - (oi.quantity * COALESCE(NULLIF(oi.buy_price, 0.0), p.buy_price, 0.0))) AS net_profit
+        SUM((oi.price * oi.quantity) - COALESCE(oi.discount, 0) - (oi.quantity * COALESCE(NULLIF(oi.buy_price, 0.0), p.buy_price, 0.0))) AS net_profit
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
-      JOIN products p ON oi.product_id = p.id
+      LEFT JOIN products p ON oi.product_id = p.id
       $whereClause
-      GROUP BY oi.product_id, p.name
+      GROUP BY oi.product_id, COALESCE(p.name, 'صنف غير معروف')
       ORDER BY net_profit DESC
     ''', whereArgs);
 
@@ -1166,43 +1166,85 @@ class OrdersRepository {
         await txn.update('order_items', {'quantity': newQty}, where: 'id = ?', whereArgs: [orderItemId]);
       }
 
-      // 2. Recalculate order total
+      // 2. Recalculate remaining items total & count
       final remainingItems = await txn.rawQuery('''
-        SELECT SUM((price * quantity) - discount) as new_total
+        SELECT SUM((price * quantity) - COALESCE(discount, 0)) as new_total,
+               COUNT(*) as items_count
         FROM order_items
         WHERE order_id = ?
       ''', [orderId]);
 
-      final newTotal = (remainingItems.first['new_total'] as num? ?? 0.0).toDouble();
+      final itemsCount = (remainingItems.first['items_count'] as num? ?? 0).toInt();
+      final newSubtotal = (remainingItems.first['new_total'] as num? ?? 0.0).toDouble();
 
-      if (newTotal <= 0) {
-        await txn.update('orders', {'status': 'REFUNDED', 'total': 0}, where: 'id = ?', whereArgs: [orderId]);
+      if (itemsCount == 0 || newSubtotal <= 0) {
+        await txn.update('orders', {
+          'status': 'REFUNDED',
+          'subtotal': 0,
+          'total': 0,
+        }, where: 'id = ?', whereArgs: [orderId]);
       } else {
-        await txn.update('orders', {'total': newTotal}, where: 'id = ?', whereArgs: [orderId]);
+        final orderMaps = await txn.query('orders', where: 'id = ?', whereArgs: [orderId]);
+        double discountAmount = 0.0;
+        double taxAmount = 0.0;
+        if (orderMaps.isNotEmpty) {
+          discountAmount = (orderMaps.first['discount_amount'] as num? ?? 0.0).toDouble();
+          taxAmount = (orderMaps.first['tax_amount'] as num? ?? 0.0).toDouble();
+        }
+
+        final newTotal = (newSubtotal - discountAmount + taxAmount).clamp(0.0, double.infinity);
+
+        await txn.update('orders', {
+          'subtotal': newSubtotal,
+          'total': newTotal,
+        }, where: 'id = ?', whereArgs: [orderId]);
       }
 
       return true;
     });
   }
 
-  Future<bool> cancelTableOrder(int tableId) async {
+  Future<bool> cancelTableOrder(int tableId, {String? cancelledBy, String? cancelReason}) async {
     final db = await _databaseHelper.database;
     return await db.transaction((txn) async {
       final openOrders = await txn.rawQuery('''
-        SELECT id FROM orders
+        SELECT id, total FROM orders
         WHERE table_id = ? AND status NOT IN ('COMPLETED', 'REFUNDED')
       ''', [tableId]);
 
       for (final orderMap in openOrders) {
         final orderId = orderMap['id'] as int;
-        await txn.delete(
-          'order_items',
-          where: 'order_id = ?',
-          whereArgs: [orderId],
-        );
+
+        final itemsTotalMap = await txn.rawQuery('''
+          SELECT SUM((price * quantity) - COALESCE(discount, 0)) as items_total
+          FROM order_items
+          WHERE order_id = ?
+        ''', [orderId]);
+
+        double originalTotal = (orderMap['total'] as num? ?? 0.0).toDouble();
+        if (itemsTotalMap.isNotEmpty && itemsTotalMap.first['items_total'] != null) {
+          final calcTotal = (itemsTotalMap.first['items_total'] as num).toDouble();
+          if (calcTotal > 0) {
+            originalTotal = calcTotal;
+          }
+        }
+
+        final updateData = <String, dynamic>{
+          'status': 'CANCELLED',
+        };
+        if (originalTotal > 0) {
+          updateData['total'] = originalTotal;
+        }
+        if (cancelledBy != null && cancelledBy.isNotEmpty) {
+          updateData['cashier_name'] = cancelledBy;
+        }
+        if (cancelReason != null && cancelReason.isNotEmpty) {
+          updateData['notes'] = cancelReason;
+        }
+
         await txn.update(
           'orders',
-          {'status': 'CANCELLED', 'total': 0},
+          updateData,
           where: 'id = ?',
           whereArgs: [orderId],
         );
@@ -1217,6 +1259,51 @@ class OrdersRepository {
 
       return true;
     });
+  }
+
+  Future<int> createCancelledOrder({
+    required String cashierName,
+    required String orderType,
+    required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
+    double taxAmount = 0.0,
+    String? notes,
+  }) async {
+    final db = await _databaseHelper.database;
+    final nowStr = DateTime.now().toIso8601String();
+    return await db.insert('orders', {
+      'cashier_name': cashierName,
+      'order_type': orderType,
+      'subtotal': subtotal > 0 ? subtotal : total,
+      'discount_amount': discountAmount,
+      'tax_amount': taxAmount,
+      'total': total,
+      'payment_method': 'CASH',
+      'status': 'CANCELLED',
+      'notes': notes,
+      'created_at': nowStr,
+    });
+  }
+
+  Future<bool> updateCancelledOrderDetails({
+    required int orderId,
+    required String cashierName,
+    required double total,
+    String? notes,
+  }) async {
+    final db = await _databaseHelper.database;
+    final count = await db.update(
+      'orders',
+      {
+        'cashier_name': cashierName,
+        'total': total,
+        if (notes != null) 'notes': notes,
+      },
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+    return count > 0;
   }
 }
 

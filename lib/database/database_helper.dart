@@ -192,6 +192,20 @@ class DatabaseHelper {
       ''');
     } catch (_) {}
 
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS other_expenses(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          amount REAL NOT NULL,
+          category TEXT DEFAULT 'عام',
+          notes TEXT,
+          created_by TEXT,
+          created_at TEXT NOT NULL
+        );
+      ''');
+    } catch (_) {}
+
     // Suppliers table
     try {
       await db.execute('''

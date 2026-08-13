@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_notification.dart';
+import '../../../../core/services/print_service.dart';
 import '../../../models/daily_treasury.dart';
 import '../../auth/auth_provider.dart';
 import '../../orders/orders_provider.dart';
@@ -27,6 +28,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
         context.read<OrdersProvider>().loadOrders();
         context.read<ShiftsProvider>().loadCurrentShift();
         context.read<TreasuryProvider>().loadTreasuryRecords();
+        context.read<TreasuryProvider>().loadOtherExpenses();
       }
     });
   }
@@ -251,6 +253,113 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     );
   }
 
+  Future<void> _printDailyClosingReceipt(
+    BuildContext context,
+    double incomeVal,
+    double expenseVal,
+    double netIncomeVal,
+    int todayOrdersCount,
+    String userName,
+    String? notes,
+  ) async {
+    final settingsProvider = context.read<SettingsProvider>();
+    final ordersProvider = context.read<OrdersProvider>();
+    final treasuryProvider = context.read<TreasuryProvider>();
+    await treasuryProvider.loadOtherExpenses();
+
+    final currencySym = settingsProvider.currencySymbol;
+
+    final firstInvoiceTime = ordersProvider.currentShiftFirstInvoiceDate;
+    final closingTime = DateTime.now().toIso8601String().length >= 16
+        ? DateTime.now().toIso8601String().substring(0, 16).replaceAll('T', ' ')
+        : DateTime.now().toIso8601String();
+
+    final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
+    final totalDiscounts = completedOrders.fold(0.0, (sum, o) => sum + o.discountAmount);
+
+    final cashSales = completedOrders.where((o) => o.paymentMethod == 'CASH').fold(0.0, (sum, o) => sum + o.total);
+    final cardSales = completedOrders.where((o) => o.paymentMethod == 'CARD').fold(0.0, (sum, o) => sum + o.total);
+    final debtSales = completedOrders.where((o) => o.paymentMethod == 'CREDIT' || o.paymentMethod == 'DEBT').fold(0.0, (sum, o) => sum + o.total);
+
+    final refundedOrders = ordersProvider.orders.where((o) => o.status == 'REFUNDED').toList();
+    final refundedCount = refundedOrders.length;
+    final refundedTotal = refundedOrders.fold(0.0, (sum, o) => sum + o.total);
+
+    final cancelledOrders = ordersProvider.orders.where((o) => o.status == 'CANCELLED').toList();
+    final cancelledCount = cancelledOrders.length;
+
+    final List<List<String>> customRows = [];
+
+    // 1. General Sales Summary & Payment Breakdown
+    customRows.add(['الوارد الكلي (إجمالي المبيعات)', '$todayOrdersCount فاتورة', '${incomeVal.toStringAsFixed(0)} $currencySym']);
+    if (cashSales > 0) {
+      customRows.add(['• المبيعات نقداً (CASH)', '-', '${cashSales.toStringAsFixed(0)} $currencySym']);
+    }
+    if (cardSales > 0) {
+      customRows.add(['• المبيعات بالبطاقة (CARD)', '-', '${cardSales.toStringAsFixed(0)} $currencySym']);
+    }
+    if (debtSales > 0) {
+      customRows.add(['• المبيعات بالآجل (DEBT)', '-', '${debtSales.toStringAsFixed(0)} $currencySym']);
+    }
+    if (totalDiscounts > 0) {
+      customRows.add(['إجمالي الخصومات الممنوحة', '-', '-${totalDiscounts.toStringAsFixed(0)} $currencySym']);
+    }
+    if (refundedCount > 0) {
+      customRows.add(['الفواتير والعمليات المسترجعة', '$refundedCount فاتورة', '-${refundedTotal.toStringAsFixed(0)} $currencySym']);
+    }
+    if (cancelledCount > 0) {
+      customRows.add(['الفواتير والعمليات الملغية', '$cancelledCount فاتورة', 'ملغاة']);
+    }
+
+    // 2. Itemized Expenses Breakdown (جميع المصاريف تفصيلياً)
+    customRows.add(['--- تفاصيل جميع المصاريف المسجلة ---', '---', '---']);
+
+    final otherExpensesList = treasuryProvider.otherExpenses;
+    if (otherExpensesList.isEmpty) {
+      customRows.add(['لا توجد مصاريف مسجلة اليوم', '0', '0 $currencySym']);
+    } else {
+      for (var i = 0; i < otherExpensesList.length; i++) {
+        final exp = otherExpensesList[i];
+        final expUser = exp.createdBy ?? 'المدير';
+        customRows.add([
+          '#${i + 1} ${exp.title} (${exp.category})',
+          'بواسطة: $expUser',
+          '-${exp.amount.toStringAsFixed(0)} $currencySym',
+        ]);
+      }
+    }
+
+    customRows.add(['إجمالي نفقات ومصاريف اليوم', '${otherExpensesList.length} عملية', '-${expenseVal.toStringAsFixed(0)} $currencySym']);
+    customRows.add(['صافي ربح اليوم النهائي والأخير', '=', '${netIncomeVal.toStringAsFixed(0)} $currencySym']);
+
+    if (notes != null && notes.isNotEmpty) {
+      customRows.add(['ملاحظات الإغلاق والتصفية', '-', notes]);
+    }
+
+    final success = await PrintService.printReport(
+      reportTitle: 'تقرير وتصفية اليوم والخزينة الشامل 🔒',
+      dateRangeText: closingTime,
+      generatedBy: userName,
+      totalSales: incomeVal,
+      totalExpenses: expenseVal,
+      totalOrders: todayOrdersCount,
+      netProfit: netIncomeVal,
+      firstInvoiceTime: firstInvoiceTime,
+      dayClosingTime: closingTime,
+      customHeaders: ['البيان / اسم المصروف', 'التفاصيل / المنفذ', 'المبلغ الصافي'],
+      customDataRows: customRows,
+      settings: settingsProvider,
+    );
+
+    if (context.mounted) {
+      if (success) {
+        TopNotification.showSuccess(context, '🖨️ تم إرسال تقرير المبيعات والمصاريف التفصيلي للطابعة بنجاح!');
+      } else {
+        TopNotification.showError(context, '⚠️ تعذر الطباعة المباشرة، يرجى التحقق من إعدادات الطابعة');
+      }
+    }
+  }
+
   // Integrated Day Closing & Treasury Dialog (الخزينة المدمجة داخل إغلاق اليوم)
   void _showIntegratedDayClosingDialog(
     BuildContext context,
@@ -261,7 +370,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
   ) {
     final currencySym = context.read<SettingsProvider>().currencySymbol;
     final incomeController = TextEditingController(text: defaultIncome.toStringAsFixed(0));
-    final expenseController = TextEditingController(text: '0');
     final notesController = TextEditingController();
 
     showDialog(
@@ -269,8 +377,9 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final treasuryProvider = context.watch<TreasuryProvider>();
             final incomeVal = double.tryParse(incomeController.text.trim()) ?? 0.0;
-            final expenseVal = double.tryParse(expenseController.text.trim()) ?? 0.0;
+            final expenseVal = treasuryProvider.totalOtherExpenses;
             final netIncomeVal = incomeVal - expenseVal;
 
             return AlertDialog(
@@ -319,72 +428,27 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                       TextField(
                         controller: incomeController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade900,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'الوارد الكلي اليومي (إجمالي المبيعات) *',
-                          prefixIcon: const Icon(Icons.add_card, color: Colors.green),
+                          labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                          prefixIcon: const Icon(Icons.add_card, color: Colors.green, size: 28),
+                          suffixStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade800),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           suffixText: currencySym,
                           filled: true,
-                          fillColor: Colors.green.shade50.withValues(alpha: 0.3),
+                          fillColor: Colors.green.shade50.withValues(alpha: 0.5),
                         ),
                         onChanged: (_) => setDialogState(() {}),
                       ),
 
                       const SizedBox(height: 14),
 
-                      // 2. المصروف اليومي
-                      TextField(
-                        controller: expenseController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'المصروف اليومي (النفقات والنثريات) *',
-                          prefixIcon: const Icon(Icons.shopping_cart_checkout, color: Colors.red),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          suffixText: currencySym,
-                          filled: true,
-                          fillColor: Colors.red.shade50.withValues(alpha: 0.3),
-                        ),
-                        onChanged: (_) => setDialogState(() {}),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // 3. صافي الربح
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: netIncomeVal >= 0 ? Colors.green.shade50 : Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: netIncomeVal >= 0 ? Colors.green.shade400 : Colors.red.shade400,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('صافي الربح المحسوب:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                Text('(الوارد الكلي - المصروف اليومي)', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
-                              ],
-                            ),
-                            Text(
-                              '${netIncomeVal.toStringAsFixed(0)} $currencySym',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: netIncomeVal >= 0 ? Colors.green.shade900 : Colors.red.shade900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // 4. ملاحظات اختياري
+                      // ملاحظات اختياري
                       TextField(
                         controller: notesController,
                         decoration: InputDecoration(
@@ -401,6 +465,25 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                 OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
                   child: const Text('إلغاء (إبقاء اليوم مفتوحاً)'),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.blue.shade900,
+                    side: BorderSide(color: Colors.blue.shade700, width: 1.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _printDailyClosingReceipt(
+                    context,
+                    incomeVal,
+                    expenseVal,
+                    netIncomeVal,
+                    todayOrdersCount,
+                    userName,
+                    notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                  ),
+                  icon: const Icon(Icons.print_rounded, size: 18),
+                  label: const Text('طباعة التقرير اليومي 🖨️', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -520,6 +603,19 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
 
                     // 4. Perform Automatic Backup to selected folder on Day Closing
                     final autoBackupSuccess = await settingsProvider.performAutoBackup(isClosingDay: true);
+
+                    // 5. Print Daily Report automatically upon closing
+                    if (context.mounted) {
+                      await _printDailyClosingReceipt(
+                        context,
+                        incomeVal,
+                        expenseVal,
+                        netIncomeVal,
+                        todayOrdersCount,
+                        userName,
+                        notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                      );
+                    }
 
                     if (!ctx.mounted) return;
                     Navigator.of(ctx).pop();

@@ -23,7 +23,7 @@ class ProductsProvider extends ChangeNotifier {
   }
 
   List<ProductModel> get cashierProducts {
-    return _products.where((prod) {
+    final list = _products.where((prod) {
       final matchesCategory = _selectedCategoryId == null
           ? true
           : (prod.categoryId == _selectedCategoryId && prod.displayLocation != 'MAIN_ONLY');
@@ -32,16 +32,20 @@ class ProductsProvider extends ChangeNotifier {
           (prod.barcode != null && prod.barcode!.toLowerCase().contains(_searchQuery.toLowerCase()));
       return matchesCategory && matchesSearch;
     }).toList();
+    list.sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+    return list;
   }
 
   List<ProductModel> get mainScreenProducts {
-    return _products.where((prod) {
+    final list = _products.where((prod) {
       final isMainLoc = prod.displayLocation == 'BOTH' || prod.displayLocation == 'MAIN_ONLY';
       final matchesSearch = _searchQuery.isEmpty ||
           prod.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           (prod.barcode != null && prod.barcode!.toLowerCase().contains(_searchQuery.toLowerCase()));
       return isMainLoc && matchesSearch;
     }).toList();
+    list.sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+    return list;
   }
 
   List<ProductModel> get allProducts => _products;

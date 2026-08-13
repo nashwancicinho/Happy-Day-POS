@@ -12,7 +12,9 @@ import '../payroll/payroll_provider.dart';
 import '../products/products_provider.dart';
 import '../purchases/purchases_provider.dart';
 import '../settings/settings_provider.dart';
+import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
+import '../../models/other_expense.dart';
 
 enum ReportPeriod { daily, monthly, yearly, customRange, allTime }
 
@@ -135,6 +137,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final ordersProvider = context.read<OrdersProvider>();
     final treasuryProvider = context.read<TreasuryProvider>();
+    final payrollProvider = context.read<PayrollProvider>();
+    await payrollProvider.loadPayrollData();
+    if (!mounted) return;
 
     List<TopSellingProduct> topProducts = [];
     List<CashierSalesSummary> cashierReport = [];
@@ -164,6 +169,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else {
         topProducts = await ordersProvider.getTopSellingProducts(fromDate: fromStr, toDate: toStr);
         await treasuryProvider.loadTreasuryRecords(fromDate: fromStr, toDate: toStr);
+        netProfitReport = await ordersProvider.getProductNetProfitReport(fromDate: fromStr, toDate: toStr);
       }
     } else {
       final prefix = _getDatePrefix();
@@ -183,6 +189,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else {
         topProducts = await ordersProvider.getTopSellingProducts(datePrefix: prefix);
         await treasuryProvider.loadTreasuryRecords(datePrefix: prefix);
+        netProfitReport = await ordersProvider.getProductNetProfitReport(datePrefix: prefix);
       }
     }
 
@@ -232,9 +239,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  List<OrderModel> _getFilteredOrders(List<OrderModel> allOrders) {
+  List<OrderModel> _getFilteredOrders(List<OrderModel> allOrders, {String status = 'COMPLETED'}) {
     return allOrders.where((order) {
-      if (order.status != 'COMPLETED') return false;
+      if (order.status != status) return false;
 
       bool matchesPeriod = true;
       final effDateStr = order.effectiveDate;
@@ -255,6 +262,392 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
       return matchesPeriod && matchesOrderType;
     }).toList();
+  }
+
+  void _showCancelledOrdersDetailsDialog(BuildContext context, List<OrderModel> cancelledOrders) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final tablesProvider = context.read<TablesProvider>();
+    final totalCancelledAmount = cancelledOrders.fold(0.0, (sum, o) => sum + o.total);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 820,
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.cancel_outlined, color: Colors.red.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEng ? 'Cancelled Invoices Details' : 'تفاصيل الفواتير الملغية',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isEng
+                                ? 'Count: ${cancelledOrders.length} | Total Value: ${totalCancelledAmount.toStringAsFixed(0)} $currencySym'
+                                : 'إجمالي الفواتير الملغية: ${cancelledOrders.length} فاتورة | القيمة الإجمالية الملغاة: ${totalCancelledAmount.toStringAsFixed(0)} $currencySym',
+                            style: TextStyle(fontSize: 13, color: Colors.red.shade900, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+
+                Expanded(
+                  child: cancelledOrders.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade400),
+                              const SizedBox(height: 12),
+                              Text(
+                                isEng ? 'No cancelled invoices found for this period.' : 'لا توجد أي فواتير ملغية في هذه الفترة المحددّة',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          child: Table(
+                            border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                            children: [
+                              TableRow(
+                                decoration: BoxDecoration(color: Colors.red.shade50),
+                                children: [
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Invoice No' : 'رقم الفاتورة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date & Time' : 'التاريخ والوقت', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Cashier / User' : 'الكاشير / المستخدم', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Order Type' : 'نوع الطلب', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Amount' : 'المبلغ الملغى', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Notes / Reason' : 'الملاحظات / السبب', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                ],
+                              ),
+                              ...cancelledOrders.map((o) {
+                                final cashier = (o.cashierName != null && o.cashierName!.isNotEmpty && o.cashierName != 'غير مدون')
+                                    ? o.cashierName!
+                                    : 'المدير';
+                                final tableObj = o.tableId != null ? tablesProvider.getTableById(o.tableId!) : null;
+                                final typeDisplay = _orderTypeLabel(o.orderType, isEng, tableId: o.tableId, tableName: tableObj?.name);
+                                return TableRow(
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('#${o.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(o.createdAt.length >= 16 ? o.createdAt.substring(0, 16) : o.createdAt, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(cashier, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(typeDisplay, textAlign: TextAlign.center)),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('${o.total.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade800))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(o.notes ?? '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey))),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade800,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(isEng ? 'Close' : 'إغلاق'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRefundedOrdersDetailsDialog(BuildContext context, List<OrderModel> refundedOrders) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final tablesProvider = context.read<TablesProvider>();
+
+    final totalRefundedAmount = refundedOrders.fold(0.0, (sum, o) => sum + o.total);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 820,
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.history_rounded, color: Colors.orange.shade800, size: 28),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEng ? 'Refunded Invoices Details' : 'تفاصيل الفواتير والعمليات المسترجعة',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isEng
+                                ? 'Count: ${refundedOrders.length} | Total Refunded Value: ${totalRefundedAmount.toStringAsFixed(0)} $currencySym'
+                                : 'إجمالي الفواتير المسترجعة: ${refundedOrders.length} فاتورة | القيمة الإجمالية المسترجعة: ${totalRefundedAmount.toStringAsFixed(0)} $currencySym',
+                            style: TextStyle(fontSize: 13, color: Colors.orange.shade900, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+
+                Expanded(
+                  child: refundedOrders.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade400),
+                              const SizedBox(height: 12),
+                              Text(
+                                isEng ? 'No refunded invoices found for this period.' : 'لا توجد أي فواتير مسترجعة في هذه الفترة المحددّة',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          child: Table(
+                            border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                            children: [
+                              TableRow(
+                                decoration: BoxDecoration(color: Colors.orange.shade50),
+                                children: [
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Invoice No' : 'رقم الفاتورة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date & Time' : 'التاريخ والوقت', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Cashier / User' : 'الكاشير / المستخدم', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Order Type' : 'نوع الطلب', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Refund Amount' : 'المبلغ المسترجع', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Payment Method' : 'طريقة الدفع', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                ],
+                              ),
+                              ...refundedOrders.map((o) {
+                                final cashier = (o.cashierName != null && o.cashierName!.isNotEmpty && o.cashierName != 'غير مدون')
+                                    ? o.cashierName!
+                                    : 'المدير';
+                                final tableObj = o.tableId != null ? tablesProvider.getTableById(o.tableId!) : null;
+                                final typeDisplay = _orderTypeLabel(o.orderType, isEng, tableId: o.tableId, tableName: tableObj?.name);
+                                final payMethod = o.paymentMethod == 'CASH'
+                                    ? (isEng ? 'Cash' : 'نقداً')
+                                    : o.paymentMethod == 'CREDIT'
+                                        ? (isEng ? 'Debt / Credit' : 'بالآجل')
+                                        : (isEng ? 'Card' : 'شبكة/بطاقة');
+                                return TableRow(
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('#${o.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(o.createdAt.length >= 16 ? o.createdAt.substring(0, 16) : o.createdAt, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(cashier, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(typeDisplay, textAlign: TextAlign.center)),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('${o.total.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade900))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(payMethod, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade800,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(isEng ? 'Close' : 'إغلاق'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOtherExpensesDetailsDialog(BuildContext context, List<OtherExpenseModel> expenses) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final currencySym = context.read<SettingsProvider>().currencySymbol;
+
+    final totalAmount = expenses.fold(0.0, (sum, e) => sum + e.amount);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 820,
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.receipt_long_outlined, color: Colors.red.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEng ? 'Other Expenses Details' : 'تفاصيل المصاريف والنثريات الأخرى 💸',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isEng
+                                ? 'Count: ${expenses.length} | Total Value: ${totalAmount.toStringAsFixed(0)} $currencySym'
+                                : 'إجمالي عدد العمليات: ${expenses.length} | مجموع المصاريف: ${totalAmount.toStringAsFixed(0)} $currencySym',
+                            style: TextStyle(fontSize: 13, color: Colors.red.shade900, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+
+                Expanded(
+                  child: expenses.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade400),
+                              const SizedBox(height: 12),
+                              Text(
+                                isEng ? 'No other expenses recorded for this period.' : 'لا توجد أي مصاريف أخرى مسجلة في هذه الفترة المحددّة',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          child: Table(
+                            border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                            children: [
+                              TableRow(
+                                decoration: BoxDecoration(color: Colors.red.shade50),
+                                children: [
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? '#' : '#', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date & Time' : 'التاريخ والوقت', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Expense Name' : 'اسم / بيان المصروف', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Category' : 'الفئة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Amount' : 'المبلغ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'By User' : 'المستخدم', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                                ],
+                              ),
+                              ...expenses.map((e) {
+                                final dateStr = e.createdAt.length >= 16 ? e.createdAt.substring(0, 16).replaceAll('T', ' ') : e.createdAt;
+                                return TableRow(
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('#${e.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(dateStr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(e.title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(e.category, textAlign: TextAlign.center)),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('${e.amount.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade900))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text(e.createdBy ?? 'المدير', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade800,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(isEng ? 'Close' : 'إغلاق'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -388,13 +781,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Icons.trending_up,
                             isManagerOnly: true,
                           ),
-                          _buildTypeChip(
-                            context,
-                            'financial',
-                            isEng ? '📊 Comprehensive Financial & General Summary' : '📊 الملخص المالي والعام الشامل',
-                            Icons.monetization_on_outlined,
-                            isManagerOnly: true,
-                          ),
+
                           _buildTypeChip(
                             context,
                             'products',
@@ -842,10 +1229,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       return dateStr.startsWith(_getDatePrefix());
                     }).toList();
 
-                    double materialsCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
-                    if (materialsCost == 0.0 && _netProfitReportData.isNotEmpty) {
-                      materialsCost = _netProfitReportData.fold(0.0, (sum, item) => sum + item.totalCost);
-                    }
+                    final purchasesCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
+                    final soldItemsCost = _netProfitReportData.fold(0.0, (sum, item) => sum + item.totalCost);
+                    double materialsCost = purchasesCost > soldItemsCost ? purchasesCost : soldItemsCost;
 
                     // Payroll Expenses
                     final filteredPayments = payrollProvider.payments.where((p) {
@@ -882,6 +1268,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     final salaryPct = totalSales > 0 ? (salaryExpenses / totalSales) * 100 : 0.0;
                     final generalPct = totalSales > 0 ? (generalExpenses / totalSales) * 100 : 0.0;
 
+                    final totalDiscounts = filteredOrders.fold(0.0, (sum, o) => sum + o.discountAmount);
+                    final discountsPct = totalSales > 0 ? (totalDiscounts / totalSales) * 100 : 0.0;
+
                     final customHeaders = isEng
                         ? ['P&L Line Item', 'Total Amount', '% Gross']
                         : ['بند قائمة الأرباح والخسائر', 'المبلغ الإجمالي', 'النسبة'];
@@ -890,6 +1279,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         'إجمالي مبيعات وإيرادات المتجر (100%)',
                         '${totalSales.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
                         '100.0%',
+                      ],
+                      [
+                        'إجمالي الخصومات والتخفيضات الممنوحة (-)',
+                        '${totalDiscounts == 0 ? "0" : "-${totalDiscounts.toStringAsFixed(0)}"} ${settingsProvider.currencySymbol}',
+                        '${discountsPct.toStringAsFixed(1)}%',
                       ],
                       [
                         'تكلفة المواد الأولية وخامات الأصناف (-)',
@@ -1151,15 +1545,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                   const SizedBox(height: 18),
 
-                  // Overview Summary Cards Row
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isCashierReport = _selectedReportType == 'cashier';
-                      final isNetProfitReport = _selectedReportType == 'net_profit';
+                  // Overview Summary Cards Row (Skipped for store_pnl to avoid duplicate card rows)
+                  if (_selectedReportType != 'store_pnl')
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCashierReport = _selectedReportType == 'cashier';
+                        final isNetProfitReport = _selectedReportType == 'net_profit';
 
-                      final displayTotalSales = isNetProfitReport
-                          ? totalNetProfit
-                          : (isCashierReport ? totalCashierSales : totalSales);
+                        final displayTotalSales = isNetProfitReport
+                            ? totalNetProfit
+                            : (isCashierReport ? totalCashierSales : totalSales);
 
                       final currencySym = settingsProvider.currencySymbol;
 
@@ -1368,10 +1763,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return dateStr.startsWith(_getDatePrefix());
     }).toList();
 
-    double materialsCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
-    if (materialsCost == 0.0 && _netProfitReportData.isNotEmpty) {
-      materialsCost = _netProfitReportData.fold(0.0, (sum, item) => sum + item.totalCost);
-    }
+    final purchasesCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
+    final soldItemsCost = _netProfitReportData.fold(0.0, (sum, item) => sum + item.totalCost);
+    double materialsCost = purchasesCost > soldItemsCost ? purchasesCost : soldItemsCost;
 
     // 2. Employee Payroll Expenses
     final filteredPayments = payrollProvider.payments.where((p) {
@@ -1387,10 +1781,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final salaryExpenses = filteredPayments.fold(0.0, (sum, p) => sum + p.netSalary);
 
-    // 3. General Treasury Expenses
-    final filteredExpenses = treasuryProvider.treasuryRecords.where((r) {
+    final filteredOtherExpenses = treasuryProvider.otherExpenses.where((e) {
       if (_selectedPeriod == ReportPeriod.allTime) return true;
-      final dateStr = r.date;
+      final dateStr = e.createdAt.length >= 10 ? e.createdAt.substring(0, 10) : e.createdAt;
       if (_selectedPeriod == ReportPeriod.customRange) {
         final fromStr = _formatDate(_fromDate);
         final toStr = _formatDate(_toDate);
@@ -1399,7 +1792,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return dateStr.startsWith(_getDatePrefix());
     }).toList();
 
-    final generalExpenses = filteredExpenses.fold(0.0, (sum, r) => sum + r.dailyExpense);
+    final otherExpensesTotal = filteredOtherExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    final otherExpensesPct = totalSales > 0 ? (otherExpensesTotal / totalSales) * 100 : 0.0;
+    final generalExpenses = otherExpensesTotal;
 
     // 4. Net Store Profit Calculation
     final totalExpensesSum = materialsCost + salaryExpenses + generalExpenses;
@@ -1408,7 +1803,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final materialsPct = totalSales > 0 ? (materialsCost / totalSales) * 100 : 0.0;
     final salaryPct = totalSales > 0 ? (salaryExpenses / totalSales) * 100 : 0.0;
-    final generalPct = totalSales > 0 ? (generalExpenses / totalSales) * 100 : 0.0;
+
+    final totalDiscounts = filteredOrders.fold(0.0, (sum, o) => sum + o.discountAmount);
+    final totalDiscountsPct = totalSales > 0 ? (totalDiscounts / totalSales) * 100 : 0.0;
+
+    final refundedOrders = _getFilteredOrders(ordersProvider.orders, status: 'REFUNDED');
+    final refundedCount = refundedOrders.length;
+    final refundedTotal = refundedOrders.fold(0.0, (sum, o) => sum + o.total);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1416,8 +1817,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         // A. FINANCIAL SUMMARY CARDS GRID
         LayoutBuilder(
           builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth > 850;
-            final cardWidth = isDesktop ? (constraints.maxWidth - 40) / 5 : (constraints.maxWidth - 10) / 2;
+            final cancelledOrders = _getFilteredOrders(ordersProvider.orders, status: 'CANCELLED');
+            final cancelledCount = cancelledOrders.length;
+            final cancelledTotal = cancelledOrders.fold(0.0, (sum, o) => sum + o.total);
+
+            final isDesktop = constraints.maxWidth > 1000;
+            final cardWidth = isDesktop
+                ? (constraints.maxWidth - 70) / 8
+                : (constraints.maxWidth > 650 ? (constraints.maxWidth - 30) / 4 : (constraints.maxWidth - 10) / 2);
 
             final cards = [
               _pnlSummaryMetricCard(
@@ -1426,6 +1833,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: isEng ? '100% Gross Baseline' : 'الوارد الإجمالي (100%)',
                 icon: Icons.storefront,
                 color: Colors.green.shade700,
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Total Discounts Applied' : 'إجمالي الخصومات الممنوحة',
+                value: '${totalDiscounts.toStringAsFixed(0)} $currencySym',
+                subtitle: '${totalDiscountsPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
+                icon: Icons.discount_outlined,
+                color: Colors.purple.shade700,
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Materials & Purchases Cost' : 'كلفة المواد والمشتريات',
@@ -1442,18 +1856,35 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 color: Colors.blue.shade800,
               ),
               _pnlSummaryMetricCard(
-                title: isEng ? 'General Operating Expenses' : 'المصاريف العامة والنفقات',
-                value: '${generalExpenses.toStringAsFixed(0)} $currencySym',
-                subtitle: '${generalPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
-                icon: Icons.account_balance_wallet_outlined,
-                color: Colors.red.shade700,
+                title: isEng ? 'Other Expenses & Outflows' : 'مصاريف أخرى ونثريات',
+                value: '${otherExpensesTotal.toStringAsFixed(0)} $currencySym',
+                subtitle: '${otherExpensesPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"} (${isEng ? "Details" : "اضغط بالتفاصيل"})',
+                icon: Icons.receipt_long_outlined,
+                color: Colors.deepOrange.shade800,
+                onTap: () => _showOtherExpensesDetailsDialog(context, filteredOtherExpenses),
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Final Net Store Profit' : 'صافي ربح المتجر الأخير',
                 value: '${netStoreProfit.toStringAsFixed(0)} $currencySym',
                 subtitle: '${netProfitMargin.toStringAsFixed(1)}% ${isEng ? "Net Margin" : "هامش الربح الصافي"}',
                 icon: Icons.insights,
-                color: netStoreProfit >= 0 ? Colors.purple.shade700 : Colors.red.shade900,
+                color: netStoreProfit >= 0 ? Colors.teal.shade700 : Colors.red.shade900,
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Refunded Invoices' : 'الفواتير المسترجعة',
+                value: isEng ? '$refundedCount Invoices' : '$refundedCount فاتورة مسترجعة',
+                subtitle: '${refundedTotal.toStringAsFixed(0)} $currencySym (${isEng ? "Details" : "اضغط بالتفاصيل"})',
+                icon: Icons.history_rounded,
+                color: Colors.orange.shade900,
+                onTap: () => _showRefundedOrdersDetailsDialog(context, refundedOrders),
+              ),
+              _pnlSummaryMetricCard(
+                title: isEng ? 'Cancelled Invoices' : 'الفواتير الملغية',
+                value: isEng ? '$cancelledCount Invoices' : '$cancelledCount فاتورة ملغاة',
+                subtitle: '${cancelledTotal.toStringAsFixed(0)} $currencySym (${isEng ? "Details" : "اضغط بالتفاصيل"})',
+                icon: Icons.cancel_outlined,
+                color: Colors.red.shade800,
+                onTap: () => _showCancelledOrdersDetailsDialog(context, cancelledOrders),
               ),
             ];
 
@@ -1522,6 +1953,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 16),
                 _buildVisualPnlBar(
                   context: context,
+                  label: isEng ? 'Total Customer Discounts Applied (-)' : '🟨 إجمالي الخصومات والتخفيضات الممنوحة للعملاء',
+                  amount: totalDiscounts,
+                  percentage: totalDiscountsPct,
+                  maxAmount: totalSales,
+                  color: Colors.amber.shade800,
+                  currencySym: currencySym,
+                ),
+                const SizedBox(height: 16),
+                _buildVisualPnlBar(
+                  context: context,
+                  label: isEng ? 'Refunded Invoices & Items (-)' : '🟫 إجمالي الفواتير والعمليات المسترجعة (-)',
+                  amount: refundedTotal,
+                  percentage: totalSales > 0 ? (refundedTotal / totalSales) * 100 : 0.0,
+                  maxAmount: totalSales,
+                  color: Colors.brown.shade700,
+                  currencySym: currencySym,
+                ),
+                const SizedBox(height: 16),
+                _buildVisualPnlBar(
+                  context: context,
                   label: isEng ? 'Materials & Stock Cost (-)' : '🟧 تكلفة المواد الأولية وخامات الأصناف والمشتريات (-)',
                   amount: materialsCost,
                   percentage: materialsPct,
@@ -1542,11 +1993,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 16),
                 _buildVisualPnlBar(
                   context: context,
-                  label: isEng ? 'General Operating Expenses (-)' : '🟥 النفقات والمصاريف التشغيلية العامة والخزينة (-)',
-                  amount: generalExpenses,
-                  percentage: generalPct,
+                  label: isEng ? 'Other Expenses & Outflows (-)' : '🟥 مصاريف أخرى ونثريات الخزينة (-)',
+                  amount: otherExpensesTotal,
+                  percentage: otherExpensesPct,
                   maxAmount: totalSales,
-                  color: Colors.red.shade700,
+                  color: Colors.deepOrange.shade800,
                   currencySym: currencySym,
                 ),
                 const SizedBox(height: 16),
@@ -1589,51 +2040,60 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 16),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
-                      columns: [
-                        DataColumn(label: Text(isEng ? 'Financial Item' : 'بند القائمة المالية', style: const TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text(isEng ? 'Type / Direction' : 'النوع / الاتجاه', style: const TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text(isEng ? 'Total Amount' : 'المبلغ الإجمالي', style: const TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text(isEng ? '% of Sales' : 'النسبة من المبيعات', style: const TextStyle(fontWeight: FontWeight.bold))),
-                      ],
-                      rows: [
-                        DataRow(cells: [
-                          const DataCell(Text('إجمالي مبيعات المتجر (Gross Revenue)', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('إيراد +', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)))),
-                          DataCell(Text('${totalSales.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green))),
-                          const DataCell(Text('100.0%')),
-                        ]),
-                        DataRow(cells: [
-                          const DataCell(Text('تكلفة المواد الأولية وخامات الأصناف والمشتريات')),
-                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)))),
-                          DataCell(Text('-${materialsCost.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold))),
-                          DataCell(Text('${materialsPct.toStringAsFixed(1)}%')),
-                        ]),
-                        DataRow(cells: [
-                          const DataCell(Text('مصاريف رواتب ومستحقات الموظفين والسُلف')),
-                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)))),
-                          DataCell(Text('-${salaryExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold))),
-                          DataCell(Text('${salaryPct.toStringAsFixed(1)}%')),
-                        ]),
-                        DataRow(cells: [
-                          const DataCell(Text('النفقات والمصاريف التشغيلية العامة')),
-                          DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)))),
-                          DataCell(Text('-${generalExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold))),
-                          DataCell(Text('${generalPct.toStringAsFixed(1)}%')),
-                        ]),
-                        DataRow(
-                          color: WidgetStateProperty.all(Colors.purple.shade50),
-                          cells: [
-                            const DataCell(Text('صافي ربح المتجر الأخير (Net Profit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('صافي ربح =', style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)))),
-                            DataCell(Text('${netStoreProfit.toStringAsFixed(0)} $currencySym', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: netStoreProfit >= 0 ? Colors.purple.shade900 : Colors.red.shade900))),
-                            DataCell(Text('${netProfitMargin.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold))),
-                          ],
-                        ),
-                      ],
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width > 900 ? MediaQuery.of(context).size.width - 320 : 800,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+                        columns: [
+                          DataColumn(label: Text(isEng ? 'Financial Item' : 'بند القائمة المالية', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(isEng ? 'Type / Direction' : 'النوع / الاتجاه', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(isEng ? 'Total Amount' : 'المبلغ الإجمالي', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(isEng ? '% of Sales' : 'النسبة من المبيعات', style: const TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                        rows: [
+                          DataRow(cells: [
+                            const DataCell(Text('إجمالي مبيعات المتجر (Gross Revenue)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('إيراد +', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('${totalSales.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green))),
+                            const DataCell(Text('100.0%')),
+                          ]),
+                          DataRow(cells: [
+                            const DataCell(Text('تكلفة المواد الأولية وخامات الأصناف والمشتريات')),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${materialsCost.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${materialsPct.toStringAsFixed(1)}%')),
+                          ]),
+                          DataRow(cells: [
+                            const DataCell(Text('مصاريف رواتب ومستحقات الموظفين والسُلف')),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${salaryExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${salaryPct.toStringAsFixed(1)}%')),
+                          ]),
+                          DataRow(cells: [
+                            const DataCell(Text('مصاريف أخرى ونثريات الخزينة (Other Expenses)')),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.deepOrange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مصروف -', style: TextStyle(color: Colors.deepOrange.shade900, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${otherExpensesTotal.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.deepOrange.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${otherExpensesPct.toStringAsFixed(1)}%')),
+                          ]),
+                          DataRow(cells: [
+                            const DataCell(Text('إجمالي الفواتير والمواد المسترجعة (Refunded)')),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مُسترجع -', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${refundedTotal.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${(totalSales > 0 ? (refundedTotal / totalSales) * 100 : 0.0).toStringAsFixed(1)}%')),
+                          ]),
+                          DataRow(
+                            color: WidgetStateProperty.all(Colors.purple.shade50),
+                            cells: [
+                              const DataCell(Text('صافي ربح المتجر الأخير (Net Profit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                              DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('صافي ربح =', style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)))),
+                              DataCell(Text('${netStoreProfit.toStringAsFixed(0)} $currencySym', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: netStoreProfit >= 0 ? Colors.purple.shade900 : Colors.red.shade900))),
+                              DataCell(Text('${netProfitMargin.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1651,38 +2111,64 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+      elevation: onTap != null ? 3 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: onTap != null ? BorderSide(color: color.withValues(alpha: 0.4), width: 1.5) : BorderSide.none,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 20),
                   ),
-                  child: Icon(icon, color: color, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)),
-            ),
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
-          ],
+                  if (onTap != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.visibility, size: 12, color: color),
+                          const SizedBox(width: 4),
+                          Text(
+                            'عرض',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)),
+              ),
+              const SizedBox(height: 4),
+              Text(subtitle, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+            ],
+          ),
         ),
       ),
     );
@@ -2240,10 +2726,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ],
                   ),
                   ...filteredOrders.map((o) {
+                    final tablesProvider = context.read<TablesProvider>();
+                    final tableObj = o.tableId != null ? tablesProvider.getTableById(o.tableId!) : null;
+                    final typeDisplay = _orderTypeLabel(o.orderType, isEng, tableId: o.tableId, tableName: tableObj?.name);
                     return TableRow(
                       children: [
                         Padding(padding: const EdgeInsets.all(10), child: Text('#${o.id}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                        Padding(padding: const EdgeInsets.all(10), child: Text(_orderTypeLabel(o.orderType, isEng), textAlign: TextAlign.center)),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(typeDisplay, textAlign: TextAlign.center)),
                         Padding(padding: const EdgeInsets.all(10), child: Text(o.paymentMethod, textAlign: TextAlign.center)),
                         Padding(padding: const EdgeInsets.all(10), child: Text('${o.total.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor))),
                         Padding(padding: const EdgeInsets.all(10), child: Text(o.createdAt.substring(0, 16), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
@@ -2258,9 +2747,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  String _orderTypeLabel(String type, bool isEng) {
+  String _orderTypeLabel(String type, bool isEng, {int? tableId, String? tableName}) {
     switch (type) {
       case 'DINE_IN':
+        if (tableName != null && tableName.isNotEmpty) {
+          final cleanName = tableName.startsWith('طاولة') ? tableName : 'طاولة $tableName';
+          return isEng ? 'Dine-In ($cleanName)' : 'طاولة صالة ($cleanName)';
+        } else if (tableId != null && tableId > 0) {
+          return isEng ? 'Dine-In (Table $tableId)' : 'طاولة صالة (طاولة $tableId)';
+        }
         return isEng ? 'Dine-In Table' : 'طاولة صالة';
       case 'TAKEAWAY':
         return isEng ? 'Takeaway' : 'سفري';
@@ -2277,39 +2772,49 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Card(
       elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: onTap != null ? BorderSide(color: color.withValues(alpha: 0.4), width: 1.5) : BorderSide.none,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 28),
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                  ],
+                ),
               ),
-            ),
-          ],
+              if (onTap != null)
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color),
+            ],
+          ),
         ),
       ),
     );

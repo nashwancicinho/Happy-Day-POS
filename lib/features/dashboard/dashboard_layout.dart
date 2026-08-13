@@ -16,6 +16,7 @@ import '../payroll/payroll_screen.dart';
 import '../products/presentation/products_screen.dart';
 import '../products/products_provider.dart';
 import '../purchases/purchases_screen.dart';
+import '../treasury/other_expenses_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/settings_provider.dart';
@@ -209,6 +210,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     CategoriesScreen(),
     InventoryScreen(),
     PurchasesScreen(),
+    OtherExpensesScreen(),
     UsersScreen(),
     DebtsScreen(),
     PayrollScreen(),
@@ -289,12 +291,13 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                             _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEnglish ? "Categories" : "التصنيفات"),
                             _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEnglish ? "Inventory" : "المخزن"),
                             _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEnglish ? "Purchases" : "المشتريات والموردين"),
-                            _buildDrawerTile(7, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
-                            _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
-                            _buildDrawerTile(9, Icons.payments_outlined, Icons.payments, isEnglish ? "Employee Payroll" : "رواتب الموظفين والسُلف"),
-                            _buildDrawerTile(10, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
-                            _buildDrawerTile(11, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
-                            _buildDrawerTile(12, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
+                            _buildDrawerTile(7, Icons.receipt_long_outlined, Icons.receipt_long, isEnglish ? "Other Expenses" : "مصاريف أخرى"),
+                            _buildDrawerTile(8, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
+                            _buildDrawerTile(9, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
+                            _buildDrawerTile(10, Icons.payments_outlined, Icons.payments, isEnglish ? "Employee Payroll" : "رواتب الموظفين والسُلف"),
+                            _buildDrawerTile(11, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
+                            _buildDrawerTile(12, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
+                            _buildDrawerTile(13, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
                           ],
                         );
                       },

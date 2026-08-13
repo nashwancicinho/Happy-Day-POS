@@ -15,7 +15,9 @@ class CategoriesProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _categories = await _repository.getAllCategories();
+    final loaded = await _repository.getAllCategories();
+    loaded.sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+    _categories = loaded;
     _isLoading = false;
     notifyListeners();
   }

@@ -47,8 +47,12 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          indicatorColor: Colors.white,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          indicatorColor: Colors.amberAccent,
+          indicatorWeight: 3.5,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white.withValues(alpha: 0.85),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           tabs: [
             Tab(icon: const Icon(Icons.badge), text: isEng ? 'Employees & Salaries' : 'الموظفون والرواتب'),
             Tab(icon: const Icon(Icons.account_balance_wallet), text: isEng ? 'Advances & Deductions' : 'السُلف والخصومات'),
@@ -825,13 +829,11 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
               if (ctx.mounted) Navigator.pop(ctx);
 
               if (context.mounted) {
-                TopNotification.showSuccess(context, '🔒 تم تسجيل صرف الراتب وتصفية السُلف بنجاح! 🎉');
-                // Automatically prompt/print receipt slip
-                await PrintService.printSalarySlip(payment: paymentRecord, settings: settingsProvider);
+                TopNotification.showSuccess(context, '🔒 تم تسجيل صرف الراتب وتصفية السُلف وحفظها بالتقارير بنجاح! 🎉');
               }
             },
-            icon: const Icon(Icons.print),
-            label: Text(isEng ? 'Confirm & Print Slip' : 'تأكيد الصرف وطباعة السند'),
+            icon: const Icon(Icons.check_circle_outline),
+            label: Text(isEng ? 'Confirm Salary Payout' : 'تأكيد صرف الراتب والتصفية 💵'),
           ),
         ],
       ),

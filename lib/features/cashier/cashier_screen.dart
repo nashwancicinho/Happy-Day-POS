@@ -228,7 +228,7 @@ class _CashierScreenState extends State<CashierScreen> {
       onChanged();
     }
 
-    Widget numBtn(String label, {VoidCallback? onTap, Color? bg, Color? fg, IconData? icon, double fontSize = 22}) {
+    Widget numBtn(String label, {VoidCallback? onTap, Color? bg, Color? borderCol, Color? fg, IconData? icon, double fontSize = 20}) {
       return Material(
         color: bg ?? Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
@@ -240,10 +240,10 @@ class _CashierScreenState extends State<CashierScreen> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300, width: 1.2),
+              border: Border.all(color: borderCol ?? Colors.grey.shade300, width: 1.2),
             ),
             child: icon != null
-                ? Icon(icon, color: fg ?? Colors.black87, size: 24)
+                ? Icon(icon, color: fg ?? Colors.black87, size: 22)
                 : Text(
                     label,
                     style: TextStyle(
@@ -273,7 +273,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.purple.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.purple.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => setPreset(0.250),
@@ -288,7 +288,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.purple.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.purple.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => setPreset(0.500),
@@ -303,7 +303,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.purple.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.purple.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => setPreset(0.750),
@@ -318,7 +318,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.purple.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.purple.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => setPreset(1.000),
@@ -337,7 +337,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.blue.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.blue.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => addPrice(250),
@@ -352,7 +352,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.blue.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.blue.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => addPrice(500),
@@ -367,7 +367,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.blue.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.blue.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => addPrice(1000),
@@ -382,7 +382,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       foregroundColor: Colors.blue.shade800,
                       elevation: 0,
                       side: BorderSide(color: Colors.blue.shade200),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => addPrice(5000),
@@ -391,69 +391,71 @@ class _CashierScreenState extends State<CashierScreen> {
                 ),
               ],
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          // Row 1: 1 (Left), 2 (Middle), 3 (Right)
+          // Row 1: 1, 2, 3
           Row(
             children: [
               Expanded(child: numBtn('1', onTap: () => appendChar('1'))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(child: numBtn('2', onTap: () => appendChar('2'))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(child: numBtn('3', onTap: () => appendChar('3'))),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
           // Row 2: 4, 5, 6
           Row(
             children: [
               Expanded(child: numBtn('4', onTap: () => appendChar('4'))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(child: numBtn('5', onTap: () => appendChar('5'))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(child: numBtn('6', onTap: () => appendChar('6'))),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
           // Row 3: 7, 8, 9
           Row(
             children: [
               Expanded(child: numBtn('7', onTap: () => appendChar('7'))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(child: numBtn('8', onTap: () => appendChar('8'))),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(child: numBtn('9', onTap: () => appendChar('9'))),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
-          // Row 4 (Bottom): Left = تصفير | Middle = 0 & (. or 000) | Right = مسح ⌫
+          // Row 4: C (Left), 0 (Middle), ⌫ (Right)
           Row(
             children: [
-              // Left: تصفير
               Expanded(
-                flex: 3,
-                child: numBtn('تصفير', bg: Colors.red.shade50, fg: Colors.red.shade900, fontSize: 14, onTap: clearAll),
+                child: numBtn(
+                  'C',
+                  bg: Colors.red.shade50,
+                  borderCol: Colors.red.shade200,
+                  fg: Colors.red,
+                  fontSize: 18,
+                  onTap: clearAll,
+                ),
               ),
-              const SizedBox(width: 6),
-              // Middle: 0
+              const SizedBox(width: 8),
               Expanded(
-                flex: 3,
                 child: numBtn('0', onTap: () => appendChar('0')),
               ),
-              const SizedBox(width: 6),
-              // Middle: . for weight OR 000 for price
+              const SizedBox(width: 8),
               Expanded(
-                flex: 2,
-                child: numBtn(isPrice ? '000' : '.', fontSize: isPrice ? 13 : 22, onTap: () => appendChar(isPrice ? '000' : '.')),
-              ),
-              const SizedBox(width: 6),
-              // Right: مسح ⌫
-              Expanded(
-                flex: 3,
-                child: numBtn('مسح ⌫', bg: Colors.orange.shade50, fg: Colors.orange.shade900, fontSize: 14, onTap: backspace),
+                child: numBtn(
+                  '⌫',
+                  bg: Colors.orange.shade50,
+                  borderCol: Colors.orange.shade200,
+                  fg: Colors.orange.shade900,
+                  fontSize: 18,
+                  onTap: backspace,
+                ),
               ),
             ],
           ),
@@ -463,6 +465,7 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   void _showProductInputDialog(ProductModel product) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final currencySym = context.read<SettingsProvider>().currencySymbol;
     final quantityController = TextEditingController(text: product.isWeighted ? '' : '1');
     final priceController = TextEditingController(text: product.allowPriceChange ? '' : product.price.toStringAsFixed(0));
@@ -558,18 +561,25 @@ class _CashierScreenState extends State<CashierScreen> {
                         controller: priceController,
                         autofocus: !product.isWeighted,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: 'سعر البيع المباشر ($currencySym)',
-                          hintText: 'أدخل السعر المطلوب',
-                          prefixIcon: const Icon(Icons.attach_money, color: Colors.blue, size: 22),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          suffixText: currencySym,
+                          labelText: isEng ? 'Direct Selling Price ($currencySym)' : 'سعر البيع المباشر ($currencySym)',
+                          prefixIcon: Container(
+                            width: 48,
+                            alignment: Alignment.center,
+                            child: Text(
+                              isEng ? '\$' : currencySym,
+                              style: TextStyle(
+                                fontSize: isEng ? 20 : 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                              ),
+                            ),
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                           filled: true,
                           fillColor: Colors.blue.shade50.withValues(alpha: 0.3),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
                         onChanged: (_) => setStateDialog(() {}),
                       ),
@@ -691,6 +701,7 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   void _showEditCartItemDialog(int index) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final currencySym = context.read<SettingsProvider>().currencySymbol;
     final item = _cart[index];
     final quantityController = TextEditingController(text: item.formattedQuantity);
@@ -743,7 +754,7 @@ class _CashierScreenState extends State<CashierScreen> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'سعر البيع ($currencySym)',
-                        prefixIcon: const Icon(Icons.attach_money),
+                        prefixIcon: Icon(isEng ? Icons.attach_money : Icons.payments_outlined),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onChanged: (_) => setStateDialog(() {}),
@@ -980,10 +991,20 @@ class _CashierScreenState extends State<CashierScreen> {
     );
 
     if (confirm == true) {
+      final currentUserName = authProvider.currentUserName;
       if (widget.selectedTable?.id != null) {
         final tableId = widget.selectedTable!.id!;
-        await ordersProvider.cancelTableOrder(tableId);
+        await ordersProvider.cancelTableOrder(tableId, cancelledBy: currentUserName);
         await tablesProvider.loadTables();
+      } else if (_cart.isNotEmpty) {
+        await ordersProvider.createCancelledOrder(
+          cashierName: currentUserName,
+          orderType: 'TAKEAWAY',
+          total: _totalAmount,
+          subtotal: _subtotalAmount,
+          discountAmount: _discountAmount,
+          notes: 'إلغاء طلب كاشير سفري قبل الحفظ',
+        );
       }
 
       if (mounted) {
@@ -992,7 +1013,7 @@ class _CashierScreenState extends State<CashierScreen> {
           _existingOrderId = null;
         });
 
-        TopNotification.showSuccess(context, 'تم إلغاء الفاتورة وإخلاء الطاولة بنجاح ❌');
+        TopNotification.showSuccess(context, 'تم إلغاء الفاتورة بنجاح ❌');
         _finishOrderFlowNavigation();
       }
     }
@@ -1180,7 +1201,6 @@ class _CashierScreenState extends State<CashierScreen> {
 
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
-    String searchQuery = '';
     CustomerModel? selectedCustomer;
 
     return showDialog<Map<String, String>>(
@@ -1190,14 +1210,10 @@ class _CashierScreenState extends State<CashierScreen> {
         return StatefulBuilder(
           builder: (dialogCtx, setDialogState) {
             final customersProvider = dialogCtx.watch<CustomersProvider>();
-            final allCustomers = customersProvider.customers;
-
-            final filteredCustomers = allCustomers.where((c) {
-              final query = searchQuery.trim().toLowerCase();
-              if (query.isEmpty) return true;
-              final nameMatch = c.name.toLowerCase().contains(query);
-              final phoneMatch = c.phone != null && c.phone!.contains(query);
-              return nameMatch || phoneMatch;
+            final allCustomers = customersProvider.customers.where((c) {
+              final nameLower = c.name.trim().toLowerCase();
+              final isGeneral = c.id == 1 || nameLower == 'زبون عام (نقدي)' || nameLower.contains('زبون عام');
+              return !isGeneral;
             }).toList();
 
             // Calculate previous debt if selected
@@ -1262,196 +1278,89 @@ class _CashierScreenState extends State<CashierScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // 2. Search Field
-                    TextField(
-                      onChanged: (val) {
-                        setDialogState(() {
-                          searchQuery = val;
-                        });
-                      },
+                    // 2. Dropdown Bar to select from registered debtors
+                    DropdownButtonFormField<int>(
+                      value: selectedCustomer?.id != null && allCustomers.any((c) => c.id == selectedCustomer!.id)
+                          ? selectedCustomer!.id
+                          : null,
+                      isExpanded: true,
                       decoration: InputDecoration(
-                        hintText: 'ابحث باسم الزبون أو رقم الهاتف...',
-                        prefixIcon: const Icon(Icons.search),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        labelText: 'اختيار صاحب دين مسجل من القائمة 👤',
+                        labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo.shade900),
+                        prefixIcon: const Icon(Icons.person_search, color: Colors.indigo),
+                        suffixIcon: selectedCustomer != null
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
+                                tooltip: 'إلغاء الاختيار',
+                                onPressed: () {
+                                  setDialogState(() {
+                                    selectedCustomer = null;
+                                    nameController.clear();
+                                    phoneController.clear();
+                                  });
+                                },
+                              )
+                            : null,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.indigo.shade50.withValues(alpha: 0.4),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // 3. Customers List View (Max height ~180px)
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 180),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: filteredCustomers.isEmpty
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Text(
-                                    allCustomers.isEmpty
-                                        ? 'لا يوجد عملاء مسجلون حالياً. اكتب اسم الزبون الجديد بالأسفل.'
-                                        : 'لم يتم العثور على زبون بهذا الاسم.',
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      hint: Text(
+                        allCustomers.isEmpty
+                            ? 'لا يوجد أصحاب ديون مسجلون حالياً'
+                            : 'اضغط هنا لاختيار صاحب الدين من القائمة...',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                      items: allCustomers.where((c) => c.id != null).map((c) {
+                        return DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Row(
+                            children: [
+                              Icon(Icons.person, size: 18, color: Colors.indigo.shade700),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${c.name} ${c.phone != null && c.phone!.isNotEmpty ? "(${c.phone})" : ""}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: c.balance > 0 ? Colors.red.shade50 : Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'ديون سابقة: ${c.balance.toStringAsFixed(0)} $_currencySymbol',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: c.balance > 0 ? Colors.red.shade800 : Colors.green.shade800,
                                   ),
                                 ),
-                              )
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                itemCount: filteredCustomers.length,
-                                separatorBuilder: (context, index) => const Divider(height: 1, indent: 12, endIndent: 12),
-                                itemBuilder: (itemCtx, index) {
-                                  final customer = filteredCustomers[index];
-                                  final isSelected = selectedCustomer?.id == customer.id ||
-                                      (selectedCustomer == null && nameController.text.trim() == customer.name.trim());
-
-                                  return Material(
-                                    color: Colors.transparent,
-                                    child: ListTile(
-                                      dense: true,
-                                      selected: isSelected,
-                                      selectedTileColor: Colors.indigo.shade50,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      leading: CircleAvatar(
-                                        radius: 16,
-                                        backgroundColor: isSelected ? Colors.indigo : Colors.grey.shade300,
-                                        child: Icon(
-                                          isSelected ? Icons.check : Icons.person,
-                                          size: 18,
-                                          color: isSelected ? Colors.white : Colors.grey.shade700,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        customer.name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: isSelected ? Colors.indigo.shade900 : Colors.black87,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        customer.phone != null && customer.phone!.isNotEmpty
-                                            ? customer.phone!
-                                            : 'بدون رقم موبايل',
-                                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                                      ),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                'ديون سابقة: ${customer.balance.toStringAsFixed(0)} $_currencySymbol',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: customer.balance > 0 ? Colors.red.shade700 : Colors.green.shade700,
-                                                ),
-                                              ),
-                                              Text(
-                                                'الإجمالي الجديد: ${(customer.balance + _totalAmount).toStringAsFixed(0)} $_currencySymbol',
-                                                style: const TextStyle(fontSize: 10, color: Colors.indigo, fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                          if (dialogCtx.watch<AuthProvider>().isManager && customer.id != null) ...[
-                                            const SizedBox(width: 4),
-                                            IconButton(
-                                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                              tooltip: dialogCtx.watch<SettingsProvider>().isEnglish ? 'Delete Customer (Manager Only)' : 'حذف هذا الزبون (للمدير فقط)',
-                                               onPressed: () async {
-                                                 if (customer.balance > 0) {
-                                                   showDialog(
-                                                     context: ctx,
-                                                     builder: (blockCtx) => AlertDialog(
-                                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                                       title: const Row(
-                                                         children: [
-                                                           Icon(Icons.block, color: Colors.red, size: 28),
-                                                           SizedBox(width: 8),
-                                                           Text('تنبيه: لا يمكن حذف الزبون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
-                                                         ],
-                                                       ),
-                                                       content: Text(
-                                                         'لا يمكن حذف الزبون (${customer.name}) لأن لديه ديون سابقة غير مسددة (${customer.balance.toStringAsFixed(0)} $_currencySymbol).\n\nيرجى تسديد وتصفية الديون أولاً قبل حذف الزبون.',
-                                                         style: const TextStyle(fontSize: 14),
-                                                       ),
-                                                       actions: [
-                                                         ElevatedButton(
-                                                           style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-                                                           onPressed: () => Navigator.pop(blockCtx),
-                                                           child: const Text('حسناً، فهمت', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                                         ),
-                                                       ],
-                                                     ),
-                                                   );
-                                                   return;
-                                                 }
-
-                                                 final custProv = ctx.read<CustomersProvider>();
-                                                final confirm = await showDialog<bool>(
-                                                  context: ctx,
-                                                  builder: (confirmCtx) => AlertDialog(
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                                    title: const Row(
-                                                      children: [
-                                                        Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
-                                                        SizedBox(width: 8),
-                                                        Text('تأكيد حذف الزبون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                                      ],
-                                                    ),
-                                                    content: Text('هل أنت متأكد من حذف الزبون (${customer.name}) نهائياً من القائمة والنظام؟\n(ملاحظة: هذا الخيار متاح للمدير فقط)'),
-                                                    actions: [
-                                                      OutlinedButton(
-                                                        onPressed: () => Navigator.pop(confirmCtx, false),
-                                                        child: const Text('إلغاء'),
-                                                      ),
-                                                      ElevatedButton(
-                                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                                        onPressed: () => Navigator.pop(confirmCtx, true),
-                                                        child: const Text('حذف الزبون', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-
-                                                if (confirm == true) {
-                                                   await custProv.deleteCustomer(customer.id!);
-                                                  setDialogState(() {
-                                                    if (selectedCustomer?.id == customer.id) {
-                                                      selectedCustomer = null;
-                                                      nameController.clear();
-                                                      phoneController.clear();
-                                                    }
-                                                  });
-                                                  if (ctx.mounted) {
-                                                    TopNotification.showSuccess(ctx, '🎉 تم حذف الزبون (${customer.name}) بنجاح!');
-                                                  }
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      onTap: () {
-                                        setDialogState(() {
-                                          selectedCustomer = customer;
-                                          nameController.text = customer.name;
-                                          phoneController.text = customer.phone ?? '';
-                                        });
-                                      },
-                                    ),
-                                  );
-                                },
                               ),
-                      ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (id) {
+                        setDialogState(() {
+                          if (id == null) {
+                            selectedCustomer = null;
+                            nameController.clear();
+                            phoneController.clear();
+                          } else {
+                            final found = allCustomers.firstWhere((c) => c.id == id);
+                            selectedCustomer = found;
+                            nameController.text = found.name;
+                            phoneController.text = found.phone ?? '';
+                          }
+                        });
+                      },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     // 4. Name & Phone Input (Pre-filled if selected, or editable for new customer)
                     const Text('أو أدخل بيانات زبون جديد / معدلة:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
@@ -1587,69 +1496,72 @@ class _CashierScreenState extends State<CashierScreen> {
       ['C', '0', '⌫'],
     ];
 
-    return Column(
-      children: keys.map((row) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: row.map((key) {
-              final isBackspace = key == '⌫';
-              final isClear = key == 'C';
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Column(
+        children: keys.map((row) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: row.map((key) {
+                final isBackspace = key == '⌫';
+                final isClear = key == 'C';
 
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: InkWell(
-                    onTap: () {
-                      if (isBackspace) {
-                        onBackspace();
-                      } else if (isClear) {
-                        onClear();
-                      } else {
-                        onAppend(key);
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isClear
-                            ? Colors.red.shade50
-                            : isBackspace
-                                ? Colors.orange.shade50
-                                : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: InkWell(
+                      onTap: () {
+                        if (isBackspace) {
+                          onBackspace();
+                        } else if (isClear) {
+                          onClear();
+                        } else {
+                          onAppend(key);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
                           color: isClear
-                              ? Colors.red.shade200
+                              ? Colors.red.shade50
                               : isBackspace
-                                  ? Colors.orange.shade200
-                                  : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          key,
-                          style: TextStyle(
-                            fontSize: isBackspace || isClear ? 18 : 20,
-                            fontWeight: FontWeight.bold,
+                                  ? Colors.orange.shade50
+                                  : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
                             color: isClear
-                                ? Colors.red
+                                ? Colors.red.shade200
                                 : isBackspace
-                                    ? Colors.orange.shade900
-                                    : Colors.black87,
+                                    ? Colors.orange.shade200
+                                    : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            key,
+                            style: TextStyle(
+                              fontSize: isBackspace || isClear ? 18 : 20,
+                              fontWeight: FontWeight.bold,
+                              color: isClear
+                                  ? Colors.red
+                                  : isBackspace
+                                      ? Colors.orange.shade900
+                                      : Colors.black87,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      }).toList(),
+                );
+              }).toList(),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1678,6 +1590,7 @@ class _CashierScreenState extends State<CashierScreen> {
       if (!mounted) return;
     }
 
+    final isEng = context.read<SettingsProvider>().isEnglish;
     final discountController = TextEditingController(
       text: _discountAmount > 0 ? _discountAmount.toStringAsFixed(0) : '',
     );
@@ -1745,8 +1658,21 @@ class _CashierScreenState extends State<CashierScreen> {
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.purple),
                     decoration: InputDecoration(
-                      labelText: isPercentage ? 'النسبة المئوية للخصم %' : 'مبلغ الخصم ($currencySym)',
-                      prefixIcon: Icon(isPercentage ? Icons.percent : Icons.attach_money, color: Colors.purple),
+                      labelText: isPercentage
+                          ? (isEng ? 'Discount Percentage %' : 'النسبة المئوية للخصم %')
+                          : (isEng ? 'Discount Amount ($currencySym)' : 'مبلغ الخصم ($currencySym)'),
+                      prefixIcon: Container(
+                        width: 48,
+                        alignment: Alignment.center,
+                        child: Text(
+                          isPercentage ? '%' : (isEng ? '\$' : currencySym),
+                          style: TextStyle(
+                            fontSize: isPercentage ? 20 : (isEng ? 20 : 15),
+                            fontWeight: FontWeight.bold,
+                            color: Colors.purple,
+                          ),
+                        ),
+                      ),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                       filled: true,
                       fillColor: Colors.purple.shade50.withValues(alpha: 0.3),
@@ -2501,8 +2427,10 @@ class _CashierScreenState extends State<CashierScreen> {
     CategoriesProvider categoriesProvider,
     ProductsProvider productsProvider,
   ) {
-    final categories = categoriesProvider.categories;
-    final mainProducts = productsProvider.mainScreenProducts;
+    final categories = List<CategoryModel>.from(categoriesProvider.categories)
+      ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+    final mainProducts = List<ProductModel>.from(productsProvider.mainScreenProducts)
+      ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
     final totalGridItems = categories.length + mainProducts.length;
 
     if (totalGridItems == 0) {

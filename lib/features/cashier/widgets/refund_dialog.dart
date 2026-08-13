@@ -49,8 +49,10 @@ class _RefundDialogState extends State<RefundDialog> {
       _isLoadingItems = true;
     });
 
+    _orderItemsMap.clear();
+
     for (final order in completedOrders) {
-      if (order.id != null && !_orderItemsMap.containsKey(order.id!)) {
+      if (order.id != null) {
         final items = await ordersProvider.getOrderItems(order.id!);
         _orderItemsMap[order.id!] = items;
       }

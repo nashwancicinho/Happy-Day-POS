@@ -331,8 +331,48 @@ class OrdersProvider extends ChangeNotifier {
     return success;
   }
 
-  Future<bool> cancelTableOrder(int tableId) async {
-    final success = await _repository.cancelTableOrder(tableId);
+  Future<bool> cancelTableOrder(int tableId, {String? cancelledBy, String? cancelReason}) async {
+    final success = await _repository.cancelTableOrder(tableId, cancelledBy: cancelledBy, cancelReason: cancelReason);
+    if (success) {
+      await loadOrders();
+    }
+    return success;
+  }
+
+  Future<int> createCancelledOrder({
+    required String cashierName,
+    required String orderType,
+    required double total,
+    double subtotal = 0.0,
+    double discountAmount = 0.0,
+    double taxAmount = 0.0,
+    String? notes,
+  }) async {
+    final id = await _repository.createCancelledOrder(
+      cashierName: cashierName,
+      orderType: orderType,
+      total: total,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
+      taxAmount: taxAmount,
+      notes: notes,
+    );
+    await loadOrders();
+    return id;
+  }
+
+  Future<bool> updateCancelledOrderDetails({
+    required int orderId,
+    required String cashierName,
+    required double total,
+    String? notes,
+  }) async {
+    final success = await _repository.updateCancelledOrderDetails(
+      orderId: orderId,
+      cashierName: cashierName,
+      total: total,
+      notes: notes,
+    );
     if (success) {
       await loadOrders();
     }
