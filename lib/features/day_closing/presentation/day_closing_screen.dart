@@ -284,7 +284,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
     final totalDiscounts = completedOrders.fold(0.0, (sum, o) => sum + o.discountAmount);
 
-    final cashSales = completedOrders.where((o) => o.paymentMethod == 'CASH').fold(0.0, (sum, o) => sum + o.total);
     final cardSales = completedOrders.where((o) => o.paymentMethod == 'CARD').fold(0.0, (sum, o) => sum + o.total);
     final debtSales = completedOrders.where((o) => o.paymentMethod == 'CREDIT' || o.paymentMethod == 'DEBT').fold(0.0, (sum, o) => sum + o.total);
 
@@ -314,9 +313,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
 
     // 1. General Sales & P&L Comprehensive Summary (الملخص العام والمالي الشامل)
     customRows.add(['الوارد الكلي (إجمالي المبيعات)', '$todayOrdersCount فاتورة', '${incomeVal.toStringAsFixed(0)} $currencySym']);
-    if (cashSales > 0) {
-      customRows.add(['• المبيعات نقداً (CASH)', '-', '${cashSales.toStringAsFixed(0)} $currencySym']);
-    }
     if (cardSales > 0) {
       customRows.add(['• المبيعات بالبطاقة (CARD)', '-', '${cardSales.toStringAsFixed(0)} $currencySym']);
     }
