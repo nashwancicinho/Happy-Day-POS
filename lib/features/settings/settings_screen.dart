@@ -16,8 +16,10 @@ import '../auth/login_screen.dart';
 import '../categories/categories_provider.dart';
 import '../customers/customers_provider.dart';
 import '../orders/orders_provider.dart';
+import '../payroll/payroll_provider.dart';
 import '../products/products_provider.dart';
 import '../purchases/purchases_provider.dart';
+import '../raw_materials/raw_materials_provider.dart';
 import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import '../treasury/treasury_provider.dart';
@@ -322,9 +324,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final categoriesProvider = context.read<CategoriesProvider>();
               final tablesProvider = context.read<TablesProvider>();
               final ordersProvider = context.read<OrdersProvider>();
-
               final treasuryProvider = context.read<TreasuryProvider>();
               final shiftsProvider = context.read<ShiftsProvider>();
+              final payrollProvider = context.read<PayrollProvider>();
+              final purchasesProvider = context.read<PurchasesProvider>();
+              final customersProvider = context.read<CustomersProvider>();
+              final rawMaterialsProvider = context.read<RawMaterialsProvider>();
 
               final isValid = await authProvider.verifyManagerCredentials(managerUser, managerPass);
 
@@ -345,7 +350,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await tablesProvider.loadTables();
               await ordersProvider.loadOrders();
               await treasuryProvider.loadTreasuryRecords();
+              await treasuryProvider.loadOtherExpenses();
               await shiftsProvider.loadCurrentShift();
+              await payrollProvider.loadPayrollData();
+              await purchasesProvider.loadAllData();
+              await customersProvider.loadCustomers();
+              await rawMaterialsProvider.loadRawMaterials();
 
               if (ctx.mounted) {
                 Navigator.pop(ctx);

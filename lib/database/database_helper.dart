@@ -489,6 +489,7 @@ class DatabaseHelper {
       await txn.delete('users');
       await txn.delete('customers');
       await txn.delete('daily_treasury');
+      await txn.delete('other_expenses');
       await txn.delete('purchase_items');
       await txn.delete('purchases');
       await txn.delete('supplier_payments');
