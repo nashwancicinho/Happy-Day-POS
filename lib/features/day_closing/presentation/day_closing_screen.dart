@@ -10,6 +10,8 @@ import '../../orders/orders_provider.dart';
 import '../../settings/settings_provider.dart';
 import '../../shifts/shifts_provider.dart';
 import '../../tables/tables_provider.dart';
+import '../../payroll/payroll_provider.dart';
+import '../../purchases/purchases_provider.dart';
 import '../../treasury/treasury_provider.dart';
 
 class DayClosingScreen extends StatefulWidget {
@@ -265,7 +267,12 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     final settingsProvider = context.read<SettingsProvider>();
     final ordersProvider = context.read<OrdersProvider>();
     final treasuryProvider = context.read<TreasuryProvider>();
+    final payrollProvider = context.read<PayrollProvider>();
+    final purchasesProvider = context.read<PurchasesProvider>();
+
     await treasuryProvider.loadOtherExpenses();
+    await purchasesProvider.loadAllData();
+    await payrollProvider.loadPayrollData();
 
     final currencySym = settingsProvider.currencySymbol;
 
@@ -288,9 +295,24 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     final cancelledOrders = ordersProvider.orders.where((o) => o.status == 'CANCELLED').toList();
     final cancelledCount = cancelledOrders.length;
 
+    // 1. Calculate Purchases / Materials Cost for shift date
+    final reportDate = firstInvoiceTime.length >= 10 ? firstInvoiceTime.substring(0, 10) : DateTime.now().toIso8601String().substring(0, 10);
+    final filteredPurchases = purchasesProvider.purchases.where((p) {
+      final dateStr = p.createdAt.length >= 10 ? p.createdAt.substring(0, 10) : p.createdAt;
+      return dateStr == reportDate;
+    }).toList();
+    final purchasesCost = filteredPurchases.fold(0.0, (sum, p) => sum + p.totalAmount);
+
+    // 2. Calculate Payroll Expenses for shift date
+    final filteredPayments = payrollProvider.payments.where((p) => p.paymentDate == reportDate).toList();
+    final salaryExpenses = filteredPayments.fold(0.0, (sum, p) => sum + p.netSalary);
+
+    final totalAllExpenses = purchasesCost + salaryExpenses + expenseVal;
+    final finalNetProfit = incomeVal - totalAllExpenses;
+
     final List<List<String>> customRows = [];
 
-    // 1. General Sales Summary & Payment Breakdown
+    // 1. General Sales & P&L Comprehensive Summary (الملخص العام والمالي الشامل)
     customRows.add(['الوارد الكلي (إجمالي المبيعات)', '$todayOrdersCount فاتورة', '${incomeVal.toStringAsFixed(0)} $currencySym']);
     if (cashSales > 0) {
       customRows.add(['• المبيعات نقداً (CASH)', '-', '${cashSales.toStringAsFixed(0)} $currencySym']);
@@ -302,7 +324,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
       customRows.add(['• المبيعات بالآجل (DEBT)', '-', '${debtSales.toStringAsFixed(0)} $currencySym']);
     }
     if (totalDiscounts > 0) {
-      customRows.add(['إجمالي الخصومات الممنوحة', '-', '-${totalDiscounts.toStringAsFixed(0)} $currencySym']);
+      customRows.add(['إجمالي الخصومات والتخفيضات الممنوحة (-)', '-', '-${totalDiscounts.toStringAsFixed(0)} $currencySym']);
     }
     if (refundedCount > 0) {
       customRows.add(['الفواتير والعمليات المسترجعة', '$refundedCount فاتورة', '-${refundedTotal.toStringAsFixed(0)} $currencySym']);
@@ -310,13 +332,41 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     if (cancelledCount > 0) {
       customRows.add(['الفواتير والعمليات الملغية', '$cancelledCount فاتورة', 'ملغاة']);
     }
+    if (purchasesCost > 0) {
+      customRows.add(['تكلفة خامات ومشتريات المواد الأولية (-)', '-', '-${purchasesCost.toStringAsFixed(0)} $currencySym']);
+    }
+    if (salaryExpenses > 0) {
+      customRows.add(['رواتب ومستحقات الموظفين المسددة (-)', '-', '-${salaryExpenses.toStringAsFixed(0)} $currencySym']);
+    }
+    if (expenseVal > 0) {
+      customRows.add(['مصاريف ونفقات الخزينة التشغيلية (-)', '${treasuryProvider.otherExpenses.length} عملية', '-${expenseVal.toStringAsFixed(0)} $currencySym']);
+    }
+    customRows.add(['صافي ربح اليوم النهائي والأخير (=)', '=', '${finalNetProfit.toStringAsFixed(0)} $currencySym']);
 
-    // 2. Itemized Expenses Breakdown (جميع المصاريف تفصيلياً)
-    customRows.add(['--- تفاصيل جميع المصاريف المسجلة ---', '---', '---']);
+    // 2. Itemized Product Sales Breakdown (تفاصيل مبيعات الأصناف والمنتجات المباعة)
+    final topProducts = await ordersProvider.getTopSellingProducts(datePrefix: reportDate);
 
+    customRows.add(['--- تفاصيل مبيعات الأصناف والمنتجات المباعة ---', '---', '---']);
+    if (topProducts.isEmpty) {
+      customRows.add(['لا توجد منتجات مباعة اليوم', '0', '0 $currencySym']);
+    } else {
+      for (var p in topProducts) {
+        final qty = p.quantitySold;
+        final total = p.totalRevenue;
+        final qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toStringAsFixed(1);
+        customRows.add([
+          p.productName,
+          'كمية: $qtyStr',
+          '${total.toStringAsFixed(0)} $currencySym',
+        ]);
+      }
+    }
+
+    // 3. Itemized Expenses Breakdown (جميع المصاريف المسجلة بالخزينة تفصيلياً)
+    customRows.add(['--- تفاصيل المصاريف المسجلة بالخزينة ---', '---', '---']);
     final otherExpensesList = treasuryProvider.otherExpenses;
     if (otherExpensesList.isEmpty) {
-      customRows.add(['لا توجد مصاريف مسجلة اليوم', '0', '0 $currencySym']);
+      customRows.add(['لا توجد مصاريف مسجلة بالخزينة اليوم', '0', '0 $currencySym']);
     } else {
       for (var i = 0; i < otherExpensesList.length; i++) {
         final exp = otherExpensesList[i];
@@ -329,31 +379,28 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
       }
     }
 
-    customRows.add(['إجمالي نفقات ومصاريف اليوم', '${otherExpensesList.length} عملية', '-${expenseVal.toStringAsFixed(0)} $currencySym']);
-    customRows.add(['صافي ربح اليوم النهائي والأخير', '=', '${netIncomeVal.toStringAsFixed(0)} $currencySym']);
-
     if (notes != null && notes.isNotEmpty) {
       customRows.add(['ملاحظات الإغلاق والتصفية', '-', notes]);
     }
 
     final success = await PrintService.printReport(
-      reportTitle: 'تقرير وتصفية اليوم والخزينة الشامل 🔒',
+      reportTitle: 'تقرير الملخص العام والمالي الشامل 🔒',
       dateRangeText: closingTime,
       generatedBy: userName,
       totalSales: incomeVal,
-      totalExpenses: expenseVal,
+      totalExpenses: totalAllExpenses,
       totalOrders: todayOrdersCount,
-      netProfit: netIncomeVal,
+      netProfit: finalNetProfit,
       firstInvoiceTime: firstInvoiceTime,
       dayClosingTime: closingTime,
-      customHeaders: ['البيان / اسم المصروف', 'التفاصيل / المنفذ', 'المبلغ الصافي'],
+      customHeaders: ['البيان / اسم المنتج والفرع', 'التفاصيل / الكمية', 'المبلغ الصافي'],
       customDataRows: customRows,
       settings: settingsProvider,
     );
 
     if (context.mounted) {
       if (success) {
-        TopNotification.showSuccess(context, '🖨️ تم إرسال تقرير المبيعات والمصاريف التفصيلي للطابعة بنجاح!');
+        TopNotification.showSuccess(context, '🖨️ تم إرسال التقرير الشامل والمفصل للطابعة بنجاح!');
       } else {
         TopNotification.showError(context, '⚠️ تعذر الطباعة المباشرة، يرجى التحقق من إعدادات الطابعة');
       }
@@ -604,18 +651,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     // 4. Perform Automatic Backup to selected folder on Day Closing
                     final autoBackupSuccess = await settingsProvider.performAutoBackup(isClosingDay: true);
 
-                    // 5. Print Daily Report automatically upon closing
-                    if (context.mounted) {
-                      await _printDailyClosingReceipt(
-                        context,
-                        incomeVal,
-                        expenseVal,
-                        netIncomeVal,
-                        todayOrdersCount,
-                        userName,
-                        notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                      );
-                    }
+                    // Automatic print removed per request. Printing is done manually via "طباعة التقرير اليومي" button.
 
                     if (!ctx.mounted) return;
                     Navigator.of(ctx).pop();

@@ -98,7 +98,7 @@ class _WaiterConnectScreenState extends State<WaiterConnectScreen> {
       backgroundColor: const Color(0xFF111827),
       appBar: AppBar(
         title: const Text(
-          'تطبيق الموبايل - عنوان السيرفر',
+          'cashbox - عنوان السيرفر',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: const Color(0xFF1F2937),
