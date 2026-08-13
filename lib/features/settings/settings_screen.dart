@@ -1823,6 +1823,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 12),
+
+                SwitchListTile(
+                  title: Text(
+                    isEng ? 'Show sold items in Day Closing report' : 'إظهار تفاصيل المواد المباعة في تقرير إغلاق اليوم',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    isEng
+                        ? 'If disabled, only the financial summary and treasury expenses will be printed'
+                        : 'عند التعطيل، سيتم طباعة الملخص المالي ونفقات الخزينة فقط بدون قائمة المواد والمنتجات المباعة',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  secondary: const Icon(Icons.inventory_2_outlined, color: Colors.purple),
+                  value: settings.showSoldItemsInDayClosing,
+                  onChanged: (val) async {
+                    await settings.setShowSoldItemsInDayClosing(val);
+                  },
+                ),
+
                 const SizedBox(height: 20),
 
                 TextField(

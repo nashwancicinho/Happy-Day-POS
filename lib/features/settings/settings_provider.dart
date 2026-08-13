@@ -38,10 +38,15 @@ class SettingsProvider extends ChangeNotifier {
   bool get showTopNotifications => (_settings['show_top_notifications'] ?? 'false') == 'true';
   double get screenScale => double.tryParse(_settings['app_screen_scale'] ?? '1.0') ?? 1.0;
   bool get autoOpenCashDrawer => (_settings['auto_open_cash_drawer'] ?? 'true') == 'true';
+  bool get showSoldItemsInDayClosing => (_settings['show_sold_items_in_day_closing'] ?? 'false') == 'true';
 
   Future<void> setShowTopNotifications(bool value) async {
     TopNotification.enabled = value;
     await updateSetting('show_top_notifications', value.toString());
+  }
+
+  Future<void> setShowSoldItemsInDayClosing(bool value) async {
+    await updateSetting('show_sold_items_in_day_closing', value.toString());
   }
 
   Future<void> setScreenScale(double value) async {

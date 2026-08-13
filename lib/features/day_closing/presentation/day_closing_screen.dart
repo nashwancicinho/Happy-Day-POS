@@ -262,8 +262,9 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     double netIncomeVal,
     int todayOrdersCount,
     String userName,
-    String? notes,
-  ) async {
+    String? notes, {
+    bool? includeSoldItems,
+  }) async {
     final settingsProvider = context.read<SettingsProvider>();
     final ordersProvider = context.read<OrdersProvider>();
     final treasuryProvider = context.read<TreasuryProvider>();
@@ -281,17 +282,17 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
         ? DateTime.now().toIso8601String().substring(0, 16).replaceAll('T', ' ')
         : DateTime.now().toIso8601String();
 
-    final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
+    final completedOrders = ordersProvider.currentShiftCompletedOrders;
     final totalDiscounts = completedOrders.fold(0.0, (sum, o) => sum + o.discountAmount);
 
     final cardSales = completedOrders.where((o) => o.paymentMethod == 'CARD').fold(0.0, (sum, o) => sum + o.total);
     final debtSales = completedOrders.where((o) => o.paymentMethod == 'CREDIT' || o.paymentMethod == 'DEBT').fold(0.0, (sum, o) => sum + o.total);
 
-    final refundedOrders = ordersProvider.orders.where((o) => o.status == 'REFUNDED').toList();
+    final refundedOrders = ordersProvider.currentShiftRefundedOrders;
     final refundedCount = refundedOrders.length;
     final refundedTotal = refundedOrders.fold(0.0, (sum, o) => sum + o.total);
 
-    final cancelledOrders = ordersProvider.orders.where((o) => o.status == 'CANCELLED').toList();
+    final cancelledOrders = ordersProvider.currentShiftCancelledOrders;
     final cancelledCount = cancelledOrders.length;
 
     // 1. Calculate Purchases / Materials Cost for shift date
@@ -340,21 +341,24 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     customRows.add(['صافي ربح اليوم النهائي والأخير (=)', '=', '${finalNetProfit.toStringAsFixed(0)} $currencySym']);
 
     // 2. Itemized Product Sales Breakdown (تفاصيل مبيعات الأصناف والمنتجات المباعة)
-    final topProducts = await ordersProvider.getTopSellingProducts(datePrefix: reportDate);
+    final shouldIncludeSoldItems = includeSoldItems ?? settingsProvider.showSoldItemsInDayClosing;
+    if (shouldIncludeSoldItems) {
+      final topProducts = await ordersProvider.getTopSellingProducts(datePrefix: reportDate);
 
-    customRows.add(['--- تفاصيل مبيعات الأصناف والمنتجات المباعة ---', '---', '---']);
-    if (topProducts.isEmpty) {
-      customRows.add(['لا توجد منتجات مباعة اليوم', '0', '0 $currencySym']);
-    } else {
-      for (var p in topProducts) {
-        final qty = p.quantitySold;
-        final total = p.totalRevenue;
-        final qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toStringAsFixed(1);
-        customRows.add([
-          p.productName,
-          'كمية: $qtyStr',
-          '${total.toStringAsFixed(0)} $currencySym',
-        ]);
+      customRows.add(['--- تفاصيل مبيعات الأصناف والمنتجات المباعة ---', '---', '---']);
+      if (topProducts.isEmpty) {
+        customRows.add(['لا توجد منتجات مباعة اليوم', '0', '0 $currencySym']);
+      } else {
+        for (var p in topProducts) {
+          final qty = p.quantitySold;
+          final total = p.totalRevenue;
+          final qtyStr = qty % 1 == 0 ? qty.toInt().toString() : qty.toStringAsFixed(1);
+          customRows.add([
+            p.productName,
+            'كمية: $qtyStr',
+            '${total.toStringAsFixed(0)} $currencySym',
+          ]);
+        }
       }
     }
 
@@ -414,6 +418,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     final currencySym = context.read<SettingsProvider>().currencySymbol;
     final incomeController = TextEditingController(text: defaultIncome.toStringAsFixed(0));
     final notesController = TextEditingController();
+    bool includeSoldItems = context.read<SettingsProvider>().showSoldItemsInDayClosing;
 
     showDialog(
       context: context,
@@ -500,6 +505,20 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
+
+                      const SizedBox(height: 10),
+
+                      CheckboxListTile(
+                        value: includeSoldItems,
+                        onChanged: (val) => setDialogState(() => includeSoldItems = val ?? false),
+                        title: const Text(
+                          'تضمين تفاصيل المواد المباعة في التقرير المطبوع',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
                     ],
                   ),
                 ),
@@ -524,6 +543,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     todayOrdersCount,
                     userName,
                     notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                    includeSoldItems: includeSoldItems,
                   ),
                   icon: const Icon(Icons.print_rounded, size: 18),
                   label: const Text('طباعة التقرير اليومي 🖨️', style: TextStyle(fontWeight: FontWeight.bold)),

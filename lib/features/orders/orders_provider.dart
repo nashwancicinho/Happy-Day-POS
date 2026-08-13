@@ -41,6 +41,36 @@ class OrdersProvider extends ChangeNotifier {
     }).toList();
   }
 
+  List<OrderModel> get currentShiftCancelledOrders {
+    final lastCloseDt = _lastClosedTimestamp != null ? DateTime.tryParse(_lastClosedTimestamp!) : null;
+
+    return _orders.where((o) {
+      if (o.status != 'CANCELLED') return false;
+      if (lastCloseDt != null) {
+        final orderDt = DateTime.tryParse(o.createdAt);
+        if (orderDt != null && (orderDt.isBefore(lastCloseDt) || orderDt.isAtSameMomentAs(lastCloseDt))) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
+  List<OrderModel> get currentShiftRefundedOrders {
+    final lastCloseDt = _lastClosedTimestamp != null ? DateTime.tryParse(_lastClosedTimestamp!) : null;
+
+    return _orders.where((o) {
+      if (o.status != 'REFUNDED') return false;
+      if (lastCloseDt != null) {
+        final orderDt = DateTime.tryParse(o.createdAt);
+        if (orderDt != null && (orderDt.isBefore(lastCloseDt) || orderDt.isAtSameMomentAs(lastCloseDt))) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
   List<OrderModel> get todayCompletedOrders {
     final todayStr = DateTime.now().toIso8601String().substring(0, 10);
     return _orders.where((o) {
