@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/item_note_dialog.dart';
 import '../../services/waiter_api_client.dart';
 
 class WaiterOrderScreen extends StatefulWidget {
@@ -112,104 +113,35 @@ class _WaiterOrderScreenState extends State<WaiterOrderScreen> {
 
   Future<void> _showItemNoteDialog(int productId, String productName) async {
     final existingNote = (_selectedItems[productId]?['notes'] as String?) ?? '';
-    final noteController = TextEditingController(text: existingNote);
 
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2937),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.edit_note, color: Color(0xFF10B981), size: 28),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'ملاحظة المطبخ: $productName',
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('اكتب الملاحظة للمطبخ (يدوياً):', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: noteController,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'اكتب الملاحظة هنا (مثال: بدون بصل، بدون خس...)...',
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-                filled: true,
-                fillColor: const Color(0xFF111827),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          if (existingNote.isNotEmpty || noteController.text.isNotEmpty)
-            TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  if (_selectedItems.containsKey(productId)) {
-                    _selectedItems[productId]!['notes'] = '';
-                  }
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('تم مسح ملاحظة الصنف 🗑️'),
-                    backgroundColor: Colors.redAccent,
-                    duration: Duration(seconds: 1),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.delete_forever, color: Colors.redAccent, size: 18),
-              label: const Text('مسح الملاحظة', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إغلاق', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            onPressed: () {
-              final newNote = noteController.text.trim();
-              setState(() {
-                if (_selectedItems.containsKey(productId)) {
-                  _selectedItems[productId]!['notes'] = newNote;
-                } else {
-                  final product = _allProducts.firstWhere((p) => p['id'] == productId, orElse: () => {});
-                  if (product.isNotEmpty) {
-                    _addItem(product);
-                    _selectedItems[productId]!['notes'] = newNote;
-                  }
-                }
-              });
-              Navigator.pop(ctx);
-              if (newNote.isNotEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('تم حفظ ملاحظة الصنف للمطبخ ✅'),
-                    backgroundColor: Color(0xFF10B981),
-                    duration: Duration(seconds: 1),
-                  ),
-                );
-              }
-            },
-            icon: const Icon(Icons.check, color: Colors.white, size: 18),
-            label: const Text('حفظ الملاحظة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+    final result = await ItemNoteDialog.show(
+      context,
+      productName: productName,
+      initialNote: existingNote,
     );
+
+    if (result != null) {
+      setState(() {
+        if (_selectedItems.containsKey(productId)) {
+          _selectedItems[productId]!['notes'] = result;
+        } else {
+          final product = _allProducts.firstWhere((p) => p['id'] == productId, orElse: () => {});
+          if (product.isNotEmpty) {
+            _addItem(product);
+            _selectedItems[productId]!['notes'] = result;
+          }
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.isEmpty ? 'تم مسح ملاحظة الصنف 🗑️' : 'تم حفظ ملاحظة الصنف للمطبخ ✅'),
+            backgroundColor: result.isEmpty ? Colors.redAccent : const Color(0xFF10B981),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    }
   }
 
   double _calculateTotal() {

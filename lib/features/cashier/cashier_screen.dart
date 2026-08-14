@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/print_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/customize_item_appearance_dialog.dart';
+import '../../core/widgets/item_note_dialog.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
 import '../../core/widgets/top_notification.dart';
 import '../../models/category.dart';
@@ -594,16 +595,38 @@ class _CashierScreenState extends State<CashierScreen> {
                     ],
 
                     if (!product.isWeighted && !product.allowPriceChange) ...[
-                      TextField(
-                        controller: notesController,
-                        decoration: InputDecoration(
-                          labelText: 'ملاحظة خاصة بالصنف (اختياري)',
-                          hintText: 'مثال: بدون بصل، زيادة صوص',
-                          prefixIcon: const Icon(Icons.note_alt_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: notesController,
+                              decoration: InputDecoration(
+                                labelText: 'ملاحظة خاصة بالصنف (اختياري)',
+                                hintText: 'مثال: بدون بصل، زيادة صوص',
+                                prefixIcon: const Icon(Icons.note_alt_outlined),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: Icon(Icons.bookmarks_rounded, color: AppColors.primary),
+                            tooltip: 'اختيار من المكونات/الملاحظات المخزونة',
+                            onPressed: () async {
+                              final res = await ItemNoteDialog.show(
+                                ctx,
+                                productName: product.name,
+                                initialNote: notesController.text,
+                              );
+                              if (res != null) {
+                                notesController.text = res;
+                                setStateDialog(() {});
+                              }
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                     ],

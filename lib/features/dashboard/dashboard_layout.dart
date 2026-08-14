@@ -307,54 +307,73 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               ),
             ),
             appBar: AppBar(
-              centerTitle: true,
-              leading: Builder(
-                builder: (context) => IconButton(
-                  icon: const Icon(Icons.menu, size: 28),
-                  tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-              title: const Text(
-                "CASHBOX POS",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+              automaticallyImplyLeading: false,
+              titleSpacing: 12,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // === 1. RIGHT SIDE: Menu Drawer + Active User Badge ===
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Active User Badge
+                      Builder(
+                        builder: (context) => IconButton(
+                          icon: const Icon(Icons.menu, size: 28, color: Colors.white),
+                          tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24),
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              authProvider.isManager ? Icons.admin_panel_settings : Icons.person,
-                              color: authProvider.isManager ? Colors.amber : Colors.white,
-                              size: 20,
-                            ),
+                            const Icon(Icons.person, size: 16, color: Colors.white),
                             const SizedBox(width: 6),
                             Text(
                               "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                           ],
                         ),
                       ),
+                    ],
+                  ),
 
-                      const SizedBox(width: 12),
+                  // === 2. CENTER SIDE: Waiter App Sync + License Status ===
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const SyncQrDialog(),
+                          );
+                        },
+                        icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
+                        label: Text(
+                          isEng ? 'Sync Waiter 📱' : 'ربط النادل 📱',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 2,
+                        ),
+                      ),
 
-                      // License / Subscription Badge
                       if (_licenseInfo != null) ...[
+                        const SizedBox(width: 10),
                         InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           onTap: () async {
                             await Navigator.push(
                               context,
@@ -367,13 +386,13 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                             _checkLicenseStatus();
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: _licenseInfo!.isActivated
                                   ? Colors.green.shade800
                                   : (_licenseInfo!.isExpired ? Colors.red.shade800 : Colors.amber.shade900),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white24),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white30),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -383,7 +402,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                       ? Icons.verified_user
                                       : (_licenseInfo!.isExpired ? Icons.lock : Icons.hourglass_top),
                                   color: Colors.white,
-                                  size: 16,
+                                  size: 15,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -398,124 +417,128 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
                       ],
-
-                      // Waiter App Mobile Sync Button
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => const SyncQrDialog(),
-                          );
-                        },
-                        icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
-                        label: Text(isEng ? 'Sync Waiter 📱' : 'ربط النادل', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 2,
-                        ),
-                      ),
-
-
-
-                      const SizedBox(width: 8),
-
-                      // Clock
-                      StreamBuilder(
-                        stream: Stream.periodic(const Duration(seconds: 1)),
-                        builder: (context, snapshot) {
-                          final now = TimeOfDay.now();
-                          return Row(
-                            children: [
-                              const Icon(Icons.access_time, size: 18),
-                              const SizedBox(width: 4),
-                              Text(
-                                now.format(context),
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Screen Zoom Out Button (-)
-                      IconButton(
-                        icon: const Icon(Icons.zoom_out, color: Colors.white, size: 22),
-                        tooltip: isEng ? 'Zoom Out (-)' : 'تصغير الشاشة (-)',
-                        onPressed: () {
-                          final newScale = (currentScale - 0.1).clamp(0.7, 1.5);
-                          context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
-                        },
-                      ),
-
-                      // Current Zoom Scale Reset Badge (100%)
-                      InkWell(
-                        onTap: () {
-                          context.read<SettingsProvider>().setScreenScale(1.0);
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${(currentScale * 100).toInt()}%',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                          ),
-                        ),
-                      ),
-
-                      // Screen Zoom In Button (+)
-                      IconButton(
-                        icon: const Icon(Icons.zoom_in, color: Colors.white, size: 22),
-                        tooltip: isEng ? 'Zoom In (+)' : 'تكبير الشاشة (+)',
-                        onPressed: () {
-                          final newScale = (currentScale + 0.1).clamp(0.7, 1.5);
-                          context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
-                        },
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Full Screen Toggle Button
-                      IconButton(
-                        icon: Icon(
-                          _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                        tooltip: isEng
-                            ? (_isFullscreen ? 'Exit Full Screen' : 'Full Screen')
-                            : (_isFullscreen ? 'إلغاء ملء الشاشة' : 'تكبير ملء الشاشة'),
-                        onPressed: _toggleFullscreen,
-                      ),
-
-                      // Logout Button
-                      IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                        tooltip: isEng ? 'Logout' : 'تسجيل الخروج',
-                        onPressed: () => _confirmLogout(context, authProvider),
-                      ),
-
-                      // Exit App Button
-                      IconButton(
-                        icon: const Icon(Icons.power_settings_new_rounded, color: Colors.redAccent),
-                        tooltip: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
-                        onPressed: () => _confirmExitApp(context),
-                      ),
                     ],
                   ),
-                ),
+
+                  // === 3. LEFT SIDE: Clock + Zoom Controls + Fullscreen + Logout + Exit ===
+                  Flexible(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Clock
+                          StreamBuilder(
+                            stream: Stream.periodic(const Duration(seconds: 1)),
+                            builder: (context, snapshot) {
+                              final now = TimeOfDay.now();
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white12,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.access_time_rounded, size: 15, color: Colors.white),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      now.format(context),
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // Zoom Controls
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.zoom_out, color: Colors.white, size: 20),
+                                  tooltip: isEng ? 'Zoom Out (-)' : 'تصغير الشاشة (-)',
+                                  onPressed: () {
+                                    final newScale = (currentScale - 0.1).clamp(0.7, 1.5);
+                                    context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
+                                  },
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    context.read<SettingsProvider>().setScreenScale(1.0);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: Text(
+                                      '${(currentScale * 100).toInt()}%',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.zoom_in, color: Colors.white, size: 20),
+                                  tooltip: isEng ? 'Zoom In (+)' : 'تكبير الشاشة (+)',
+                                  onPressed: () {
+                                    final newScale = (currentScale + 0.1).clamp(0.7, 1.5);
+                                    context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(width: 6),
+
+                          // Fullscreen Toggle
+                          IconButton(
+                            icon: Icon(
+                              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            tooltip: isEng
+                                ? (_isFullscreen ? 'Exit Full Screen' : 'Full Screen')
+                                : (_isFullscreen ? 'إلغاء ملء الشاشة' : 'تكبير ملء الشاشة'),
+                            onPressed: _toggleFullscreen,
+                          ),
+
+                          // Logout
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.white, size: 22),
+                            tooltip: isEng ? 'Logout' : 'تسجيل الخروج',
+                            onPressed: () => _confirmLogout(context, authProvider),
+                          ),
+
+                          // Exit App
+                          IconButton(
+                            icon: const Icon(Icons.power_settings_new_rounded, color: Colors.redAccent, size: 24),
+                            tooltip: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
+                            onPressed: () => _confirmExitApp(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+              actions: const [],
+            ),
             body: _buildScaledPage(pages[selectedIndex], currentScale),
           ),
         ),
