@@ -20,6 +20,18 @@ class DayClosingScreen extends StatefulWidget {
 
 class _DayClosingScreenState extends State<DayClosingScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<OrdersProvider>().loadOrders();
+        context.read<ShiftsProvider>().loadCurrentShift();
+        context.read<TreasuryProvider>().loadTreasuryRecords();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<SettingsProvider>();
     final currencySym = settingsProvider.currencySymbol;
@@ -28,8 +40,10 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     final shiftsProvider = context.watch<ShiftsProvider>();
     final authProvider = context.watch<AuthProvider>();
 
-    final todaySales = ordersProvider.todaySalesTotal;
-    final todayOrdersCount = ordersProvider.todayOrdersCount;
+    final totalInflow = ordersProvider.currentShiftSalesTotal;
+    final netProfitVal = ordersProvider.currentShiftNetProfit;
+    final fullTodayCount = ordersProvider.fullTodayOrdersCount;
+    final currentShiftCount = ordersProvider.currentShiftCompletedOrders.length;
     final isShiftOpen = shiftsProvider.currentShift != null && shiftsProvider.currentShift!.isOpen;
 
     return Scaffold(
@@ -90,22 +104,31 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
 
                 const SizedBox(height: 24),
 
-                // Stats Overview Row
+                // Stats Overview Row (Total Inflow, Net Profit, Orders Count)
                 Row(
                   children: [
                     Expanded(
                       child: _buildMetricCard(
-                        title: isEng ? 'Total Today Sales' : 'مبيعات اليوم الإجمالية',
-                        value: '${todaySales.toStringAsFixed(0)} $currencySym',
+                        title: isEng ? 'Total Inflow' : 'الوارد الكلي',
+                        value: '${totalInflow.toStringAsFixed(0)} $currencySym',
                         icon: Icons.payments,
                         color: Colors.green.shade700,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: _buildMetricCard(
-                        title: isEng ? 'Completed Invoices' : 'عدد الفواتير المكتملة',
-                        value: isEng ? '$todayOrdersCount Invoices' : '$todayOrdersCount فاتورة',
+                        title: isEng ? 'Net Profit' : 'الربح الصافي',
+                        value: '${netProfitVal.toStringAsFixed(0)} $currencySym',
+                        icon: Icons.trending_up_rounded,
+                        color: Colors.teal.shade700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        title: isEng ? 'Completed Invoices' : 'فواتير اليوم',
+                        value: isEng ? '$fullTodayCount Invoices' : '$fullTodayCount ($currentShiftCount بالشيفت)',
                         icon: Icons.receipt_long,
                         color: Colors.blue.shade700,
                       ),
@@ -163,8 +186,8 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                                   ),
                                   onPressed: () => _showIntegratedDayClosingDialog(
                                     context,
-                                    todaySales,
-                                    todayOrdersCount,
+                                    totalInflow,
+                                    currentShiftCount,
                                     authProvider.currentUserName,
                                     shiftsProvider,
                                   ),

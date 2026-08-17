@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أداة توليد أكواد التفعيل الخارجية - Happy Day POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            --card-bg: rgba(30, 41, 59, 0.75);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 36px 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 100px;
+            color: #c084fc;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            direction: ltr;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25);
+        }
+
+        .input-wrapper input::placeholder {
+            color: #475569;
+            letter-spacing: 0;
+            font-weight: 400;
+            font-size: 15px;
+        }
+
+        .btn-generate {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-generate:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, #4f46e5 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-generate:active {
+            transform: translateY(0);
+        }
+
+        .result-box {
+            display: none;
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1.5px solid rgba(16, 185, 129, 0.3);
+            border-radius: 16px;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .result-box.visible {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+        }
+
+        .key-display {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 2px;
+            direction: ltr;
+            margin-bottom: 14px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px dashed rgba(16, 185, 129, 0.4);
+            user-select: all;
+        }
+
+        .btn-copy {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-green);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-copy:hover {
+            background: #059669;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .footer-note {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="badge">🔒 خاص بمالك النظام فقط</div>
+            <h1>Happy Day POS - كاشير</h1>
+            <p>أداة خارجية مستقلة لتوليد أكواد التفعيل السنوية للعملاء</p>
+        </div>
+
+        <div class="form-group">
+            <label for="machineIdInput">رقم معرّف جهاز العميل (Machine ID):</label>
+            <div class="input-wrapper">
+                <input type="text" id="machineIdInput" placeholder="HD-XXXX-YYYY" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+
+        <button class="btn-generate" onclick="handleGenerateKey()">
+            <span>توليد كود التفعيل السنوي</span> 🔑
+        </button>
+
+        <div id="resultBox" class="result-box">
+            <div class="result-title">🎉 كود التفعيل السنوي المخصص لهذا الجهاز:</div>
+            <div id="keyDisplay" class="key-display">HD-XXXX-YYYY-ZZZZ</div>
+            <button class="btn-copy" onclick="copyKeyToClipboard()">
+                <span>نسخ الكود لإرساله بالواتساب</span> 📋
+            </button>
+        </div>
+
+        <div class="footer-note">
+            💡 <strong>تنبيه أمان:</strong> لا تقم بمشاركة هذه الأداة أو إرسالها للعملاء.<br>
+            الكود المولد يعمل فقط على الجهاز المطابق لـ (Machine ID) ولا يمكن استخدامه على أي جهاز آخر.
+        </div>
+    </div>
+
+    <div id="toast" class="toast">تم نسخ كود التفعيل للحافظة بنجاح! 📋</div>
+
+    <script>
+        const SECRET_SALT = 'HAPPY_DAY_POS_SALT_KEY_2026_ANNUAL_SUB';
+
+        function base64UrlEncode(str) {
+            const utf8Bytes = new TextEncoder().encode(str);
+            let binary = '';
+            for (let i = 0; i < utf8Bytes.length; i++) {
+                binary += String.fromCharCode(utf8Bytes[i]);
+            }
+            const base64 = btoa(binary);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '').toUpperCase();
+        }
+
+        function computeChecksumForMachine(machineId, data) {
+            const combined = machineId + '-' + data + '-' + SECRET_SALT;
+            let hash = 0;
+            for (let i = 0; i < combined.length; i++) {
+                hash = (Math.imul(hash, 31) + combined.charCodeAt(i)) >>> 0;
+            }
+            const hex = hash.toString(16).toUpperCase().padStart(8, '0');
+            return hex.substring(0, 4);
+        }
+
+        function generateAnnualKeyForMachine(targetMachineId) {
+            const cleanMachineId = targetMachineId.trim().toUpperCase().replace(/\s+/g, '');
+            if (!cleanMachineId) return '';
+
+            const rawHash = base64UrlEncode(cleanMachineId + '-' + SECRET_SALT);
+            const p1 = rawHash.substring(0, 4).padEnd(4, 'A');
+            const p2 = rawHash.substring(4, 8).padEnd(4, 'B');
+            const checksum = computeChecksumForMachine(cleanMachineId, 'HD-' + p1 + '-' + p2);
+
+            return 'HD-' + p1 + '-' + p2 + '-' + checksum;
+        }
+
+        function handleGenerateKey() {
+            const input = document.getElementById('machineIdInput').value;
+            const cleanInput = input.trim();
+
+            if (!cleanInput) {
+                alert('يرجى إدخال رقم معرّف الجهاز (Machine ID) أولاً!');
+                return;
+            }
+
+            const key = generateAnnualKeyForMachine(cleanInput);
+            document.getElementById('keyDisplay').innerText = key;
+            document.getElementById('resultBox').classList.add('visible');
+        }
+
+        function copyKeyToClipboard() {
+            const keyText = document.getElementById('keyDisplay').innerText;
+            navigator.clipboard.writeText(keyText).then(() => {
+                showToast();
+            }).catch(err => {
+                alert('الكود المنسوخ: ' + keyText);
+            });
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        document.getElementById('machineIdInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleGenerateKey();
+            }
+        });
+    </script>
+</body>
+</html>

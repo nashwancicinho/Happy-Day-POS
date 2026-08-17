@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (managerName.isEmpty || managerPass.isEmpty) {
       TopNotification.showWarning(
         context,
-        isEng ? '⚠️ Please enter Manager name & PIN code' : '⚠️ يرجى إدخال اسم مدير النظام والرمز السري الخاص به',
+        isEng ? '⚠️ Please enter Manager name & PIN code' : '⚠️ يرجى إدخال اسم المدير والرمز السري الخاص به',
       );
       return;
     }
@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 6),
             Center(
               child: Text(
-                isEng ? 'System database is empty. Please enter new Manager name & PIN code to get started.' : 'النظام فارغ حالياً. يرجى كتابة اسم ورمز مدير النظام الجديد للبدء.',
+                isEng ? 'System database is empty. Please enter new Manager name & PIN code to get started.' : 'النظام فارغ حالياً. يرجى كتابة اسم ورمز المدير الجديد للبدء.',
                 style: const TextStyle(fontSize: 13, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Icon(Icons.admin_panel_settings, color: Colors.purple, size: 22),
                       const SizedBox(width: 8),
                       Text(
-                        isEng ? '1. Manager Account Credentials' : '1. بيانات حساب المدير (مدير النظام)',
+                        isEng ? '1. Manager Account Credentials' : '1. بيانات حساب المدير',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.purple),
                       ),
                     ],
@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _initManagerNameController,
                     decoration: InputDecoration(
-                      labelText: isEng ? 'Manager Name *' : 'اسم مدير النظام *',
+                      labelText: isEng ? 'Manager Name *' : 'اسم المدير *',
                       prefixIcon: const Icon(Icons.person),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -367,7 +367,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           items: managerList.map((m) {
                             return DropdownMenuItem<String>(
                               value: m.username,
-                              child: Text(isEng ? '${m.username} (Manager)' : '${m.username} (مدير النظام)'),
+                              child: Text(isEng ? '${m.username} (Manager)' : '${m.username} (مدير)'),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -451,7 +451,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           DropdownMenuItem(
                             value: 'مدير',
-                            child: Text(isEng ? 'Manager (Full Admin Access)' : 'مدير النظام (صلاحية كاملة)'),
+                            child: Text(isEng ? 'Manager (Full Admin Access)' : 'مدير (صلاحية كاملة)'),
                           ),
                         ],
                         onChanged: (val) {

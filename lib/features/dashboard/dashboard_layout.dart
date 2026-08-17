@@ -42,6 +42,44 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   int selectedIndex = 0;
   late final AppLifecycleListener _lifecycleListener;
   LicenseInfo? _licenseInfo;
+  bool _isFullscreen = false;
+
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullscreen = !_isFullscreen;
+    });
+    if (_isFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  Widget _buildScaledPage(Widget page, double scale) {
+    if (scale == 1.0) return page;
+    if (scale == 0.0) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final minW = constraints.maxWidth < 1280 ? 1280.0 : constraints.maxWidth;
+          final minH = constraints.maxHeight < 720 ? 720.0 : constraints.maxHeight;
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: minW,
+              height: minH,
+              child: page,
+            ),
+          );
+        },
+      );
+    }
+    return Transform.scale(
+      scale: scale,
+      alignment: Alignment.topCenter,
+      child: page,
+    );
+  }
 
   @override
   void initState() {
@@ -168,226 +206,292 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       return const LoginScreen();
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _confirmExitApp(context);
+    final currentScale = context.watch<SettingsProvider>().screenScale;
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
       },
-      child: Scaffold(
-        drawer: Drawer(
-          child: Column(
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
+      child: Focus(
+        autofocus: true,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _confirmExitApp(context);
+          },
+          child: Scaffold(
+            drawer: Drawer(
+              child: Column(
+                children: [
+                  DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.storefront, size: 44, color: Colors.white),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "HAPPY DAY POS",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Consumer<SettingsProvider>(
+                      builder: (context, settings, _) {
+                        final isEnglish = settings.isEnglish;
+                        return ListView(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          children: [
+                            _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEnglish ? "Home" : "الرئيسية"),
+                            _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEnglish ? "Tables Map" : "الطاولات"),
+                            _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEnglish ? "Cashier & POS" : "الكاشير"),
+                            _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, isEnglish ? "Products" : "الأصناف"),
+                            _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEnglish ? "Categories" : "التصنيفات"),
+                            _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEnglish ? "Inventory" : "المخزن"),
+                            _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEnglish ? "Purchases" : "المشتريات والموردين"),
+                            _buildDrawerTile(7, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
+                            _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
+                            _buildDrawerTile(9, Icons.payments_outlined, Icons.payments, isEnglish ? "Employee Payroll" : "رواتب الموظفين والسُلف"),
+                            _buildDrawerTile(10, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
+                            _buildDrawerTile(11, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
+                            _buildDrawerTile(12, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            appBar: AppBar(
+              centerTitle: true,
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, size: 28),
+                  tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
+                  onPressed: () => Scaffold.of(context).openDrawer(),
                 ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              ),
+              title: const Text(
+                "HAPPY DAY POS",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
                     children: [
-                      const Icon(Icons.storefront, size: 44, color: Colors.white),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "HAPPY DAY POS",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      // Active User Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              authProvider.isManager ? Icons.admin_panel_settings : Icons.person,
+                              color: authProvider.isManager ? Colors.amber : Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
+
+                      const SizedBox(width: 12),
+
+                      // License / Subscription Badge
+                      if (_licenseInfo != null) ...[
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LicenseActivationScreen(
+                                  onActivated: () => _checkLicenseStatus(),
+                                ),
+                              ),
+                            );
+                            _checkLicenseStatus();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: _licenseInfo!.isActivated
+                                  ? Colors.green.shade800
+                                  : (_licenseInfo!.isExpired ? Colors.red.shade800 : Colors.amber.shade900),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _licenseInfo!.isActivated
+                                      ? Icons.verified_user
+                                      : (_licenseInfo!.isExpired ? Icons.lock : Icons.hourglass_top),
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _licenseInfo!.isActivated
+                                      ? (isEng ? 'Annual (${_licenseInfo!.daysRemaining}d)' : 'اشتراك سنوي (${_licenseInfo!.daysRemaining} يوم)')
+                                      : (_licenseInfo!.isExpired
+                                          ? (isEng ? 'Expired 🔒' : 'منتهي 🔒')
+                                          : (isEng ? 'Trial (${_licenseInfo!.daysRemaining}d)' : 'تجريبي (متبقي ${_licenseInfo!.daysRemaining} يوم)')),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                        const SizedBox(width: 12),
+                      ],
+
+                      // Waiter App Mobile Sync Button
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const SyncQrDialog(),
+                          );
+                        },
+                        icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
+                        label: Text(isEng ? 'Sync Waiter 📱' : 'ربط النادل', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Full Screen Mode Toggle Button
+                      IconButton(
+                        icon: Icon(
+                          _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        tooltip: _isFullscreen
+                            ? (isEng ? 'Exit Full Screen (F11)' : 'الخروج من الشاشة الكاملة (F11)')
+                            : (isEng ? 'Full Screen Mode 🖥️ (F11)' : 'توسيع شاشة كاملة 🖥️ (F11)'),
+                        onPressed: _toggleFullscreen,
+                      ),
+
+                      // Screen Measurement & Resolution Scaling Selector
+                      PopupMenuButton<double>(
+                        icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 24),
+                        tooltip: isEng ? 'Screen Measurements & Scaling' : 'قياسات الشاشة والتكبير',
+                        onSelected: (double scale) {
+                          context.read<SettingsProvider>().setScreenScale(scale);
+                        },
+                        itemBuilder: (context) {
+                          return [
+                            CheckedPopupMenuItem<double>(
+                              value: 1.0,
+                              checked: currentScale == 1.0,
+                              child: Text(isEng ? 'Standard (100%)' : 'القياس القياسي (100%)'),
+                            ),
+                            CheckedPopupMenuItem<double>(
+                              value: 1.1,
+                              checked: currentScale == 1.1,
+                              child: Text(isEng ? 'Zoom 110%' : 'تكبير قياس الشاشة (110%)'),
+                            ),
+                            CheckedPopupMenuItem<double>(
+                              value: 1.2,
+                              checked: currentScale == 1.2,
+                              child: Text(isEng ? 'Zoom 120%' : 'تكبير قياس الشاشة (120%)'),
+                            ),
+                            CheckedPopupMenuItem<double>(
+                              value: 0.9,
+                              checked: currentScale == 0.9,
+                              child: Text(isEng ? 'Compact (90%)' : 'تصغير قياس الشاشة (90%)'),
+                            ),
+                            CheckedPopupMenuItem<double>(
+                              value: 0.0,
+                              checked: currentScale == 0.0,
+                              child: Text(isEng ? 'Auto Fit Proportions' : 'تنسيق قياسي موحّد (Auto-Fit لكل الشاشات)'),
+                            ),
+                          ];
+                        },
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // Clock
+                      StreamBuilder(
+                        stream: Stream.periodic(const Duration(seconds: 1)),
+                        builder: (context, snapshot) {
+                          final now = TimeOfDay.now();
+                          return Row(
+                            children: [
+                              const Icon(Icons.access_time, size: 18),
+                              const SizedBox(width: 4),
+                              Text(
+                                now.format(context),
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Logout Button
+                      IconButton(
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        tooltip: isEng ? 'Logout' : 'تسجيل الخروج',
+                        onPressed: () => _confirmLogout(context, authProvider),
+                      ),
+
+                      // Exit App Button
+                      IconButton(
+                        icon: const Icon(Icons.power_settings_new_rounded, color: Colors.redAccent),
+                        tooltip: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
+                        onPressed: () => _confirmExitApp(context),
                       ),
                     ],
                   ),
                 ),
               ),
-              Expanded(
-                child: Consumer<SettingsProvider>(
-                  builder: (context, settings, _) {
-                    final isEnglish = settings.isEnglish;
-                    return ListView(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      children: [
-                        _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEnglish ? "Home" : "الرئيسية"),
-                        _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEnglish ? "Tables Map" : "الطاولات"),
-                        _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEnglish ? "Cashier & POS" : "الكاشير"),
-                        _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, isEnglish ? "Products" : "الأصناف"),
-                        _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEnglish ? "Categories" : "التصنيفات"),
-                        _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEnglish ? "Inventory" : "المخزن"),
-                        _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEnglish ? "Purchases" : "المشتريات والموردين"),
-                        _buildDrawerTile(7, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
-                        _buildDrawerTile(8, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
-                        _buildDrawerTile(9, Icons.payments_outlined, Icons.payments, isEnglish ? "Employee Payroll" : "رواتب الموظفين والسُلف"),
-                        _buildDrawerTile(10, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
-                        _buildDrawerTile(11, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
-                        _buildDrawerTile(12, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
-                      ],
-                    );
-                  },
-                ),
-              ),
             ],
           ),
-        ),
-        appBar: AppBar(
-          centerTitle: true,
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, size: 28),
-              tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
+            body: _buildScaledPage(pages[selectedIndex], currentScale),
           ),
-          title: const Text(
-            "HAPPY DAY POS",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  // Active User Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          authProvider.isManager ? Icons.admin_panel_settings : Icons.person,
-                          color: authProvider.isManager ? Colors.amber : Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "${authProvider.currentUserName} (${isEng ? (authProvider.currentUserRole == 'مدير' ? 'Manager' : (authProvider.currentUserRole == 'كاشير' ? 'Cashier' : authProvider.currentUserRole)) : authProvider.currentUserRole})",
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  // License / Subscription Badge
-                  if (_licenseInfo != null) ...[
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => LicenseActivationScreen(
-                              onActivated: () => _checkLicenseStatus(),
-                            ),
-                          ),
-                        );
-                        _checkLicenseStatus();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: _licenseInfo!.isActivated
-                              ? Colors.green.shade800
-                              : (_licenseInfo!.isExpired ? Colors.red.shade800 : Colors.amber.shade900),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _licenseInfo!.isActivated
-                                  ? Icons.verified_user
-                                  : (_licenseInfo!.isExpired ? Icons.lock : Icons.hourglass_top),
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _licenseInfo!.isActivated
-                                  ? (isEng ? 'Annual (${_licenseInfo!.daysRemaining}d)' : 'اشتراك سنوي (${_licenseInfo!.daysRemaining} يوم)')
-                                  : (_licenseInfo!.isExpired
-                                      ? (isEng ? 'Expired 🔒' : 'منتهي 🔒')
-                                      : (isEng ? 'Trial (${_licenseInfo!.daysRemaining}d)' : 'تجريبي (متبقي ${_licenseInfo!.daysRemaining} يوم)')),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-
-                  // Waiter App Mobile Sync Button
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => const SyncQrDialog(),
-                      );
-                    },
-                    icon: const Icon(Icons.wifi_tethering_rounded, color: Colors.white, size: 18),
-                    label: Text(isEng ? 'Sync Waiter 📱' : 'ربط النادل', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 2,
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Clock
-                  StreamBuilder(
-                    stream: Stream.periodic(const Duration(seconds: 1)),
-                    builder: (context, snapshot) {
-                      final now = TimeOfDay.now();
-                      return Row(
-                        children: [
-                          const Icon(Icons.access_time, size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                            now.format(context),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Logout Button
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                    tooltip: isEng ? 'Logout' : 'تسجيل الخروج',
-                    onPressed: () => _confirmLogout(context, authProvider),
-                  ),
-
-                  // Exit App Button
-                  IconButton(
-                    icon: const Icon(Icons.power_settings_new_rounded, color: Colors.redAccent),
-                    tooltip: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
-                    onPressed: () => _confirmExitApp(context),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
-        body: pages[selectedIndex],
       ),
     );
   }
@@ -431,8 +535,10 @@ class _DashboardLayoutState extends State<DashboardLayout> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
         child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         selected: isSelected,
         selectedTileColor: primaryColor.withValues(alpha: 0.12),
         leading: Icon(
@@ -453,7 +559,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           if (isRestricted) {
             final authorized = await ManagerAuthDialog.show(
               context,
-              title: 'إذن مدير النظام مطلوب 🔒',
+              title: 'إذن المدير مطلوب 🔒',
               reason: 'الدخول إلى شاشة ($label) محصورة أو تتطلب موافقة وإذن المدير',
             );
             if (!authorized) return;

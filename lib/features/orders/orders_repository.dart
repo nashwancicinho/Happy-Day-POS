@@ -158,6 +158,34 @@ class OrdersRepository {
     }
   }
 
+  Future<double> getShiftTotalCost(String? lastClosedTimestamp) async {
+    try {
+      final db = await _databaseHelper.database;
+      String whereClause = "WHERE o.status = 'COMPLETED'";
+      List<dynamic> args = [];
+
+      if (lastClosedTimestamp != null && lastClosedTimestamp.isNotEmpty) {
+        whereClause += " AND o.created_at > ?";
+        args.add(lastClosedTimestamp);
+      }
+
+      final result = await db.rawQuery('''
+        SELECT SUM(oi.quantity * COALESCE(NULLIF(oi.buy_price, 0.0), p.buy_price, 0.0)) AS total_cost
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.id
+        LEFT JOIN products p ON oi.product_id = p.id
+        $whereClause
+      ''', args);
+
+      if (result.isNotEmpty && result.first['total_cost'] != null) {
+        return (result.first['total_cost'] as num).toDouble();
+      }
+    } catch (e) {
+      debugPrint('Error getting shift total cost: $e');
+    }
+    return 0.0;
+  }
+
   Future<OrderModel?> getOpenOrderByTable(int tableId) async {
     final db = await _databaseHelper.database;
     final maps = await db.rawQuery('''

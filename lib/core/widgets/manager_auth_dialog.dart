@@ -94,7 +94,7 @@ class _ManagerAuthDialogState extends State<ManagerAuthDialog> {
             child: Text(
               widget.title.isNotEmpty
                   ? widget.title
-                  : (isEng ? 'Manager Authorization Required 🔒' : 'إذن مدير النظام مطلوب 🔒'),
+                  : (isEng ? 'Manager Authorization Required 🔒' : 'إذن المدير مطلوب 🔒'),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),

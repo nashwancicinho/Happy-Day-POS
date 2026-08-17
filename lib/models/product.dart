@@ -17,6 +17,7 @@ class ProductModel {
   final bool isAvailable;
   final bool printToKitchen; // Send item to kitchen printer KOT
   final String? kitchenPrinter; // Specific target kitchen printer name
+  final String displayLocation; // 'BOTH', 'MAIN_ONLY', 'CATEGORY_ONLY'
 
   const ProductModel({
     this.id,
@@ -37,6 +38,7 @@ class ProductModel {
     this.isAvailable = true,
     this.printToKitchen = true,
     this.kitchenPrinter,
+    this.displayLocation = 'BOTH',
   });
 
   bool get isLowStock => trackStock && stockQuantity <= minStock;
@@ -63,6 +65,7 @@ class ProductModel {
     bool? isAvailable,
     bool? printToKitchen,
     String? kitchenPrinter,
+    String? displayLocation,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -83,6 +86,7 @@ class ProductModel {
       isAvailable: isAvailable ?? this.isAvailable,
       printToKitchen: printToKitchen ?? this.printToKitchen,
       kitchenPrinter: kitchenPrinter ?? this.kitchenPrinter,
+      displayLocation: displayLocation ?? this.displayLocation,
     );
   }
 
@@ -107,6 +111,7 @@ class ProductModel {
       'is_available': isAvailable ? 1 : 0,
       'print_to_kitchen': printToKitchen ? 1 : 0,
       'kitchen_printer': kitchenPrinter,
+      'display_location': displayLocation,
     };
   }
 
@@ -130,6 +135,7 @@ class ProductModel {
       isAvailable: (map['is_available'] as int? ?? 1) == 1,
       printToKitchen: (map['print_to_kitchen'] as int? ?? 1) == 1,
       kitchenPrinter: map['kitchen_printer'] as String?,
+      displayLocation: map['display_location'] as String? ?? 'BOTH',
     );
   }
 

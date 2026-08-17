@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/license_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/owner_auth_dialog.dart';
 import '../../core/widgets/top_notification.dart';
 import '../settings/settings_provider.dart';
 
@@ -23,7 +22,6 @@ class LicenseActivationScreen extends StatefulWidget {
 
 class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
   final _keyController = TextEditingController();
-  final _adminMachineIdController = TextEditingController();
   bool _isLoading = true;
   bool _isActivating = false;
   LicenseInfo? _licenseInfo;
@@ -40,7 +38,6 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
     if (mounted) {
       setState(() {
         _licenseInfo = info;
-        _adminMachineIdController.text = info.machineId;
         _isLoading = false;
       });
     }
@@ -78,116 +75,6 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
         );
       }
     }
-  }
-
-  void _showOwnerKeyGeneratorDialog() async {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final authorized = await OwnerAuthDialog.show(
-      context,
-      title: 'رمز إذن مالك البرنامج (المبرمج) 🔒',
-      reason: 'توليد أكواد التفعيل السنوية مقتصر فقط على (مالك البرنامج). مدير المطعم لا يملك صلاحية توليد الأكواد.',
-    );
-
-    if (authorized != true || !mounted) return;
-
-    String? generatedKey;
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.vpn_key_rounded, color: Colors.purple),
-              const SizedBox(width: 10),
-              Text(
-                isEng ? 'Owner Single-Use Key Generator 🔑' : 'أداة توليد كود مفرد لجهاز عميل 🔑',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEng
-                    ? 'Enter customer Machine ID to generate a 1-time annual key locked to their PC:'
-                    : 'أدخل رقم معرّف جهاز العميل (Machine ID) لتوليد كود تفعيل سنوي يعمل على جهازه فقط:',
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _adminMachineIdController,
-                decoration: InputDecoration(
-                  labelText: isEng ? 'Customer Machine ID' : 'رقم جهاز العميل (Machine ID)',
-                  hintText: 'HD-XXXX-YYYY',
-                  prefixIcon: const Icon(Icons.important_devices, color: Colors.purple),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    final targetId = _adminMachineIdController.text.trim();
-                    if (targetId.isEmpty) {
-                      TopNotification.showWarning(dialogCtx, 'يرجى كتابة رقم جهاز العميل أولاً!');
-                      return;
-                    }
-                    final key = LicenseService.generateAnnualKeyForMachine(targetId);
-                    setDialogState(() {
-                      generatedKey = key;
-                    });
-                    Clipboard.setData(ClipboardData(text: key));
-                    TopNotification.showSuccess(dialogCtx, 'تم توليد كود التفعيل المخصص ونسخه للحافظة! 🔑');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.key_rounded),
-                  label: Text(isEng ? 'Generate Key for Machine' : 'توليد كود التفعيل لهذا الجهاز 🔑'),
-                ),
-              ),
-              if (generatedKey != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.purple.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('كود التفعيل السنوي المخصص للعميل:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple)),
-                      const SizedBox(height: 4),
-                      SelectableText(
-                        generatedKey!,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple, letterSpacing: 1.2),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('(تم نسخ الكود للحافظة تلقائياً لإرساله بالواتساب)', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(isEng ? 'Close' : 'إغلاق'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -356,17 +243,6 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
-
-                    // Admin Secret Key Generator (Protected by Manager Password)
-                    TextButton.icon(
-                      onPressed: _showOwnerKeyGeneratorDialog,
-                      icon: const Icon(Icons.admin_panel_settings_outlined, size: 16, color: Colors.grey),
-                      label: Text(
-                        isEng ? 'Owner Key Generator (Locked) 🔒' : 'توليد كود جهاز لعميل (خاص بمالك النظام 🔒)',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ),
                   ],
                 ),
               ),

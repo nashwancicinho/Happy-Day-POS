@@ -27,12 +27,26 @@ class OrdersProvider extends ChangeNotifier {
   }
 
   List<OrderModel> get currentShiftCompletedOrders {
+    final lastCloseDt = _lastClosedTimestamp != null ? DateTime.tryParse(_lastClosedTimestamp!) : null;
+
     return _orders.where((o) {
       if (o.status != 'COMPLETED') return false;
-      if (_lastClosedTimestamp != null && o.createdAt.compareTo(_lastClosedTimestamp!) <= 0) {
-        return false;
+      if (lastCloseDt != null) {
+        final orderDt = DateTime.tryParse(o.createdAt);
+        if (orderDt != null && (orderDt.isBefore(lastCloseDt) || orderDt.isAtSameMomentAs(lastCloseDt))) {
+          return false;
+        }
       }
       return true;
+    }).toList();
+  }
+
+  List<OrderModel> get todayCompletedOrders {
+    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+    return _orders.where((o) {
+      if (o.status != 'COMPLETED') return false;
+      final orderDate = o.effectiveDate;
+      return orderDate == todayStr || o.createdAt.startsWith(todayStr);
     }).toList();
   }
 
@@ -51,12 +65,31 @@ class OrdersProvider extends ChangeNotifier {
     await loadOrders();
   }
 
-  double get todaySalesTotal {
+  double _currentShiftTotalCost = 0.0;
+  double get currentShiftTotalCost => _currentShiftTotalCost;
+  double get currentShiftNetProfit => currentShiftSalesTotal - _currentShiftTotalCost;
+
+  double get currentShiftSalesTotal {
     return currentShiftCompletedOrders.fold(0.0, (sum, o) => sum + o.total);
   }
 
+  double get fullTodaySalesTotal {
+    return todayCompletedOrders.fold(0.0, (sum, o) => sum + o.total);
+  }
+
+  double get todaySalesTotal {
+    final shiftTotal = currentShiftSalesTotal;
+    if (shiftTotal > 0) return shiftTotal;
+    return fullTodaySalesTotal;
+  }
+
   int get todayOrdersCount {
-    return currentShiftCompletedOrders.length;
+    final shiftCount = currentShiftCompletedOrders.length;
+    return shiftCount > 0 ? shiftCount : fullTodayOrdersCount;
+  }
+
+  int get fullTodayOrdersCount {
+    return todayCompletedOrders.length;
   }
 
   Future<void> loadOrders() async {
@@ -68,6 +101,7 @@ class OrdersProvider extends ChangeNotifier {
     _orders = await _repository.getAllOrders();
     _suspendedOrders = await _repository.getSuspendedOrders();
     _netProfit = await _repository.calculateNetProfit();
+    _currentShiftTotalCost = await _repository.getShiftTotalCost(_lastClosedTimestamp);
 
     _isLoading = false;
     notifyListeners();

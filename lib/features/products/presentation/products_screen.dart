@@ -163,12 +163,14 @@ class ProductsScreen extends StatelessWidget {
                                 DataColumn(label: Text(isEng ? 'Actions' : 'العمليات', style: const TextStyle(fontWeight: FontWeight.bold))),
                               ],
                               rows: productsProvider.products.map((product) {
-                                final rawCat = categoriesProvider.categories
-                                    .firstWhere(
-                                      (c) => c.id == product.categoryId,
-                                      orElse: () => const CategoryModel(name: 'عام'),
-                                    )
-                                    .name;
+                                final rawCat = product.categoryId == null
+                                    ? (isEng ? '📌 Main Screen' : '📌 الشاشة الرئيسية (مباشر)')
+                                    : categoriesProvider.categories
+                                        .firstWhere(
+                                          (c) => c.id == product.categoryId,
+                                          orElse: () => const CategoryModel(name: 'عام'),
+                                        )
+                                        .name;
                                 final catName = (rawCat == 'عام' && isEng) ? 'General' : rawCat;
 
                                 return DataRow(
@@ -188,10 +190,25 @@ class ProductsScreen extends StatelessWidget {
                                         ],
                                       ),
                                     ),
-                                    DataCell(Chip(
-                                      label: Text(catName, style: const TextStyle(fontSize: 12)),
-                                      backgroundColor: Colors.blue.shade50,
-                                    )),
+                                    DataCell(
+                                       Column(
+                                         mainAxisAlignment: MainAxisAlignment.center,
+                                         crossAxisAlignment: CrossAxisAlignment.start,
+                                         children: [
+                                           Chip(
+                                             label: Text(catName, style: const TextStyle(fontSize: 11)),
+                                             backgroundColor: Colors.blue.shade50,
+                                             visualDensity: VisualDensity.compact,
+                                           ),
+                                           Text(
+                                             product.displayLocation == 'BOTH'
+                                                 ? '🌟 رئيسية وتصنيف'
+                                                 : (product.displayLocation == 'MAIN_ONLY' ? '📌 رئيسية فقط' : '📂 داخل التصنيف فقط'),
+                                             style: TextStyle(fontSize: 10, color: Colors.purple.shade700, fontWeight: FontWeight.bold),
+                                           ),
+                                         ],
+                                       ),
+                                     ),
                                     DataCell(Text('${product.buyPrice.toStringAsFixed(0)} $currencySym')),
                                     DataCell(Text(
                                       '${product.price.toStringAsFixed(0)} $currencySym',
@@ -302,6 +319,7 @@ class ProductsScreen extends StatelessWidget {
     final minStockController = TextEditingController(text: product != null ? product.minStock.toStringAsFixed(0) : '5');
 
     int? selectedCatId = product?.categoryId;
+    String selectedDisplayLocation = product?.displayLocation ?? 'BOTH';
     String selectedUnit = product?.unit ?? 'قطعة';
     bool isWeighted = product?.isWeighted ?? false;
     bool allowPriceChange = product?.allowPriceChange ?? false;
@@ -315,9 +333,6 @@ class ProductsScreen extends StatelessWidget {
 
     final currencySym = context.read<SettingsProvider>().currencySymbol;
     final categories = context.read<CategoriesProvider>().categories;
-    if (selectedCatId == null && categories.isNotEmpty) {
-      selectedCatId = categories.first.id;
-    }
 
     final availableUnits = ['قطعة', 'كيلوغرام', 'غرام', 'لتر', 'علبة', 'طقم', 'متر', 'كارتون'];
 
@@ -438,23 +453,72 @@ class ProductsScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            DropdownButtonFormField<int>(
+
+                            // 1. Category / Section Selection
+                            DropdownButtonFormField<int?>(
                               initialValue: selectedCatId,
+                              isExpanded: true,
                               decoration: InputDecoration(
-                                labelText: isEng ? 'Main Category' : 'التصنيف الرئيسي',
+                                labelText: isEng ? 'Category / Section' : 'القسم / التصنيف الرئيسي',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                prefixIcon: const Icon(Icons.category_outlined),
                               ),
                               items: categories.map((cat) {
                                 final cName = (cat.name == 'عام' && isEng) ? 'General' : cat.name;
-                                return DropdownMenuItem<int>(
+                                return DropdownMenuItem<int?>(
                                   value: cat.id,
-                                  child: Text(cName),
+                                  child: Text('📂 $cName', overflow: TextOverflow.ellipsis),
                                 );
                               }).toList(),
                               onChanged: (val) {
                                 setState(() {
                                   selectedCatId = val;
                                 });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // 2. POS Display Location Option
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedDisplayLocation,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: isEng ? 'POS Display Location *' : 'خيار مكان عرض المادة بالكاشير *',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                prefixIcon: const Icon(Icons.visibility_outlined),
+                              ),
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: 'BOTH',
+                                  child: Text(
+                                    isEng ? '🌟 Display in Both (Main Screen + Inside Category)' : '🌟 عرض في الاثنين (الشاشة الرئيسية + داخل التصنيف)',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'MAIN_ONLY',
+                                  child: Text(
+                                    isEng ? '📌 Display on Main Screen Only' : '📌 عرض في الشاشة الرئيسية المباشرة فقط',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'CATEGORY_ONLY',
+                                  child: Text(
+                                    isEng ? '📂 Display Inside Selected Category Only' : '📂 عرض داخل التصنيف المحدد فقط',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    selectedDisplayLocation = val;
+                                  });
+                                }
                               },
                             ),
                             const SizedBox(height: 12),
@@ -598,16 +662,27 @@ class ProductsScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(isEng ? 'Allow Cashier Price Override' : 'خيار تغيير السعر: السماح للتعديل المباشر بالكاشير'),
-                              subtitle: Text(isEng ? 'Cashier can change the sale price directly during checkout' : 'يمكن للكاشير تغيير سعر البيع لهذه المادة مباشرة'),
-                              value: allowPriceChange,
-                              onChanged: (val) {
-                                setState(() {
-                                  allowPriceChange = val;
-                                });
-                              },
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(isEng ? 'Allow Cashier Price Override' : 'خيار تغيير السعر: السماح للتعديل المباشر بالكاشير', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      const SizedBox(height: 2),
+                                      Text(isEng ? 'Cashier can change the sale price directly during checkout' : 'يمكن للكاشير تغيير سعر البيع لهذه المادة مباشرة', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  value: allowPriceChange,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      allowPriceChange = val;
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -803,16 +878,27 @@ class ProductsScreen extends StatelessWidget {
                           children: [
                             _sectionTitle(isEng ? '4. Inventory & Stock Tracking' : '4. خيار المخزون وتتبع الكميات'),
                             const SizedBox(height: 12),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(isEng ? 'Enable Stock Inventory Tracking' : 'تفعيل خيار تتبع الكمية بالمخزن'),
-                              subtitle: Text(isEng ? 'Automatically deduct stock on sales and trigger low stock alerts' : 'خصم الكميات تلقائياً عند إنشاء المبيعات والتنبيه'),
-                              value: trackStock,
-                              onChanged: (val) {
-                                setState(() {
-                                  trackStock = val;
-                                });
-                              },
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(isEng ? 'Enable Stock Inventory Tracking' : 'تفعيل خيار تتبع الكمية بالمخزن', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      const SizedBox(height: 2),
+                                      Text(isEng ? 'Automatically deduct stock on sales and trigger low stock alerts' : 'خصم الكميات تلقائياً عند إنشاء المبيعات والتنبيه', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  value: trackStock,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      trackStock = val;
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                             if (trackStock) ...[
                               const SizedBox(height: 10),
@@ -845,15 +931,20 @@ class ProductsScreen extends StatelessWidget {
                               ),
                             ],
                             const SizedBox(height: 8),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(isEng ? 'Available for sale currently' : 'مادة متوفرة للبيع حالياً'),
-                              value: isAvailable,
-                              onChanged: (val) {
-                                setState(() {
-                                  isAvailable = val;
-                                });
-                              },
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(isEng ? 'Available for sale currently' : 'مادة متوفرة للبيع حالياً', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                ),
+                                Switch(
+                                  value: isAvailable,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      isAvailable = val;
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -871,17 +962,28 @@ class ProductsScreen extends StatelessWidget {
                           children: [
                             _sectionTitle(isEng ? '5. Kitchen Printing Option (KOT Ticket)' : '5. خيار طباعة الصنف في المطبخ (وصل KOT)'),
                             const SizedBox(height: 12),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(isEng ? '🍳 Print product to Kitchen Printer automatically' : '🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ'),
-                              subtitle: Text(isEng ? 'Sends this item to kitchen ticket printer on hold/order' : 'إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير'),
-                              activeThumbColor: Colors.orange,
-                              value: printToKitchen,
-                              onChanged: (val) {
-                                setState(() {
-                                  printToKitchen = val;
-                                });
-                              },
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(isEng ? '🍳 Print product to Kitchen Printer automatically' : '🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      const SizedBox(height: 2),
+                                      Text(isEng ? 'Sends this item to kitchen ticket printer on hold/order' : 'إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  activeColor: Colors.orange,
+                                  value: printToKitchen,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      printToKitchen = val;
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                             if (printToKitchen) ...[
                               const SizedBox(height: 12),
@@ -899,9 +1001,12 @@ class ProductsScreen extends StatelessWidget {
                                       children: [
                                         const Icon(Icons.print_rounded, color: Colors.orange),
                                         const SizedBox(width: 8),
-                                        Text(
-                                          isEng ? 'Select target kitchen printer for this item:' : 'اختر طابعة المطبخ المراد إرسال هذا الصنف إليها:',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        Expanded(
+                                          child: Text(
+                                            isEng ? 'Select target kitchen printer for this item:' : 'اختر طابعة المطبخ المراد إرسال هذا الصنف إليها:',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -1061,6 +1166,7 @@ class ProductsScreen extends StatelessWidget {
                         isAvailable: isAvailable,
                         printToKitchen: printToKitchen,
                         kitchenPrinter: selectedKitchenPrinter,
+                        displayLocation: selectedDisplayLocation,
                       );
 
                       int saveId = product?.id ?? 0;

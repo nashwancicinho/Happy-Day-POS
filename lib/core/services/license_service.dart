@@ -111,7 +111,13 @@ class LicenseService {
     final p2 = parts[2];
     final checksumPart = parts[3];
 
-    // Compute expected checksum locked to this specific Machine ID
+    // Compute expected p1, p2 and checksum locked to this specific Machine ID
+    final rawHash = base64UrlEncode(utf8.encode('$cleanMachineId-$_secretSalt')).replaceAll('=', '').toUpperCase();
+    final expectedP1 = rawHash.substring(0, 4).padRight(4, 'A');
+    final expectedP2 = rawHash.substring(4, 8).padRight(4, 'B');
+
+    if (p1 != expectedP1 || p2 != expectedP2) return false;
+
     final expectedChecksum = _computeChecksumForMachine(cleanMachineId, '$prefix-$p1-$p2');
     return checksumPart == expectedChecksum;
   }

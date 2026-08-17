@@ -36,10 +36,15 @@ class SettingsProvider extends ChangeNotifier {
   TextDirection get textDirection => isEnglish ? TextDirection.ltr : TextDirection.rtl;
   Locale get locale => Locale(appLanguage);
   bool get showTopNotifications => (_settings['show_top_notifications'] ?? 'false') == 'true';
+  double get screenScale => double.tryParse(_settings['app_screen_scale'] ?? '1.0') ?? 1.0;
 
   Future<void> setShowTopNotifications(bool value) async {
     TopNotification.enabled = value;
     await updateSetting('show_top_notifications', value.toString());
+  }
+
+  Future<void> setScreenScale(double value) async {
+    await updateSetting('app_screen_scale', value.toString());
   }
 
   Color get primaryColor {

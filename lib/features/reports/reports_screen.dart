@@ -669,7 +669,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       onSelected: (_) {
         if (isDisabled) {
-          TopNotification.showWarning(context, isEng ? '🔒 This report is restricted to System Manager privileges.' : '🔒 هذا التقرير مخصص لصلاحيات مدير النظام فقط.');
+          TopNotification.showWarning(context, isEng ? '🔒 This report is restricted to Manager privileges.' : '🔒 هذا التقرير مخصص لصلاحيات المدير فقط.');
           return;
         }
         setState(() {
@@ -2330,7 +2330,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     Text(
                       isEng
                           ? 'Sorry, reports and financial analytics section is restricted to System Manager privileges only.'
-                          : 'عذراً، قسم التقارير والبيانات المالية مخصص لصلاحيات مدير النظام فقط ولا يتاح لحسابات الكاشيرية.',
+                          : 'عذراً، قسم التقارير والبيانات المالية مخصص لصلاحيات المدير فقط ولا يتاح لحسابات الكاشيرية.',
                       style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
                       textAlign: TextAlign.center,
                     ),

@@ -47,6 +47,7 @@ class _CashierScreenState extends State<CashierScreen> {
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
+  bool _showAllItemsDirectly = false;
 
   String get _currencySymbol => context.watch<SettingsProvider>().currencySymbol;
 
@@ -1015,7 +1016,7 @@ class _CashierScreenState extends State<CashierScreen> {
         final authorized = await ManagerAuthDialog.show(
           context,
           title: 'إذن البيع بالآجل 🔒',
-          reason: 'إكمال عملية البيع بالآجل والديون يتطلب موافقة وإذن مدير النظام',
+          reason: 'إكمال عملية البيع بالآجل والديون يتطلب موافقة وإذن المدير',
         );
         if (!authorized) return;
       }
@@ -1677,7 +1678,7 @@ class _CashierScreenState extends State<CashierScreen> {
       final authorized = await ManagerAuthDialog.show(
         context,
         title: 'إذن تطبيق الخصم 🔒',
-        reason: 'تطبيق خصم على الفاتورة يتطلب موافقة وإذن مدير النظام',
+        reason: 'تطبيق خصم على الفاتورة يتطلب موافقة وإذن المدير',
       );
       if (!authorized) return;
       if (!mounted) return;
@@ -2084,7 +2085,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
     final selectedCategoryId = productsProvider.selectedCategoryId;
     final searchQuery = productsProvider.searchQuery;
-    final showingCategoriesView = selectedCategoryId == null && searchQuery.isEmpty;
+    final showingCategoriesView = selectedCategoryId == null && searchQuery.isEmpty && !_showAllItemsDirectly;
 
     return Scaffold(
       appBar: AppBar(
@@ -2169,6 +2170,9 @@ class _CashierScreenState extends State<CashierScreen> {
                         ),
                       ),
 
+                      // Category & Items Quick Navigation Chip Bar
+                      _buildCategoryFilterChipsBar(context, categoriesProvider, productsProvider),
+
                       // View Header Title
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -2182,8 +2186,10 @@ class _CashierScreenState extends State<CashierScreen> {
                             const SizedBox(width: 8),
                             Text(
                               showingCategoriesView
-                                  ? (isEng ? 'Select Category to view items:' : 'اختر التصنيف لعرض الأصناف بداخله:')
-                                  : (isEng ? 'Category items: ${_getCategoryName(categoriesProvider, selectedCategoryId)}' : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}'),
+                                  ? (isEng ? 'Main View (Categories & Direct Items):' : 'الشاشة الرئيسية (التصنيفات والمنتجات المباشرة):')
+                                  : (_showAllItemsDirectly
+                                      ? (isEng ? 'All Products View:' : 'جميع المواد والمنتجات:')
+                                      : (isEng ? 'Category items: ${_getCategoryName(categoriesProvider, selectedCategoryId)}' : 'أصناف تصنيف: ${_getCategoryName(categoriesProvider, selectedCategoryId)}')),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -2503,7 +2509,63 @@ class _CashierScreenState extends State<CashierScreen> {
     }
   }
 
-  // 1. Grid View for Categories
+  Widget _buildCategoryFilterChipsBar(
+    BuildContext context,
+    CategoriesProvider categoriesProvider,
+    ProductsProvider productsProvider,
+  ) {
+    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final selectedCatId = productsProvider.selectedCategoryId;
+    final categories = categoriesProvider.categories;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          ChoiceChip(
+            avatar: const Icon(Icons.grid_view_rounded, size: 16),
+            label: Text(isEng ? 'Main View 📌' : 'الرئيسية 📌'),
+            selected: selectedCatId == null && !_showAllItemsDirectly,
+            selectedColor: AppColors.primary.withValues(alpha: 0.2),
+            onSelected: (_) {
+              setState(() => _showAllItemsDirectly = false);
+              productsProvider.selectCategory(null);
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            avatar: const Icon(Icons.fastfood_rounded, size: 16),
+            label: Text(isEng ? 'All Items 🍔' : 'كل المواد 🍔'),
+            selected: _showAllItemsDirectly,
+            selectedColor: AppColors.primary.withValues(alpha: 0.2),
+            onSelected: (_) {
+              setState(() => _showAllItemsDirectly = true);
+              productsProvider.selectCategory(null);
+            },
+          ),
+          const SizedBox(width: 8),
+          ...categories.map((cat) {
+            final isSel = selectedCatId == cat.id && !_showAllItemsDirectly;
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ChoiceChip(
+                label: Text(cat.name),
+                selected: isSel,
+                selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                onSelected: (_) {
+                  setState(() => _showAllItemsDirectly = false);
+                  productsProvider.selectCategory(cat.id);
+                },
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // 1. Grid View for Categories & Direct Root Products
 
   Widget _buildCategoriesGrid(
     BuildContext context,
@@ -2511,12 +2573,21 @@ class _CashierScreenState extends State<CashierScreen> {
     ProductsProvider productsProvider,
   ) {
     final categories = categoriesProvider.categories;
+    final directProducts = productsProvider.allProducts.where((p) => p.displayLocation == 'BOTH' || p.displayLocation == 'MAIN_ONLY' || p.categoryId == null).toList();
 
-    if (categories.isEmpty) {
-      return const Center(
-        child: Text('لا توجد تصنيفات معرفة حالياً', style: TextStyle(fontSize: 18)),
+    if (categories.isEmpty && directProducts.isEmpty) {
+      return Center(
+        child: Text(
+          context.watch<SettingsProvider>().isEnglish
+              ? 'No categories or main screen items added yet'
+              : 'لا توجد تصنيفات أو مواد في الشاشة الرئيسية حالياً',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
       );
     }
+
+    final totalGridCount = categories.length + directProducts.length;
+    final currencySym = context.watch<SettingsProvider>().currencySymbol;
 
     return GridView.builder(
       padding: const EdgeInsets.all(12),
@@ -2526,99 +2597,199 @@ class _CashierScreenState extends State<CashierScreen> {
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: categories.length,
+      itemCount: totalGridCount,
       itemBuilder: (context, index) {
-        final category = categories[index];
-        final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
-        final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
-        final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
-        final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
-        final textColor = isDarkBg ? Colors.white : Colors.black87;
-        final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
-        final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
+        if (index < categories.length) {
+          final category = categories[index];
+          final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
+          final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
+          final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
+          final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
+          final textColor = isDarkBg ? Colors.white : Colors.black87;
+          final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
+          final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
+
+          return Card(
+            elevation: 3,
+            color: hasImage ? Colors.black : bgColor,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                productsProvider.selectCategory(category.id);
+              },
+              onSecondaryTap: () => _customizeCategoryAppearance(context, category),
+              onLongPress: () => _customizeCategoryAppearance(context, category),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          gradient: (category.color == null && !hasImage)
+                              ? LinearGradient(
+                                  colors: [Colors.orange.shade50, Colors.white],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                    if (hasImage)
+                      Positioned.fill(
+                        child: Image.file(
+                          File(category.image!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+                        ),
+                      ),
+                    if (hasImage)
+                      Positioned.fill(
+                        child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                      ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Center(
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  category.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: badgeBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: badgeTextColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Direct Main Screen Product Item
+        final product = directProducts[index - categories.length];
+        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
+        final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
+        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
+        final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
           elevation: 3,
           color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          child: InkWell(
-
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              productsProvider.selectCategory(category.id);
-            },
-            onSecondaryTap: () => _customizeCategoryAppearance(context, category),
-            onLongPress: () => _customizeCategoryAppearance(context, category),
+            side: BorderSide(
+              color: product.isAvailable ? Colors.purple.shade200 : Colors.red.shade200,
+              width: 1.2,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _addToCart(product),
+            onSecondaryTap: () => _customizeProductAppearance(context, product),
+            onLongPress: () => _customizeProductAppearance(context, product),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        gradient: (category.color == null && !hasImage)
-                            ? LinearGradient(
-                                colors: [Colors.orange.shade50, Colors.white],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              )
-                            : null,
-                      ),
-                    ),
+                    child: Container(color: bgColor),
                   ),
                   if (hasImage)
                     Positioned.fill(
                       child: Image.file(
-                        File(category.image!),
+                        File(product.image!),
                         fit: BoxFit.cover,
                         errorBuilder: (ctx, err, stack) => Container(color: bgColor),
                       ),
                     ),
                   if (hasImage)
                     Positioned.fill(
-                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                      child: Container(color: Colors.black.withValues(alpha: 0.45)),
                     ),
                   Positioned.fill(
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Center(
-                        child: SingleChildScrollView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                category.name,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.purple,
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: badgeBg,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  context.watch<SettingsProvider>().isEnglish ? '$itemsCount items' : '$itemsCount عناصر',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: badgeTextColor,
-                                  ),
-                                ),
+                              child: const Text(
+                                'مباشر',
+                                style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                          Text(
+                            product.name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDarkBg ? Colors.black54 : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${product.price.toStringAsFixed(0)} $currencySym',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: priceColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -2627,10 +2798,7 @@ class _CashierScreenState extends State<CashierScreen> {
             ),
           ),
         );
-
-
       },
-
     );
   }
 
@@ -2638,7 +2806,9 @@ class _CashierScreenState extends State<CashierScreen> {
 
   // 2. Grid View for Items/Products
   Widget _buildItemsGrid(BuildContext context, ProductsProvider productsProvider) {
-    final products = productsProvider.products;
+    final products = _showAllItemsDirectly
+        ? productsProvider.products
+        : productsProvider.products.where((p) => p.displayLocation == 'BOTH' || p.displayLocation == 'CATEGORY_ONLY').toList();
     final totalGridItems = products.length + 1;
 
     return GridView.builder(

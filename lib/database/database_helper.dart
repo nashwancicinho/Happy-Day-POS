@@ -92,6 +92,7 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'products', 'allow_price_change', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'barcode', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'buy_price', 'REAL DEFAULT 0');
+    await _addColumnIfMissing(db, 'products', 'display_location', "TEXT DEFAULT 'BOTH'");
     await _addColumnIfMissing(db, 'raw_materials', 'cost_per_unit', 'REAL DEFAULT 0');
 
     // Employees table
