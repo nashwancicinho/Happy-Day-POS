@@ -26,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isObscure = true;
   String? _selectedUsername;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -253,6 +254,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = isEng
+            ? '⚠️ Please enter username & PIN code'
+            : '⚠️ يرجى إدخال اسم المستخدم والرقم السري';
+      });
       TopNotification.showWarning(
         context,
         isEng ? '⚠️ Please enter username & PIN code' : '⚠️ يرجى إدخال اسم المستخدم والرقم السري',
@@ -266,10 +272,19 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (!success) {
+      setState(() {
+        _errorMessage = isEng
+            ? 'اسم المستخدم أو الرقم السري غير صحيح'
+            : 'اسم المستخدم أو الرقم السري غير صحيح';
+      });
       TopNotification.showError(
         context,
         isEng ? '❌ Invalid username or PIN code!' : '❌ اسم المستخدم أو الرقم السري غير صحيح!',
       );
+    } else {
+      setState(() {
+        _errorMessage = null;
+      });
     }
   }
 
@@ -659,6 +674,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onChanged: (val) {
                           setState(() {
                             _selectedUsername = val;
+                            _errorMessage = null;
                             if (val != null) {
                               _usernameController.text = val;
                             }
@@ -669,6 +685,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ] else ...[
                       TextField(
                         controller: _usernameController,
+                        onChanged: (_) {
+                          if (_errorMessage != null) {
+                            setState(() => _errorMessage = null);
+                          }
+                        },
                         decoration: InputDecoration(
                           labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
                           prefixIcon: const Icon(Icons.person),
@@ -685,6 +706,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _passwordController,
                       obscureText: _isObscure,
                       keyboardType: TextInputType.number,
+                      onChanged: (_) {
+                        if (_errorMessage != null) {
+                          setState(() => _errorMessage = null);
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور',
                         prefixIcon: const Icon(Icons.lock),
@@ -698,6 +724,37 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       onSubmitted: (_) => _handleLogin(),
                     ),
+
+                    // Inline Error Message Box (أسفل الرقم السري مباشرة)
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade300, width: 1.2),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red.shade800,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 24),
 
                     // Login Button
