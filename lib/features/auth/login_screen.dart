@@ -31,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   bool _isPasswordFocused = true;
+  bool _isArabicKeyboard = false;
 
   @override
   void initState() {
@@ -295,10 +296,24 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  String _normalizeArabicNumerals(String input) {
+    const easternArabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const westernArabic = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    String result = input;
+    for (int i = 0; i < 10; i++) {
+      result = result.replaceAll(easternArabic[i], westernArabic[i]);
+    }
+    return result;
+  }
+
   void _handleLogin() async {
     final isEng = context.read<SettingsProvider>().isEnglish;
-    final username = _selectedUsername ?? _usernameController.text.trim();
-    final password = _passwordController.text.trim();
+    final rawUsername = _selectedUsername ?? _usernameController.text.trim();
+    final rawPassword = _passwordController.text.trim();
+
+    final username = _normalizeArabicNumerals(rawUsername);
+    final password = _normalizeArabicNumerals(rawPassword);
 
     if (username.isEmpty || password.isEmpty) {
       setState(() {
@@ -890,197 +905,253 @@ class _LoginScreenState extends State<LoginScreen> {
         ? (isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور')
         : (isEng ? 'Username' : 'اسم المستخدم');
 
+    final numbersRow = _isArabicKeyboard
+        ? ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٠']
+        : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+
+    final letterRow1 = _isArabicKeyboard
+        ? ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج', 'د']
+        : ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
+
+    final letterRow2 = _isArabicKeyboard
+        ? ['ش', 'س', 'ي', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ك', 'ط']
+        : ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
+
+    final letterRow3 = _isArabicKeyboard
+        ? ['ئ', 'ء', 'ؤ', 'ر', 'لا', 'ى', 'ة', 'و', 'ز', 'ظ']
+        : ['z', 'x', 'c', 'v', 'b', 'n', 'm'];
+
     return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      color: Colors.grey.shade200,
       child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Active Focus Header Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.touch_app_rounded, color: AppColors.primary, size: 20),
-                    const SizedBox(width: 6),
-                    Text(
-                      isEng ? 'Touchscreen Virtual Keyboard ⌨️' : 'لوحة مفاتيح الشاشة باللمس ⌨️',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    isEng ? 'Target: $activeFieldName' : 'الكتابة في: $activeFieldName',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Number Row (1 2 3 4 5 6 7 8 9 0)
-            Row(
-              children: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((numStr) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.5),
-                    child: ElevatedButton(
-                      onPressed: () => _onVirtualKeyPress(numStr),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple.shade50,
-                        foregroundColor: Colors.purple.shade900,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(numStr, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 2),
-
-            // QWERTY Row
-            Row(
-              children: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map((char) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.5),
-                    child: ElevatedButton(
-                      onPressed: () => _onVirtualKeyPress(char),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(char.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 2),
-
-            // ASDF Row
-            Row(
-              children: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map((char) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.5),
-                    child: ElevatedButton(
-                      onPressed: () => _onVirtualKeyPress(char),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text(char.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 2),
-
-            // ZXCV & Action Row (Z X C V B N M  Backspace Clear Enter)
-            Row(
-              children: [
-                ...['z', 'x', 'c', 'v', 'b', 'n', 'm'].map((char) {
+        padding: const EdgeInsets.all(10.0),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Row 0: Number Row
+              Row(
+                children: numbersRow.map((numStr) {
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.all(2.5),
-                      child: ElevatedButton(
-                        onPressed: () => _onVirtualKeyPress(char),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade100,
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(vertical: 9),
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: Text(char.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: numStr,
+                        bgColor: Colors.purple.shade50,
+                        textColor: Colors.purple.shade900,
+                        fontSize: 18,
+                        onPressed: () => _onVirtualKeyPress(numStr),
                       ),
                     ),
                   );
-                }),
-                // Backspace
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.5),
-                    child: ElevatedButton.icon(
-                      onPressed: _onVirtualKeyBackspace,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber.shade100,
-                        foregroundColor: Colors.amber.shade900,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                }).toList(),
+              ),
+
+              const SizedBox(height: 3),
+
+              // Row 1: Top Letter Row (QWERTY / ضصثقفغعهخحجد)
+              Row(
+                children: letterRow1.map((char) {
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: _isArabicKeyboard ? char : char.toUpperCase(),
+                        bgColor: Colors.white,
+                        textColor: Colors.black87,
+                        fontSize: 15,
+                        onPressed: () => _onVirtualKeyPress(char),
                       ),
-                      icon: const Icon(Icons.backspace_outlined, size: 16),
-                      label: Text(isEng ? 'Delete' : 'مسح ⌫', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 3),
+
+              // Row 2: Middle Letter Row (ASDFGHJKL / شسيبلاتنمكط)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Row(
+                  children: letterRow2.map((char) {
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(2.0),
+                        child: _buildKeyCap(
+                          label: _isArabicKeyboard ? char : char.toUpperCase(),
+                          bgColor: Colors.white,
+                          textColor: Colors.black87,
+                          fontSize: 15,
+                          onPressed: () => _onVirtualKeyPress(char),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              const SizedBox(height: 3),
+
+              // Row 3: Bottom Letter Row (ZXCVBNM / ئءؤرلاىةوزظ)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Row(
+                  children: letterRow3.map((char) {
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(2.0),
+                        child: _buildKeyCap(
+                          label: _isArabicKeyboard ? char : char.toUpperCase(),
+                          bgColor: Colors.white,
+                          textColor: Colors.black87,
+                          fontSize: 15,
+                          onPressed: () => _onVirtualKeyPress(char),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              const SizedBox(height: 5),
+
+              // Row 4: Controls, Language Switcher & Spacebar Row
+              Row(
+                children: [
+                  // Language Switcher Key (اسفل الكيبورد)
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: _isArabicKeyboard ? '🌐 EN' : '🌐 عربي',
+                        bgColor: _isArabicKeyboard ? Colors.teal.shade100 : Colors.purple.shade100,
+                        textColor: _isArabicKeyboard ? Colors.teal.shade900 : Colors.purple.shade900,
+                        fontSize: 13,
+                        onPressed: () => setState(() => _isArabicKeyboard = !_isArabicKeyboard),
+                      ),
                     ),
                   ),
-                ),
-                // Clear
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.5),
-                    child: ElevatedButton.icon(
-                      onPressed: _onVirtualKeyClear,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade100,
-                        foregroundColor: Colors.red.shade900,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  // Spacebar
+                  Expanded(
+                    flex: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: isEng ? 'Space' : 'مسافة',
+                        bgColor: Colors.white,
+                        textColor: Colors.black87,
+                        fontSize: 13,
+                        onPressed: () => _onVirtualKeyPress(' '),
                       ),
-                      icon: const Icon(Icons.clear_all_rounded, size: 16),
-                      label: Text(isEng ? 'Clear' : 'تفريغ 🧹', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                ),
-                // Submit Login
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.5),
-                    child: ElevatedButton.icon(
-                      onPressed: _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  // Backspace
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: isEng ? 'Delete ⌫' : 'مسح ⌫',
+                        bgColor: Colors.amber.shade100,
+                        textColor: Colors.amber.shade900,
+                        fontSize: 12,
+                        icon: Icons.backspace_outlined,
+                        onPressed: _onVirtualKeyBackspace,
                       ),
-                      icon: const Icon(Icons.check_circle_rounded, size: 16),
-                      label: Text(isEng ? 'Sign In 🚪' : 'دخول 🚪', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                ),
-              ],
+                  // Clear All
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: isEng ? 'Clear 🧹' : 'تفريغ 🧹',
+                        bgColor: Colors.red.shade100,
+                        textColor: Colors.red.shade900,
+                        fontSize: 12,
+                        icon: Icons.clear_all_rounded,
+                        onPressed: _onVirtualKeyClear,
+                      ),
+                    ),
+                  ),
+                  // Submit Login
+                  Expanded(
+                    flex: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: _buildKeyCap(
+                        label: isEng ? 'Sign In 🚪' : 'دخول 🚪',
+                        bgColor: AppColors.primary,
+                        textColor: Colors.white,
+                        fontSize: 13,
+                        icon: Icons.check_circle_rounded,
+                        onPressed: _handleLogin,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeyCap({
+    required String label,
+    required Color bgColor,
+    required Color textColor,
+    required VoidCallback onPressed,
+    double fontSize = 14,
+    IconData? icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.12), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            offset: const Offset(0, 2),
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(9),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 15, color: textColor),
+                    const SizedBox(width: 3),
+                  ],
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
