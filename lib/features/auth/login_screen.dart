@@ -28,6 +28,25 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _selectedUsername;
   String? _errorMessage;
 
+  final FocusNode _usernameFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
+  bool _isPasswordFocused = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameFocusNode.addListener(() {
+      if (_usernameFocusNode.hasFocus) {
+        setState(() => _isPasswordFocused = false);
+      }
+    });
+    _passwordFocusNode.addListener(() {
+      if (_passwordFocusNode.hasFocus) {
+        setState(() => _isPasswordFocused = true);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
@@ -36,7 +55,35 @@ class _LoginScreenState extends State<LoginScreen> {
     _initManagerPassController.dispose();
     _initCashierNameController.dispose();
     _initCashierPassController.dispose();
+    _usernameFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onVirtualKeyPress(String char) {
+    setState(() {
+      _errorMessage = null;
+    });
+    final targetController = _isPasswordFocused ? _passwordController : _usernameController;
+    targetController.text = targetController.text + char;
+  }
+
+  void _onVirtualKeyBackspace() {
+    setState(() {
+      _errorMessage = null;
+    });
+    final targetController = _isPasswordFocused ? _passwordController : _usernameController;
+    if (targetController.text.isNotEmpty) {
+      targetController.text = targetController.text.substring(0, targetController.text.length - 1);
+    }
+  }
+
+  void _onVirtualKeyClear() {
+    setState(() {
+      _errorMessage = null;
+    });
+    final targetController = _isPasswordFocused ? _passwordController : _usernameController;
+    targetController.clear();
   }
 
   void _handleCompleteInitialSetup() async {
@@ -588,220 +635,452 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.grey.shade100,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header Logo & Branding
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.storefront_rounded,
-                        size: 56,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isEng ? 'Happy Day POS System' : 'نظام هابي داي لنقاط البيع',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isEng ? 'Please sign in to continue' : 'يرجى تسجيل الدخول لمتابعة العمل',
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Username Selector Dropdown
-                    if (userList.isNotEmpty) ...[
-                      DropdownButtonFormField<String>(
-                        initialValue: activeLoginUserValue,
-                        hint: Text(isEng ? 'Select User or Manager...' : 'اختر اسم المستخدم أو المدير...'),
-                        decoration: InputDecoration(
-                          labelText: isEng ? 'Select User or Manager' : 'اختر اسم المستخدم أو المدير',
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: userList.map((u) {
-                          final roleLabel = isEng
-                              ? (u.isManager ? 'Manager' : 'Cashier')
-                              : u.role;
-
-                          return DropdownMenuItem<String>(
-                            value: u.username,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Login Card (Moved Higher Up)
+                Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header Logo & Branding
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.storefront_rounded,
+                                size: 36,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(u.username, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: u.isManager ? Colors.purple.shade50 : Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(8),
+                                Text(
+                                  isEng ? 'Happy Day POS System' : 'نظام هابي داي لنقاط البيع',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
                                   ),
+                                ),
+                                Text(
+                                  isEng ? 'Please sign in to continue' : 'يرجى تسجيل الدخول لمتابعة العمل',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Username Selector Dropdown / Field
+                        if (userList.isNotEmpty) ...[
+                          DropdownButtonFormField<String>(
+                            initialValue: activeLoginUserValue,
+                            hint: Text(isEng ? 'Select User or Manager...' : 'اختر اسم المستخدم أو المدير...'),
+                            decoration: InputDecoration(
+                              labelText: isEng ? 'Select User or Manager' : 'اختر اسم المستخدم أو المدير',
+                              prefixIcon: const Icon(Icons.person),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            ),
+                            items: userList.map((u) {
+                              final roleLabel = isEng
+                                  ? (u.isManager ? 'Manager' : 'Cashier')
+                                  : u.role;
+
+                              return DropdownMenuItem<String>(
+                                value: u.username,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(u.username, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: u.isManager ? Colors.purple.shade50 : Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        roleLabel,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: u.isManager ? Colors.purple : Colors.blue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedUsername = val;
+                                _errorMessage = null;
+                                if (val != null) {
+                                  _usernameController.text = val;
+                                }
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ] else ...[
+                          TextField(
+                            controller: _usernameController,
+                            focusNode: _usernameFocusNode,
+                            onTap: () => setState(() => _isPasswordFocused = false),
+                            onChanged: (_) {
+                              if (_errorMessage != null) {
+                                setState(() => _errorMessage = null);
+                              }
+                            },
+                            decoration: InputDecoration(
+                              labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
+                              prefixIcon: const Icon(Icons.person),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+
+                        // Password Field
+                        TextField(
+                          controller: _passwordController,
+                          focusNode: _passwordFocusNode,
+                          obscureText: _isObscure,
+                          keyboardType: TextInputType.number,
+                          onTap: () => setState(() => _isPasswordFocused = true),
+                          onChanged: (_) {
+                            if (_errorMessage != null) {
+                              setState(() => _errorMessage = null);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => _isObscure = !_isObscure),
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          onSubmitted: (_) => _handleLogin(),
+                        ),
+
+                        // Inline Error Message Box
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red.shade300, width: 1.2),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
                                   child: Text(
-                                    roleLabel,
+                                    _errorMessage!,
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      color: u.isManager ? Colors.purple : Colors.blue,
+                                      color: Colors.red.shade800,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedUsername = val;
-                            _errorMessage = null;
-                            if (val != null) {
-                              _usernameController.text = val;
-                            }
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                    ] else ...[
-                      TextField(
-                        controller: _usernameController,
-                        onChanged: (_) {
-                          if (_errorMessage != null) {
-                            setState(() => _errorMessage = null);
-                          }
-                        },
-                        decoration: InputDecoration(
-                          labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                          ),
+                        ],
 
-                    // Password Field
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: _isObscure,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) {
-                        if (_errorMessage != null) {
-                          setState(() => _errorMessage = null);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور',
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
-                          onPressed: () => setState(() => _isObscure = !_isObscure),
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onSubmitted: (_) => _handleLogin(),
-                    ),
+                        const SizedBox(height: 16),
 
-                    // Inline Error Message Box (أسفل الرقم السري مباشرة)
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red.shade300, width: 1.2),
-                        ),
-                        child: Row(
+                        // Buttons Action Row
+                        Row(
                           children: [
-                            Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 20),
-                            const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: TextStyle(
-                                  color: Colors.red.shade800,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                              flex: 3,
+                              child: SizedBox(
+                                height: 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    elevation: 2,
+                                  ),
+                                  icon: const Icon(Icons.login),
+                                  label: Text(
+                                    isEng ? 'Sign In 🚪' : 'تسجيل الدخول',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: SizedBox(
+                                height: 48,
+                                child: OutlinedButton.icon(
+                                  onPressed: _showAddUserDialog,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: BorderSide(color: AppColors.primary, width: 1.5),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                  icon: const Icon(Icons.person_add_alt_1, size: 20),
+                                  label: Text(
+                                    isEng ? 'Add User 👤+' : 'إضافة مستخدم',
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 2,
-                        ),
-                        icon: const Icon(Icons.login),
-                        label: Text(
-                          isEng ? 'Sign In 🚪' : 'تسجيل الدخول',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                      ],
                     ),
+                  ),
+                ),
 
-                    const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
-                    // Add New User Button (على شاشة الدخول الرئيسية)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: _showAddUserDialog,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: BorderSide(color: AppColors.primary, width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        icon: const Icon(Icons.person_add_alt_1),
-                        label: Text(
-                          isEng ? 'Add New User 👤+' : 'إضافة مستخدم جديد',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                // Touchscreen Virtual Keyboard (اسفل شاشه الدخول بالعرض)
+                _buildTouchscreenKeyboard(isEng),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTouchscreenKeyboard(bool isEng) {
+    final activeFieldName = _isPasswordFocused
+        ? (isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور')
+        : (isEng ? 'Username' : 'اسم المستخدم');
+
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Active Focus Header Bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.touch_app_rounded, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      isEng ? 'Touchscreen Virtual Keyboard ⌨️' : 'لوحة مفاتيح الشاشة باللمس ⌨️',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ],
                 ),
-              ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isEng ? 'Target: $activeFieldName' : 'الكتابة في: $activeFieldName',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 10),
+
+            // Number Row (1 2 3 4 5 6 7 8 9 0)
+            Row(
+              children: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((numStr) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: ElevatedButton(
+                      onPressed: () => _onVirtualKeyPress(numStr),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple.shade50,
+                        foregroundColor: Colors.purple.shade900,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text(numStr, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 2),
+
+            // QWERTY Row
+            Row(
+              children: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map((char) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: ElevatedButton(
+                      onPressed: () => _onVirtualKeyPress(char),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade100,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text(char.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 2),
+
+            // ASDF Row
+            Row(
+              children: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map((char) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: ElevatedButton(
+                      onPressed: () => _onVirtualKeyPress(char),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade100,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text(char.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 2),
+
+            // ZXCV & Action Row (Z X C V B N M  Backspace Clear Enter)
+            Row(
+              children: [
+                ...['z', 'x', 'c', 'v', 'b', 'n', 'm'].map((char) {
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.5),
+                      child: ElevatedButton(
+                        onPressed: () => _onVirtualKeyPress(char),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade100,
+                          foregroundColor: Colors.black87,
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text(char.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  );
+                }),
+                // Backspace
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: ElevatedButton.icon(
+                      onPressed: _onVirtualKeyBackspace,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber.shade100,
+                        foregroundColor: Colors.amber.shade900,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.backspace_outlined, size: 16),
+                      label: Text(isEng ? 'Delete' : 'مسح ⌫', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+                // Clear
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: ElevatedButton.icon(
+                      onPressed: _onVirtualKeyClear,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade100,
+                        foregroundColor: Colors.red.shade900,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.clear_all_rounded, size: 16),
+                      label: Text(isEng ? 'Clear' : 'تفريغ 🧹', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+                // Submit Login
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: ElevatedButton.icon(
+                      onPressed: _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, size: 16),
+                      label: Text(isEng ? 'Sign In 🚪' : 'دخول 🚪', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
