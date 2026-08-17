@@ -309,11 +309,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     final isEng = context.read<SettingsProvider>().isEnglish;
-    final rawUsername = _selectedUsername ?? _usernameController.text.trim();
-    final rawPassword = _passwordController.text.trim();
-
-    final username = _normalizeArabicNumerals(rawUsername);
-    final password = _normalizeArabicNumerals(rawPassword);
+    final username = _selectedUsername ?? _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
       setState(() {

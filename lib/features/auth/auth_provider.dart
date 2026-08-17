@@ -77,15 +77,47 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Login with username and password
+  String _normalizeArabicNumerals(String input) {
+    const easternArabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const westernArabic = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    String result = input;
+    for (int i = 0; i < 10; i++) {
+      result = result.replaceAll(easternArabic[i], westernArabic[i]);
+    }
+    return result;
+  }
+
+  String _toEasternArabicNumerals(String input) {
+    const easternArabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const westernArabic = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    String result = input;
+    for (int i = 0; i < 10; i++) {
+      result = result.replaceAll(westernArabic[i], easternArabic[i]);
+    }
+    return result;
+  }
+
+  // Login with username and password (supports Eastern & Western Arabic numerals)
   Future<bool> login(String username, String password) async {
     try {
       final db = await _dbHelper.database;
-      final maps = await db.query(
-        'users',
-        where: 'username = ? AND password = ? AND is_active = 1',
-        whereArgs: [username.trim(), password.trim()],
-      );
+      final uTrim = username.trim();
+      final pTrim = password.trim();
+
+      final uNorm = _normalizeArabicNumerals(uTrim);
+      final pNorm = _normalizeArabicNumerals(pTrim);
+
+      final uEast = _toEasternArabicNumerals(uTrim);
+      final pEast = _toEasternArabicNumerals(pTrim);
+
+      final maps = await db.rawQuery('''
+        SELECT * FROM users
+        WHERE (username = ? OR username = ? OR username = ?)
+          AND (password = ? OR password = ? OR password = ?)
+          AND is_active = 1
+      ''', [uTrim, uNorm, uEast, pTrim, pNorm, pEast]);
 
       if (maps.isNotEmpty) {
         _currentUser = UserModel.fromMap(maps.first);
@@ -101,11 +133,23 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> verifyManagerCredentials(String username, String password) async {
     try {
       final db = await _dbHelper.database;
-      final maps = await db.query(
-        'users',
-        where: 'username = ? AND password = ? AND (role = ? OR role = ?) AND is_active = 1',
-        whereArgs: [username.trim(), password.trim(), 'مدير', 'مالك البرنامج'],
-      );
+      final uTrim = username.trim();
+      final pTrim = password.trim();
+
+      final uNorm = _normalizeArabicNumerals(uTrim);
+      final pNorm = _normalizeArabicNumerals(pTrim);
+
+      final uEast = _toEasternArabicNumerals(uTrim);
+      final pEast = _toEasternArabicNumerals(pTrim);
+
+      final maps = await db.rawQuery('''
+        SELECT * FROM users
+        WHERE (username = ? OR username = ? OR username = ?)
+          AND (password = ? OR password = ? OR password = ?)
+          AND (role = 'مدير' OR role = 'مالك البرنامج')
+          AND is_active = 1
+      ''', [uTrim, uNorm, uEast, pTrim, pNorm, pEast]);
+
       if (maps.isNotEmpty) return true;
     } catch (e) {
       debugPrint('Verify manager credentials error: $e');
@@ -116,12 +160,24 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> verifyOwnerCredentials(String username, String password) async {
     try {
       final db = await _dbHelper.database;
+      final uTrim = username.trim();
+      final pTrim = password.trim();
+
+      final uNorm = _normalizeArabicNumerals(uTrim);
+      final pNorm = _normalizeArabicNumerals(pTrim);
+
+      final uEast = _toEasternArabicNumerals(uTrim);
+      final pEast = _toEasternArabicNumerals(pTrim);
+
       // 1. Check if matching user with role 'مالك البرنامج' exists
-      final maps = await db.query(
-        'users',
-        where: 'username = ? AND password = ? AND role = ? AND is_active = 1',
-        whereArgs: [username.trim(), password.trim(), 'مالك البرنامج'],
-      );
+      final maps = await db.rawQuery('''
+        SELECT * FROM users
+        WHERE (username = ? OR username = ? OR username = ?)
+          AND (password = ? OR password = ? OR password = ?)
+          AND role = 'مالك البرنامج'
+          AND is_active = 1
+      ''', [uTrim, uNorm, uEast, pTrim, pNorm, pEast]);
+
       if (maps.isNotEmpty) return true;
 
       // 2. If no owner user exists yet in database, fall back to checking Manager credentials
