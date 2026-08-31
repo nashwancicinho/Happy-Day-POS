@@ -439,6 +439,11 @@ class OrdersRepository {
           where: 'id = ?',
           whereArgs: [tableId],
         );
+        await txn.rawUpdate('''
+          UPDATE orders
+          SET status = 'CANCELLED'
+          WHERE table_id = ? AND status IN ('OPEN', 'SUSPENDED') AND id != ?
+        ''', [tableId, orderId]);
       }
 
       return orderId;
@@ -526,6 +531,11 @@ class OrdersRepository {
           where: 'id = ?',
           whereArgs: [tableId],
         );
+        await txn.rawUpdate('''
+          UPDATE orders
+          SET status = 'CANCELLED'
+          WHERE table_id = ? AND status IN ('OPEN', 'SUSPENDED') AND id != ?
+        ''', [tableId, orderId]);
       }
 
       return orderId;
@@ -1304,6 +1314,22 @@ class OrdersRepository {
       whereArgs: [orderId],
     );
     return count > 0;
+  }
+
+  Future<void> cleanOrphanedOpenTableOrders() async {
+    final db = await _databaseHelper.database;
+    await db.transaction((txn) async {
+      await txn.rawUpdate('''
+        UPDATE orders
+        SET status = 'CANCELLED'
+        WHERE status = 'OPEN' 
+          AND table_id IS NOT NULL 
+          AND (
+            table_id IN (SELECT id FROM restaurant_tables WHERE status = 0)
+            OR table_id NOT IN (SELECT id FROM restaurant_tables)
+          )
+      ''');
+    });
   }
 }
 

@@ -122,6 +122,11 @@ class OrdersProvider extends ChangeNotifier {
     return todayCompletedOrders.length;
   }
 
+  Future<void> cleanOrphanedOpenTableOrders() async {
+    await _repository.cleanOrphanedOpenTableOrders();
+    await loadOrders();
+  }
+
   Future<void> loadOrders() async {
     _isLoading = true;
     notifyListeners();

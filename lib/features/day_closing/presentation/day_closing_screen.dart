@@ -562,10 +562,10 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                     final settingsProvider = context.read<SettingsProvider>();
 
                     await tablesProvider.loadTables();
-                    await ordersProvider.loadOrders();
+                    await ordersProvider.cleanOrphanedOpenTableOrders();
 
                     final activeTables = tablesProvider.tables.where((t) => t.status == 1).toList();
-                    final openTableOrders = ordersProvider.orders.where((o) => o.status == 'OPEN' && o.tableId != null).toList();
+                    final openTableOrders = ordersProvider.orders.where((o) => o.status == 'OPEN' && o.tableId != null && activeTables.any((t) => t.id == o.tableId)).toList();
 
                     if (activeTables.isNotEmpty || openTableOrders.isNotEmpty) {
                       if (!context.mounted) return;
