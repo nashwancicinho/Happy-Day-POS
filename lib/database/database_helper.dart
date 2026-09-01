@@ -149,6 +149,7 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'products', 'print_to_kitchen', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'products', 'kitchen_printer', 'TEXT');
     await _addColumnIfMissing(db, 'order_items', 'kitchen_printer', 'TEXT');
+    await _addColumnIfMissing(db, 'order_items', 'created_at', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'color', 'TEXT');
     await _addColumnIfMissing(db, 'categories', 'color', 'TEXT');
     await _addColumnIfMissing(db, 'categories', 'image', 'TEXT');
@@ -430,6 +431,9 @@ class DatabaseHelper {
         price REAL NOT NULL,
         discount REAL DEFAULT 0,
         notes TEXT,
+        print_to_kitchen INTEGER DEFAULT 0,
+        kitchen_printer TEXT,
+        created_at TEXT,
         FOREIGN KEY(order_id) REFERENCES orders(id),
         FOREIGN KEY(product_id) REFERENCES products(id)
       )

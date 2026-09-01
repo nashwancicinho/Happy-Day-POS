@@ -10,6 +10,7 @@ class OrderItemModel {
   final String? notes;
   final bool printToKitchen;
   final String? kitchenPrinter;
+  final DateTime? createdAt;
 
   const OrderItemModel({
     this.id,
@@ -23,6 +24,7 @@ class OrderItemModel {
     this.notes,
     this.printToKitchen = false,
     this.kitchenPrinter,
+    this.createdAt,
   });
 
   double get subtotal => (price * quantity) - discount;
@@ -32,6 +34,14 @@ class OrderItemModel {
       return quantity.toInt().toString();
     }
     return quantity.toStringAsFixed(3).replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
+  }
+
+  String get formattedTime {
+    if (createdAt == null) return '';
+    final dt = createdAt!.toLocal();
+    final hour12 = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final amPm = dt.hour >= 12 ? 'م' : 'ص';
+    return '${hour12.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $amPm';
   }
 
   Map<String, dynamic> toMap() {
@@ -46,6 +56,7 @@ class OrderItemModel {
       'notes': notes,
       'print_to_kitchen': printToKitchen ? 1 : 0,
       'kitchen_printer': kitchenPrinter,
+      'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
     };
   }
 
@@ -62,6 +73,7 @@ class OrderItemModel {
       notes: map['notes'] as String?,
       printToKitchen: printToKitchen ?? ((map['print_to_kitchen'] as int? ?? 0) == 1),
       kitchenPrinter: kitchenPrinter ?? map['kitchen_printer'] as String?,
+      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
     );
   }
 
@@ -77,6 +89,7 @@ class OrderItemModel {
     String? notes,
     bool? printToKitchen,
     String? kitchenPrinter,
+    DateTime? createdAt,
   }) {
     return OrderItemModel(
       id: id ?? this.id,
@@ -90,6 +103,7 @@ class OrderItemModel {
       notes: notes ?? this.notes,
       printToKitchen: printToKitchen ?? this.printToKitchen,
       kitchenPrinter: kitchenPrinter ?? this.kitchenPrinter,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

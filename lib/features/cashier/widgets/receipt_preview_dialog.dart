@@ -546,7 +546,15 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                     children: [
                       Text('[ ${item.formattedQuantity} × ] ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
                       Expanded(
-                        child: Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(item.productName ?? 'صنف', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                            if (item.formattedTime.isNotEmpty)
+                              Text(' (${item.formattedTime})', style: const TextStyle(fontSize: 13, color: Colors.blue, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
                     ],
                   ),

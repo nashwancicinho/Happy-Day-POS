@@ -279,7 +279,10 @@ class OrdersRepository {
 
           for (final dbItem in dbItems) {
             final idx = finalItems.indexWhere((e) =>
-              e.productId == dbItem.productId && (e.notes ?? '').trim() == (dbItem.notes ?? '').trim()
+              (e.id != null && dbItem.id != null && e.id == dbItem.id) ||
+              (e.productId == dbItem.productId &&
+               (e.notes ?? '').trim() == (dbItem.notes ?? '').trim() &&
+               (e.createdAt != null && dbItem.createdAt != null && e.createdAt!.difference(dbItem.createdAt!).inSeconds.abs() < 5))
             );
             if (idx < 0) {
               finalItems.add(dbItem);

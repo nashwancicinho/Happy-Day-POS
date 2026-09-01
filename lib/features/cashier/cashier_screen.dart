@@ -137,7 +137,14 @@ class _CashierScreenState extends State<CashierScreen> {
     String? notes,
   }) {
     setState(() {
-      final index = _cart.indexWhere((item) => item.productId == product.id && item.price == price);
+      final now = DateTime.now();
+      final index = _cart.indexWhere((item) {
+        if (item.productId != product.id || item.price != price) return false;
+        if (item.createdAt == null) return true;
+        // Merge only if added within the last 60 seconds (same order action)
+        return now.difference(item.createdAt!).inSeconds < 60;
+      });
+
       if (index >= 0) {
         final existing = _cart[index];
         final newQty = existing.quantity + quantity;
@@ -167,6 +174,7 @@ class _CashierScreenState extends State<CashierScreen> {
           notes: notes,
           printToKitchen: product.printToKitchen,
           kitchenPrinter: product.kitchenPrinter,
+          createdAt: now,
         ));
       }
     });
@@ -2191,10 +2199,37 @@ class _CashierScreenState extends State<CashierScreen> {
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
-                                                Text(
-                                                  '${item.price.toStringAsFixed(0)} $_currencySymbol',
-                                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      '${item.price.toStringAsFixed(0)} $_currencySymbol',
+                                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                                                    ),
+                                                    if (item.formattedTime.isNotEmpty) ...[
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.blue.shade50,
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          border: Border.all(color: Colors.blue.shade200, width: 0.5),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            const Icon(Icons.access_time, size: 10, color: Colors.blue),
+                                                            const SizedBox(width: 2),
+                                                            Text(
+                                                              item.formattedTime,
+                                                              style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
                                                 ),
+
                                                 if (item.notes != null && item.notes!.isNotEmpty)
                                                   Text(
                                                     '📌 ${item.notes}',
