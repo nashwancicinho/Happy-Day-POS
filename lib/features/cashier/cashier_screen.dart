@@ -45,11 +45,24 @@ class CashierScreen extends StatefulWidget {
 class _CashierScreenState extends State<CashierScreen> {
   late String _orderType;
   final List<OrderItemModel> _cart = [];
+  final ScrollController _cartScrollController = ScrollController();
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
 
   String get _currencySymbol => context.watch<SettingsProvider>().currencySymbol;
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_cartScrollController.hasClients) {
+        _cartScrollController.animateTo(
+          _cartScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -77,6 +90,7 @@ class _CashierScreenState extends State<CashierScreen> {
   @override
   void dispose() {
     LocalServerService.instance.removeListener(_onServerTableOrderUpdated);
+    _cartScrollController.dispose();
     super.dispose();
   }
 
@@ -96,6 +110,7 @@ class _CashierScreenState extends State<CashierScreen> {
             _cart.clear();
             _cart.addAll(items);
           });
+          _scrollToBottom();
         }
       }
     } catch (e) {
@@ -178,6 +193,7 @@ class _CashierScreenState extends State<CashierScreen> {
         ));
       }
     });
+    _scrollToBottom();
   }
 
   Widget _buildNumpad({
@@ -2179,6 +2195,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 ),
                               )
                             : ListView.separated(
+                                controller: _cartScrollController,
                                 itemCount: _cart.length,
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (context, index) {

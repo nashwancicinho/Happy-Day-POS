@@ -268,31 +268,24 @@ class OrdersRepository {
 
       final List<OrderItemModel> finalItems = List.from(items);
 
+      if (finalItems.isEmpty && openOrderIds.isNotEmpty) {
+        // If all items were removed from the table order, delete items and cancel open order
+        for (final oid in openOrderIds) {
+          await txn.delete('order_items', where: 'order_id = ?', whereArgs: [oid]);
+          await txn.delete('orders', where: 'id = ?', whereArgs: [oid]);
+        }
+        await txn.update(
+          'restaurant_tables',
+          {'status': 0},
+          where: 'id = ?',
+          whereArgs: [tableId],
+        );
+        return openOrderIds.first;
+      }
+
       if (openOrderIds.isNotEmpty) {
         // Use the earliest open order as the main active order
         orderId = openOrderIds.first;
-
-        // Fetch ALL existing items across any open order for this table
-        for (final oid in openOrderIds) {
-          final dbItemsRows = await txn.query('order_items', where: 'order_id = ?', whereArgs: [oid]);
-          final dbItems = dbItemsRows.map((e) => OrderItemModel.fromMap(e)).toList();
-
-          for (final dbItem in dbItems) {
-            final idx = finalItems.indexWhere((e) =>
-              (e.id != null && dbItem.id != null && e.id == dbItem.id) ||
-              (e.productId == dbItem.productId &&
-               (e.notes ?? '').trim() == (dbItem.notes ?? '').trim() &&
-               (e.createdAt != null && dbItem.createdAt != null && e.createdAt!.difference(dbItem.createdAt!).inSeconds.abs() < 5))
-            );
-            if (idx < 0) {
-              finalItems.add(dbItem);
-            } else {
-              if (dbItem.quantity > finalItems[idx].quantity) {
-                finalItems[idx] = finalItems[idx].copyWith(quantity: dbItem.quantity);
-              }
-            }
-          }
-        }
 
         final calculatedTotal = finalItems.fold(0.0, (sum, i) => sum + (i.price * i.quantity));
         final calcSubtotal = calculatedTotal + discountAmount;
@@ -304,7 +297,7 @@ class OrdersRepository {
           {
             'subtotal': subtotal > 0 ? subtotal : calcSubtotal,
             'discount_amount': discountAmount,
-            'total': calculatedTotal,
+            'total': calculatedTotal > 0 ? calculatedTotal : total,
             'status': status,
             'cashier_name': cashierName,
             'shift_id': shiftId,
@@ -342,16 +335,16 @@ class OrdersRepository {
         orderId = await txn.insert('orders', newOrder.toMap());
       }
 
-      // Insert all merged final items under the primary order
+      // Insert all updated final items under the primary order
       for (final item in finalItems) {
         final itemWithOrderId = item.copyWith(orderId: orderId);
         await txn.insert('order_items', itemWithOrderId.toMap());
       }
 
-      // Mark table as occupied (status = 1)
+      // Mark table as occupied (status = 1) if items exist
       await txn.update(
         'restaurant_tables',
-        {'status': 1},
+        {'status': finalItems.isNotEmpty ? 1 : 0},
         where: 'id = ?',
         whereArgs: [tableId],
       );
