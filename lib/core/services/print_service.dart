@@ -1449,6 +1449,9 @@ Write-Output "False"
       try {
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/drawer_kick.bin');
+        if (!file.parent.existsSync()) {
+          file.parent.createSync(recursive: true);
+        }
         await file.writeAsBytes(bytes);
 
         String queueName = pName;

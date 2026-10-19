@@ -30,6 +30,8 @@ import '../tables/tables_provider.dart';
 import '../orders/orders_provider.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
 import '../../core/services/license_service.dart';
+import '../../core/services/print_service.dart';
+import '../../core/widgets/top_notification.dart';
 import '../license/license_activation_screen.dart';
 import '../management/management_hub_screen.dart';
 
@@ -43,10 +45,23 @@ class DashboardLayout extends StatefulWidget {
 }
 
 class _DashboardLayoutState extends State<DashboardLayout> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int selectedIndex = 0;
   late final AppLifecycleListener _lifecycleListener;
   LicenseInfo? _licenseInfo;
   bool _isFullscreen = false;
+
+  Future<void> _openGlobalCashDrawer() async {
+    final settings = context.read<SettingsProvider>();
+    TopNotification.showInfo(context, '🔑 جاري إرسال إشارة فتح درج النقدية...');
+    final success = await PrintService.openCashDrawer(settings);
+    if (!mounted) return;
+    if (success) {
+      TopNotification.showSuccess(context, '🔑 تم إرسال إشارة فتح درج النقدية للطابعة بنجاح!');
+    } else {
+      TopNotification.showWarning(context, '⚠️ تعذر إرسال إشارة فتح الدرج! يرجى التأكد من اختيار طابعة الكاشير في الإعدادات وفحص التوصيلات.');
+    }
+  }
 
   void _toggleFullscreen() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -113,9 +128,12 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   void initState() {
     super.initState();
     pages = [
-      const HomeOperationScreen(),
+      HomeOperationScreen(onNavigate: _navigateToPage),
       const TablesScreen(),
-      const CashierScreen(),
+      CashierScreen(
+        onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
+        onBack: () => _navigateToPage(0),
+      ),
       ProductsScreen(onBack: () => _navigateToPage(14)),
       CategoriesScreen(onBack: () => _navigateToPage(14)),
       InventoryScreen(onBack: () => _navigateToPage(14)),
@@ -252,6 +270,8 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
+        const SingleActivator(LogicalKeyboardKey.keyD, control: true): _openGlobalCashDrawer,
+        const SingleActivator(LogicalKeyboardKey.keyD, meta: true): _openGlobalCashDrawer,
       },
       child: Focus(
         autofocus: true,
@@ -262,6 +282,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             _confirmExitApp(context);
           },
           child: Scaffold(
+            key: _scaffoldKey,
             drawer: Drawer(
               child: Column(
                 children: [
@@ -321,7 +342,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                 ],
               ),
             ),
-            appBar: AppBar(
+            appBar: selectedIndex == 2
+                ? null
+                : AppBar(
               automaticallyImplyLeading: false,
               titleSpacing: 12,
               title: Row(

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/services/print_service.dart';
@@ -31,11 +32,15 @@ import 'widgets/refund_dialog.dart';
 class CashierScreen extends StatefulWidget {
   final RestaurantTable? selectedTable;
   final String initialOrderType;
+  final VoidCallback? onBack;
+  final VoidCallback? onOpenMenu;
 
   const CashierScreen({
     super.key,
     this.selectedTable,
     this.initialOrderType = 'TAKEAWAY',
+    this.onBack,
+    this.onOpenMenu,
   });
 
   @override
@@ -915,6 +920,11 @@ class _CashierScreenState extends State<CashierScreen> {
   // 1. Hold / Suspend Invoice on Table (تعليق الفاتورة)
   Future<void> _holdOrderOnTable() async {
     if (_cart.isEmpty) {
+      if (widget.selectedTable != null) {
+        // عند الدخول على طاولة فارغة أو بدون أصناف، الرجوع مباشرة لشاشة الطاولات
+        _finishOrderFlowNavigation();
+        return;
+      }
       TopNotification.showWarning(context, 'سلة الطلب فارغة! قم بإضافة مواد أولاً لتعليق الفاتورة.');
       return;
     }
@@ -984,8 +994,11 @@ class _CashierScreenState extends State<CashierScreen> {
 
   void _finishOrderFlowNavigation() {
     _resetToInitialCashierState();
+    if (mounted && widget.selectedTable != null) {
+      context.read<TablesProvider>().loadTables();
+    }
     if (mounted && Navigator.canPop(context)) {
-      Navigator.popUntil(context, (route) => route.isFirst);
+      Navigator.pop(context);
     }
   }
 
@@ -1917,18 +1930,7 @@ class _CashierScreenState extends State<CashierScreen> {
               ),
               const SizedBox(width: 4),
 
-              // 2. تعليق الفاتورة (Hold / Park)
-              Expanded(
-                child: _aroniumActionButton(
-                  label: isEng ? 'Hold ⏸️' : 'تعليق الفاتورة',
-                  icon: Icons.pause_circle_filled_rounded,
-                  color: Colors.deepOrange,
-                  onTap: _holdOrderOnTable,
-                ),
-              ),
-              const SizedBox(width: 4),
-
-              // 3. خصم (Discount)
+              // 2. خصم (Discount)
               Expanded(
                 child: _aroniumActionButton(
                   label: _discountAmount > 0
@@ -1938,6 +1940,17 @@ class _CashierScreenState extends State<CashierScreen> {
                   color: Colors.purple.shade700,
                   badge: _discountAmount > 0 ? (isEng ? 'Active' : 'مفعل') : null,
                   onTap: _showDiscountDialog,
+                ),
+              ),
+              const SizedBox(width: 4),
+
+              // 3. تعليق الفاتورة (Hold / Park)
+              Expanded(
+                child: _aroniumActionButton(
+                  label: isEng ? 'Hold ⏸️' : 'تعليق الفاتورة',
+                  icon: Icons.pause_circle_filled_rounded,
+                  color: Colors.deepOrange,
+                  onTap: _holdOrderOnTable,
                 ),
               ),
             ],
@@ -1959,7 +1972,7 @@ class _CashierScreenState extends State<CashierScreen> {
               // 5. فتح الدرج (Open Drawer)
               Expanded(
                 child: _aroniumActionButton(
-                  label: isEng ? 'Drawer 🔑' : 'فتح الدرج',
+                  label: isEng ? 'Drawer (Ctrl+D) 🔑' : 'فتح الدرج (Ctrl+D)',
                   icon: Icons.meeting_room_rounded,
                   color: Colors.teal.shade800,
                   onTap: _openCashDrawer,
@@ -2056,93 +2069,116 @@ class _CashierScreenState extends State<CashierScreen> {
     final searchQuery = productsProvider.searchQuery;
     final showingCategoriesView = selectedCategoryId == null && searchQuery.isEmpty;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.selectedTable != null
-              ? 'كاشير الطاولة - ${widget.selectedTable!.name}'
-              : 'الكاشير نقطة البيع',
-        ),
-        actions: [
-          if (widget.selectedTable != null)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Text(
-                  'طاولة: ${widget.selectedTable!.name}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            )
-          else
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: (_orderType == 'TAKEAWAY' || _orderType == 'DELIVERY') ? _orderType : 'TAKEAWAY',
-                  dropdownColor: AppColors.primary,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                  items: const [
-                    DropdownMenuItem(value: 'TAKEAWAY', child: Text('سفري')),
-                    DropdownMenuItem(value: 'DELIVERY', child: Text('توصيل')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _orderType = val;
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _isLoadingTableOrder
-          ? const Center(child: CircularProgressIndicator())
-          : Row(
-              children: [
-                // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
-                Container(
-                  width: 380,
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyD, control: true): _openCashDrawer,
+        const SingleActivator(LogicalKeyboardKey.keyD, meta: true): _openCashDrawer,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: _isLoadingTableOrder
+              ? const Center(child: CircularProgressIndicator())
+              : Row(
+                  children: [
+                    // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
+                    Container(
+                      width: 380,
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(Icons.shopping_cart_checkout, color: AppColors.primary),
-                              const SizedBox(width: 8),
-                              Text(
-                                _existingOrderId != null
-                                    ? (isEng ? 'Current Table Order' : 'طلب الطاولة الحالي')
-                                    : (isEng ? 'Order Cart' : 'سلة الطلب'),
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              Row(
+                                children: [
+                                  if (Navigator.canPop(context)) ...[
+                                    IconButton(
+                                      icon: const BackButtonIcon(),
+                                      tooltip: isEng ? 'Back to Tables' : 'رجوع للطاولات',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: _finishOrderFlowNavigation,
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ] else ...[
+                                    if (widget.onOpenMenu != null) ...[
+                                      IconButton(
+                                        icon: Icon(Icons.menu, size: 24, color: AppColors.primary),
+                                        tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: widget.onOpenMenu,
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    if (widget.onBack != null) ...[
+                                      IconButton(
+                                        icon: Icon(Icons.home_outlined, size: 24, color: AppColors.primary),
+                                        tooltip: isEng ? 'Home' : 'الرئيسية',
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: widget.onBack,
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                  ],
+                                  Icon(Icons.shopping_cart_checkout, color: AppColors.primary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _existingOrderId != null
+                                        ? (isEng ? 'Table Order' : 'طلب الطاولة')
+                                        : (isEng ? 'Order Cart' : 'سلة الطلب'),
+                                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.selectedTable == null) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: (_orderType == 'TAKEAWAY' || _orderType == 'DELIVERY') ? _orderType : 'TAKEAWAY',
+                                      isDense: true,
+                                      dropdownColor: Colors.white,
+                                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                                      icon: Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+                                      items: const [
+                                        DropdownMenuItem(value: 'TAKEAWAY', child: Text('سفري 🛍️')),
+                                        DropdownMenuItem(value: 'DELIVERY', child: Text('توصيل 🛵')),
+                                      ],
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setState(() {
+                                            _orderType = val;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              if (_cart.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                                  tooltip: isEng ? 'Clear Cart' : 'تفريغ السلة',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: _clearCart,
+                                ),
                             ],
                           ),
-                          if (_cart.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                              tooltip: isEng ? 'Clear Cart' : 'تفريغ السلة',
-                              onPressed: _clearCart,
-                            ),
                         ],
                       ),
 
@@ -2428,6 +2464,8 @@ class _CashierScreenState extends State<CashierScreen> {
                 ),
               ],
             ),
+        ),
+      ),
     );
   }
 
@@ -2450,6 +2488,56 @@ class _CashierScreenState extends State<CashierScreen> {
     } catch (_) {
       return null;
     }
+  }
+
+  static const List<Color> _autoItemColors = [
+    Color(0xFF1D4ED8), // Royal Blue
+    Color(0xFF047857), // Deep Emerald
+    Color(0xFFB45309), // Amber / Gold
+    Color(0xFF7E22CE), // Royal Purple
+    Color(0xFFDC2626), // Crimson Red
+    Color(0xFF0D9488), // Ocean Teal
+    Color(0xFFEA580C), // Fiery Orange
+    Color(0xFFBE185D), // Deep Rose
+    Color(0xFF3730A3), // Indigo
+    Color(0xFF15803D), // Forest Green
+    Color(0xFF0284C7), // Sky Blue
+    Color(0xFFA16207), // Mustard Gold
+    Color(0xFF6B21A8), // Imperial Purple
+    Color(0xFF991B1B), // Burgundy
+    Color(0xFF4D7C0F), // Olive Green
+    Color(0xFF78350F), // Warm Brown
+    Color(0xFF06B6D4), // Cyan
+    Color(0xFF881337), // Bordeaux
+    Color(0xFF334155), // Navy Slate
+  ];
+
+  static const List<Color> _autoCategoryColors = [
+    Color(0xFFEA580C), // Orange
+    Color(0xFF1D4ED8), // Royal Blue
+    Color(0xFF7E22CE), // Purple
+    Color(0xFF047857), // Emerald
+    Color(0xFFBE185D), // Rose
+    Color(0xFF0D9488), // Teal
+    Color(0xFFB45309), // Amber
+    Color(0xFFDC2626), // Red
+    Color(0xFF3730A3), // Indigo
+    Color(0xFF0284C7), // Sky Blue
+  ];
+
+  Color _getCategoryColor(CategoryModel category, [int index = 0]) {
+    final custom = _parseColor(category.color);
+    if (custom != null) return custom;
+    final idVal = category.id ?? (index + 1);
+    return _autoCategoryColors[idVal.abs() % _autoCategoryColors.length];
+  }
+
+  Color _getProductColor(ProductModel product, [int fallbackIndex = 0]) {
+    final custom = _parseColor(product.color);
+    if (custom != null) return custom;
+    if (!product.isAvailable) return Colors.grey.shade100;
+    final key = product.id ?? (fallbackIndex + 1);
+    return _autoItemColors[key.abs() % _autoItemColors.length];
   }
 
   Future<void> _customizeCategoryAppearance(BuildContext context, CategoryModel category) async {
@@ -2529,8 +2617,8 @@ class _CashierScreenState extends State<CashierScreen> {
           final category = categories[index];
           final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
           final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
-          final bgColor = _parseColor(category.color) ?? Colors.orange.shade50;
-          final isDarkBg = hasImage || (category.color != null && bgColor.computeLuminance() < 0.5);
+          final bgColor = _getCategoryColor(category, index);
+          final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
           final textColor = isDarkBg ? Colors.white : Colors.black87;
           final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
           final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
@@ -2539,7 +2627,13 @@ class _CashierScreenState extends State<CashierScreen> {
             elevation: 3,
             color: hasImage ? Colors.black : bgColor,
             clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                color: isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300,
+                width: 1.0,
+              ),
+            ),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () {
@@ -2555,11 +2649,14 @@ class _CashierScreenState extends State<CashierScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: bgColor,
-                          gradient: (category.color == null && !hasImage)
+                          gradient: !hasImage
                               ? LinearGradient(
-                                  colors: [Colors.orange.shade50, Colors.white],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    bgColor.withValues(alpha: 0.88),
+                                    bgColor,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 )
                               : null,
                         ),
@@ -2592,6 +2689,9 @@ class _CashierScreenState extends State<CashierScreen> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: textColor,
+                                    shadows: isDarkBg
+                                        ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
+                                        : null,
                                   ),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
@@ -2613,8 +2713,8 @@ class _CashierScreenState extends State<CashierScreen> {
         // Main Screen Products (displayLocation == 'BOTH' or 'MAIN_ONLY')
         final product = mainProducts[index - categories.length];
         final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
-        final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
-        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final bgColor = _getProductColor(product, index - categories.length);
+        final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
         final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
@@ -2625,8 +2725,10 @@ class _CashierScreenState extends State<CashierScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
             side: BorderSide(
-              color: product.isAvailable ? AppColors.primary.withValues(alpha: 0.3) : Colors.red.shade200,
-              width: 1.2,
+              color: product.isAvailable
+                  ? (isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300)
+                  : Colors.red.shade200,
+              width: 1.0,
             ),
           ),
           child: InkWell(
@@ -2639,7 +2741,21 @@ class _CashierScreenState extends State<CashierScreen> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Container(color: bgColor),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        gradient: (!hasImage && product.isAvailable)
+                            ? LinearGradient(
+                                colors: [
+                                  bgColor.withValues(alpha: 0.88),
+                                  bgColor,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                      ),
+                    ),
                   ),
                   if (hasImage)
                     Positioned.fill(
@@ -2667,18 +2783,36 @@ class _CashierScreenState extends State<CashierScreen> {
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                   color: textColor,
+                                  shadows: isDarkBg
+                                      ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
+                                      : null,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                '${product.price.toStringAsFixed(0)} $_currencySymbol',
-                                style: TextStyle(
-                                  color: priceColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDarkBg
+                                      ? Colors.black.withValues(alpha: 0.28)
+                                      : Colors.white.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDarkBg
+                                        ? Colors.white.withValues(alpha: 0.2)
+                                        : Colors.grey.shade300,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                                  style: TextStyle(
+                                    color: priceColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ],
@@ -2775,8 +2909,8 @@ class _CashierScreenState extends State<CashierScreen> {
 
         final product = products[index - 1];
         final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
-        final bgColor = _parseColor(product.color) ?? (product.isAvailable ? Colors.white : Colors.grey.shade100);
-        final isDarkBg = hasImage || (product.color != null && bgColor.computeLuminance() < 0.5);
+        final bgColor = _getProductColor(product, index - 1);
+        final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
         final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
@@ -2787,11 +2921,13 @@ class _CashierScreenState extends State<CashierScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
             side: BorderSide(
-              color: product.isAvailable ? Colors.transparent : Colors.red.shade200,
+              color: product.isAvailable
+                  ? (isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300)
+                  : Colors.red.shade200,
+              width: 1.0,
             ),
           ),
           child: InkWell(
-
             borderRadius: BorderRadius.circular(14),
             onTap: () => _addToCart(product),
             onSecondaryTap: () => _customizeProductAppearance(context, product),
@@ -2801,7 +2937,21 @@ class _CashierScreenState extends State<CashierScreen> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Container(color: bgColor),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        gradient: (!hasImage && product.isAvailable)
+                            ? LinearGradient(
+                                colors: [
+                                  bgColor.withValues(alpha: 0.88),
+                                  bgColor,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                      ),
+                    ),
                   ),
                   if (hasImage)
                     Positioned.fill(
@@ -2829,18 +2979,36 @@ class _CashierScreenState extends State<CashierScreen> {
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                   color: textColor,
+                                  shadows: isDarkBg
+                                      ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
+                                      : null,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                '${product.price.toStringAsFixed(0)} $_currencySymbol',
-                                style: TextStyle(
-                                  color: priceColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDarkBg
+                                      ? Colors.black.withValues(alpha: 0.28)
+                                      : Colors.white.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDarkBg
+                                        ? Colors.white.withValues(alpha: 0.2)
+                                        : Colors.grey.shade300,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                                  style: TextStyle(
+                                    color: priceColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                               if (product.isWeighted || product.allowPriceChange) ...[

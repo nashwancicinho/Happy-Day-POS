@@ -241,15 +241,21 @@ class _TablesScreenState extends State<TablesScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEng ? "Table Management & Hall Sales" : "إدارة الطاولات ومبيعات الصالة"),
-        centerTitle: true,
-      ),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (Navigator.canPop(context)) ...[
+            FloatingActionButton(
+              heroTag: 'tables_back_nav_btn',
+              mini: true,
+              backgroundColor: const Color(0xFF1F2937),
+              onPressed: () => Navigator.pop(context),
+              tooltip: isEng ? 'Back' : 'رجوع',
+              child: const Icon(Icons.arrow_back, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+          ],
           if (_isDesignMode) ...[
             FloatingActionButton.extended(
               heroTag: 'save_design_btn',

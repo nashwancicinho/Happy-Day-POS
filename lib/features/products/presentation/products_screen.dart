@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/services/print_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/customize_item_appearance_dialog.dart';
 import '../../../../core/widgets/top_notification.dart';
 import '../../../models/category.dart';
 import '../../../models/product.dart';
@@ -297,6 +298,11 @@ class ProductsScreen extends StatelessWidget {
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.palette_outlined, color: Colors.orange),
+                                            tooltip: isEng ? 'Customize Color & Appearance' : 'تخصيص اللون والمظهر 🎨',
+                                            onPressed: () => _customizeProductAppearance(context, product),
+                                          ),
                                           IconButton(
                                             icon: const Icon(Icons.qr_code_scanner, color: Colors.purple),
                                             tooltip: isEng ? 'Print Barcode Label' : 'طباعة ملصق الباركود',
@@ -1188,6 +1194,8 @@ class ProductsScreen extends StatelessWidget {
                         printToKitchen: printToKitchen,
                         kitchenPrinter: selectedKitchenPrinter,
                         displayLocation: selectedDisplayLocation,
+                        image: product?.image,
+                        color: product?.color,
                       );
 
                       int saveId = product?.id ?? 0;
@@ -1500,5 +1508,27 @@ class ProductsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _customizeProductAppearance(BuildContext context, ProductModel product) async {
+    final productsProvider = context.read<ProductsProvider>();
+    final result = await CustomizeItemAppearanceDialog.show(
+      context,
+      itemName: product.name,
+      initialImage: product.image,
+      initialColor: product.color,
+    );
+    if (!context.mounted) return;
+    if (result != null) {
+      final updated = product.copyWith(
+        image: result['image'],
+        clearImage: result['image'] == null,
+        color: result['color'],
+        clearColor: result['color'] == null,
+      );
+      await productsProvider.updateProduct(updated);
+      if (!context.mounted) return;
+      TopNotification.showSuccess(context, '🎨 تم تحديث مظهر مادة (${product.name}) بنجاح!');
+    }
   }
 }

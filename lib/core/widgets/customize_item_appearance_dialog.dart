@@ -47,18 +47,55 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
 
   // Preset Colors Palette (Hex String -> Label) - Deeper & Richer Colors
   final List<Map<String, String?>> _colorPresets = [
-    {'name': 'افتراضي', 'hex': null},
-    {'name': 'برتقالي ناري 🟧', 'hex': '#EA580C'},
-    {'name': 'أحمر عنابي 🟥', 'hex': '#B91C1C'},
-    {'name': 'أزرق ملكي 🟦', 'hex': '#1D4ED8'},
-    {'name': 'بنفسجي ملكي 🟪', 'hex': '#7E22CE'},
-    {'name': 'زمردي غامق 🟩', 'hex': '#047857'},
-    {'name': 'فيروزي غامق 🩵', 'hex': '#097A75'},
-    {'name': 'ذهبي خردلي 🟨', 'hex': '#B45309'},
-    {'name': 'وردي داكن 🌸', 'hex': '#BE185D'},
-    {'name': 'بني دافئ 🤎', 'hex': '#78350F'},
-    {'name': 'رمادي كحلي 🩶', 'hex': '#334155'},
-    {'name': 'أسود فاحم 🖤', 'hex': '#18181B'},
+    {'name': 'افتراضي (تلقائي)', 'nameEn': 'Default (Auto)', 'hex': null},
+    // Reds & Corals
+    {'name': 'أحمر كلاسيكي 🟥', 'nameEn': 'Crimson Red', 'hex': '#DC2626'},
+    {'name': 'أحمر عنابي 🍷', 'nameEn': 'Burgundy', 'hex': '#991B1B'},
+    {'name': 'أحمر روبي 💎', 'nameEn': 'Ruby Red', 'hex': '#E11D48'},
+    {'name': 'مرجاني مشرق 🪸', 'nameEn': 'Bright Coral', 'hex': '#F43F5E'},
+    // Oranges & Ambers
+    {'name': 'برتقالي ناري 🟧', 'nameEn': 'Fiery Orange', 'hex': '#EA580C'},
+    {'name': 'برتقالي مشرق 🍊', 'nameEn': 'Bright Orange', 'hex': '#F97316'},
+    {'name': 'عنبري دافئ 🟠', 'nameEn': 'Warm Amber', 'hex': '#F59E0B'},
+    {'name': 'مشمشي ناعم 🍑', 'nameEn': 'Soft Peach', 'hex': '#FB923C'},
+    // Yellows & Golds
+    {'name': 'أصفر ذهبي 🟨', 'nameEn': 'Golden Yellow', 'hex': '#EAB308'},
+    {'name': 'ذهبي خردلي 🍯', 'nameEn': 'Mustard Gold', 'hex': '#B45309'},
+    {'name': 'كراميل عسلي 🍯', 'nameEn': 'Honey Caramel', 'hex': '#D97706'},
+    // Greens & Limes
+    {'name': 'ليموني منعش 🍋', 'nameEn': 'Lime Green', 'hex': '#84CC16'},
+    {'name': 'تفاحي نضر 🍏', 'nameEn': 'Fresh Apple', 'hex': '#65A30D'},
+    {'name': 'أخضر عشبي 🌿', 'nameEn': 'Grass Green', 'hex': '#16A34A'},
+    {'name': 'أخضر زمردي 🟩', 'nameEn': 'Emerald Green', 'hex': '#10B981'},
+    {'name': 'زمردي غامق 🌲', 'nameEn': 'Deep Emerald', 'hex': '#047857'},
+    {'name': 'زيتي راقي 🫒', 'nameEn': 'Olive Green', 'hex': '#4D7C0F'},
+    // Teals & Cyans
+    {'name': 'تيل بحري 🌊', 'nameEn': 'Ocean Teal', 'hex': '#0F766E'},
+    {'name': 'فيروزي غامق 🩵', 'nameEn': 'Deep Turquoise', 'hex': '#097A75'},
+    {'name': 'نعناعي هادئ 🌱', 'nameEn': 'Fresh Mint', 'hex': '#14B8A6'},
+    {'name': 'سماوي مشرق 💎', 'nameEn': 'Bright Cyan', 'hex': '#06B6D4'},
+    // Blues
+    {'name': 'أزرق سماء ☁️', 'nameEn': 'Sky Blue', 'hex': '#0EA5E9'},
+    {'name': 'أزرق بحري 🌊', 'nameEn': 'Ocean Blue', 'hex': '#0284C7'},
+    {'name': 'أزرق ملكي 🟦', 'nameEn': 'Royal Blue', 'hex': '#1D4ED8'},
+    {'name': 'كحلي عميق 🌌', 'nameEn': 'Deep Navy', 'hex': '#1E3A8A'},
+    {'name': 'نيلي داكن 🔷', 'nameEn': 'Deep Indigo', 'hex': '#3730A3'},
+    // Purples & Violets
+    {'name': 'بنفسجي ملكي 🟪', 'nameEn': 'Royal Purple', 'hex': '#7E22CE'},
+    {'name': 'بنفسجي إمبراطوري 🔮', 'nameEn': 'Imperial Purple', 'hex': '#6B21A8'},
+    {'name': 'لافندر فاقع 🪻', 'nameEn': 'Bright Lavender', 'hex': '#A855F7'},
+    // Pinks & Roses
+    {'name': 'وردي فوشيا 🌺', 'nameEn': 'Fuchsia Pink', 'hex': '#D946EF'},
+    {'name': 'وردي داكن 🌸', 'nameEn': 'Deep Rose', 'hex': '#BE185D'},
+    {'name': 'قرمزي بوردو 🍇', 'nameEn': 'Bordeaux', 'hex': '#881337'},
+    // Browns & Earthy
+    {'name': 'بني دافئ 🤎', 'nameEn': 'Warm Brown', 'hex': '#78350F'},
+    {'name': 'كراميل خشبي 🪵', 'nameEn': 'Caramel Wood', 'hex': '#92400E'},
+    {'name': 'قهوة موكا ☕', 'nameEn': 'Mocha Coffee', 'hex': '#451A03'},
+    // Slates & Darks
+    {'name': 'رمادي كحلي 🩶', 'nameEn': 'Navy Slate', 'hex': '#334155'},
+    {'name': 'رمادي جرافيتي 🪨', 'nameEn': 'Graphite', 'hex': '#475569'},
+    {'name': 'أسود فاحم 🖤', 'nameEn': 'Pitch Black', 'hex': '#18181B'},
   ];
 
   @override
@@ -124,7 +161,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: 620),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
@@ -279,9 +316,10 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                   runSpacing: 8,
                   children: _colorPresets.map((preset) {
                     final hex = preset['hex'];
-                    final name = preset['name']!;
+                    final name = isEng ? (preset['nameEn'] ?? preset['name']!) : preset['name']!;
                     final isSelected = _selectedColor == hex;
                     final colorVal = _parseHexColor(hex);
+                    final isDarkChip = hex != null && _isDarkColor(colorVal);
 
                     return GestureDetector(
                       onTap: () {
@@ -296,7 +334,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                           color: colorVal,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? Colors.deepOrange : Colors.grey.shade300,
+                            color: isSelected ? Colors.deepOrange : (isDarkChip ? Colors.white30 : Colors.grey.shade300),
                             width: isSelected ? 2.5 : 1.0,
                           ),
                           boxShadow: isSelected
@@ -307,7 +345,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (isSelected)
-                              const Icon(Icons.check_circle, size: 14, color: Colors.deepOrange)
+                              Icon(Icons.check_circle, size: 14, color: isDarkChip ? Colors.amberAccent : Colors.deepOrange)
                             else
                               Container(
                                 width: 12,
@@ -315,7 +353,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: colorVal == Colors.white ? Colors.grey.shade300 : colorVal,
-                                  border: Border.all(color: Colors.grey.shade400),
+                                  border: Border.all(color: isDarkChip ? Colors.white54 : Colors.grey.shade400),
                                 ),
                               ),
                             const SizedBox(width: 6),
@@ -324,7 +362,9 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? Colors.deepOrange.shade900 : Colors.black87,
+                                color: isSelected
+                                    ? (isDarkChip ? Colors.amberAccent : Colors.deepOrange.shade900)
+                                    : (isDarkChip ? Colors.white : Colors.black87),
                               ),
                             ),
                           ],

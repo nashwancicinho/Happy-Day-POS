@@ -6,7 +6,9 @@ import '../settings/settings_provider.dart';
 import '../tables/tables_screen.dart';
 
 class HomeOperationScreen extends StatelessWidget {
-  const HomeOperationScreen({super.key});
+  final Function(int)? onNavigate;
+
+  const HomeOperationScreen({super.key, this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +67,7 @@ class HomeOperationScreen extends StatelessWidget {
                   icon: Icons.table_restaurant,
                   color: Colors.blue,
                   page: const TablesScreen(),
+                  targetIndex: 1,
                 ),
               ),
               const SizedBox(width: 20),
@@ -76,6 +79,7 @@ class HomeOperationScreen extends StatelessWidget {
                   icon: Icons.shopping_bag,
                   color: Colors.green,
                   page: const CashierScreen(initialOrderType: 'TAKEAWAY'),
+                  targetIndex: 2,
                 ),
               ),
             ],
@@ -92,6 +96,7 @@ class HomeOperationScreen extends StatelessWidget {
     required IconData icon,
     required Color color,
     required Widget page,
+    int? targetIndex,
   }) {
     return Card(
       elevation: 5,
@@ -99,7 +104,11 @@ class HomeOperationScreen extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+          if (targetIndex != null && onNavigate != null) {
+            onNavigate!(targetIndex);
+          } else {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(24.0),
