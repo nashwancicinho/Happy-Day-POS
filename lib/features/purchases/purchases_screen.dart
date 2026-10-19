@@ -14,7 +14,8 @@ import 'widgets/add_supplier_dialog.dart';
 import 'widgets/supplier_payment_dialog.dart';
 
 class PurchasesScreen extends StatefulWidget {
-  const PurchasesScreen({super.key});
+  final VoidCallback? onBack;
+  const PurchasesScreen({super.key, this.onBack});
 
   @override
   State<PurchasesScreen> createState() => _PurchasesScreenState();
@@ -66,6 +67,25 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 150,
+        leading: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          label: Text(
+            isEng ? 'Management' : 'لوحة الإدارة',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
         title: Text(isEng ? 'Purchases, Suppliers & Debts Management' : 'إدارة المشتريات والموردين والديون'),
         centerTitle: true,
         bottom: TabBar(

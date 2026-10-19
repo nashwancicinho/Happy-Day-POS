@@ -202,7 +202,21 @@ class LocalServerService extends ChangeNotifier {
 
   Future<void> _handleGetTables(HttpResponse response) async {
     final db = await DatabaseHelper.instance.database;
-    final tables = await db.query('restaurant_tables', orderBy: 'sort_order ASC, id ASC');
+    final tables = await db.rawQuery('''
+      SELECT t.*, 
+        CASE 
+          WHEN t.status = 1 THEN COALESCE((
+            SELECT o.total 
+            FROM orders o 
+            WHERE o.table_id = t.id AND o.status IN ('OPEN', 'SUSPENDED') 
+            ORDER BY o.id DESC 
+            LIMIT 1
+          ), 0.0)
+          ELSE 0.0
+        END AS current_order_amount
+      FROM restaurant_tables t
+      ORDER BY t.sort_order ASC, t.id ASC
+    ''');
     await _jsonResponse(response, {'success': true, 'data': tables});
   }
 
@@ -222,7 +236,21 @@ class LocalServerService extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     final categories = await db.query('categories', orderBy: 'id ASC');
     final products = await db.query('products', orderBy: 'id ASC');
-    final tables = await db.query('restaurant_tables', orderBy: 'sort_order ASC, id ASC');
+    final tables = await db.rawQuery('''
+      SELECT t.*, 
+        CASE 
+          WHEN t.status = 1 THEN COALESCE((
+            SELECT o.total 
+            FROM orders o 
+            WHERE o.table_id = t.id AND o.status IN ('OPEN', 'SUSPENDED') 
+            ORDER BY o.id DESC 
+            LIMIT 1
+          ), 0.0)
+          ELSE 0.0
+        END AS current_order_amount
+      FROM restaurant_tables t
+      ORDER BY t.sort_order ASC, t.id ASC
+    ''');
     final settingsMap = await SettingsRepository().getAllSettings();
 
     await _jsonResponse(response, {

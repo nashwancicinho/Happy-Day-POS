@@ -12,7 +12,8 @@ import '../../settings/settings_provider.dart';
 enum StockFilterType { all, normal, low, outOfStock }
 
 class InventoryScreen extends StatefulWidget {
-  const InventoryScreen({super.key});
+  final VoidCallback? onBack;
+  const InventoryScreen({super.key, this.onBack});
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -76,6 +77,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 150,
+        leading: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          label: Text(
+            isEng ? 'Management' : 'لوحة الإدارة',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

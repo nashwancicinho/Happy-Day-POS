@@ -650,6 +650,7 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
                       createdAt: nowIso,
                     );
                     await treasuryProvider.saveTreasuryRecord(treasuryRecord);
+                    await treasuryProvider.closeActiveSession();
 
                     // Finalize shift orders business date
                     await ordersProvider.finalizeShiftOrdersBusinessDate(reportDate, nowIso);

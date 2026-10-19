@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/license_service.dart';
 import '../../core/services/print_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
@@ -15,6 +17,7 @@ import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import '../categories/categories_provider.dart';
 import '../customers/customers_provider.dart';
+import '../license/license_activation_screen.dart';
 import '../orders/orders_provider.dart';
 import '../payroll/payroll_provider.dart';
 import '../products/products_provider.dart';
@@ -53,6 +56,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingPrinters = false;
   bool _isCheckingUpdate = false;
   String _currentAppVersion = '1.0.0';
+  LicenseInfo? _licenseInfo;
+  bool _isLoadingLicense = false;
 
   final List<Map<String, dynamic>> _logoPresets = [
     {'name': 'storefront', 'label': 'محل / متجر', 'labelEn': 'Store / Shop', 'icon': Icons.storefront_rounded},
@@ -84,7 +89,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSystemPrinters();
       _loadCurrentVersion();
+      _loadLicenseInfo();
     });
+  }
+
+  Future<void> _loadLicenseInfo() async {
+    setState(() => _isLoadingLicense = true);
+    final info = await LicenseService.instance.initAndGetLicenseInfo();
+    if (mounted) {
+      setState(() {
+        _licenseInfo = info;
+        _isLoadingLicense = false;
+      });
+    }
+  }
+
+  void _openPhoneCall(String phone) {
+    try {
+      Process.run('open', ['tel:$phone']);
+    } catch (_) {}
+  }
+
+  void _openWhatsApp(String phone) {
+    try {
+      final clean = phone.replaceAll('+', '').replaceAll(' ', '');
+      Process.run('open', ['https://wa.me/$clean']);
+    } catch (_) {}
   }
 
   Future<void> _loadCurrentVersion() async {
@@ -493,14 +523,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   final List<Map<String, dynamic>> _colorThemes = [
+    // 1. البرتقاليات والذهبيات (Oranges & Golds)
     {'name': 'البرتقالي الدافئ', 'nameEn': 'Warm Orange 🍊', 'hex': '#FF9800', 'color': const Color(0xFFFF9800)},
+    {'name': 'البرتقالي الناري', 'nameEn': 'Flame Orange 🔥', 'hex': '#F4511E', 'color': const Color(0xFFF4511E)},
+    {'name': 'المرجاني الجريء', 'nameEn': 'Coral Sunset 🪸', 'hex': '#FF5722', 'color': const Color(0xFFFF5722)},
+    {'name': 'الذهبي العنبري', 'nameEn': 'Golden Amber 🍯', 'hex': '#FFA000', 'color': const Color(0xFFFFA000)},
+    {'name': 'الأصفر الخردلي', 'nameEn': 'Mustard Gold 🌟', 'hex': '#FBC02D', 'color': const Color(0xFFFBC02D)},
+
+    // 2. الأزرق والتركواز (Blues & Teals)
     {'name': 'الأزرق الملكي', 'nameEn': 'Royal Blue 💙', 'hex': '#1E88E5', 'color': const Color(0xFF1E88E5)},
-    {'name': 'الأخضر الزمردي', 'nameEn': 'Emerald Green 💚', 'hex': '#2E7D32', 'color': const Color(0xFF2E7D32)},
+    {'name': 'الكحلي العميق (Navy)', 'nameEn': 'Deep Navy ⚓', 'hex': '#0D47A1', 'color': const Color(0xFF0D47A1)},
+    {'name': 'أزرق السافاير الفخم', 'nameEn': 'Sapphire Blue 💎', 'hex': '#1565C0', 'color': const Color(0xFF1565C0)},
+    {'name': 'الأزرق السماوي (Cyan)', 'nameEn': 'Sky Cyan 🩵', 'hex': '#00ACC1', 'color': const Color(0xFF00ACC1)},
+    {'name': 'الأخضر الفيروزي (Teal)', 'nameEn': 'Ocean Teal 🌊', 'hex': '#00897B', 'color': const Color(0xFF00897B)},
+    {'name': 'الأزرق البترولي', 'nameEn': 'Petroleum Blue 🛢️', 'hex': '#006064', 'color': const Color(0xFF006064)},
+
+    // 3. النيلي والبنفسجي (Indigos & Purples)
+    {'name': 'النيلي العصري (Indigo)', 'nameEn': 'Modern Indigo 🔷', 'hex': '#3F51B5', 'color': const Color(0xFF3F51B5)},
     {'name': 'البنفسجي الفاخر', 'nameEn': 'Luxury Purple 💜', 'hex': '#8E24AA', 'color': const Color(0xFF8E24AA)},
-    {'name': 'الأحمر الياقوتي', 'nameEn': 'Ruby Red ❤️', 'hex': '#D32F2F', 'color': const Color(0xFFD32F2F)},
-    {'name': 'الرمادي الداكن الساطع', 'nameEn': 'Dark Charcoal 🖤', 'hex': '#37474F', 'color': const Color(0xFF37474F)},
+    {'name': 'البنفسجي الليلي', 'nameEn': 'Deep Violet 🔮', 'hex': '#512DA8', 'color': const Color(0xFF512DA8)},
+    {'name': 'البرقوقي الملكي (Plum)', 'nameEn': 'Royal Plum 🍇', 'hex': '#4A148C', 'color': const Color(0xFF4A148C)},
+
+    // 4. الورديات والأحمر (Pinks & Reds)
     {'name': 'الوردي الفاخر (Magenta)', 'nameEn': 'Luxury Magenta 💖', 'hex': '#C2185B', 'color': const Color(0xFFC2185B)},
-    {'name': 'الكحلي العميق (Navy)', 'nameEn': 'Deep Navy 💙', 'hex': '#0D47A1', 'color': const Color(0xFF0D47A1)},
+    {'name': 'الوردي الزهري الجذاب', 'nameEn': 'Vibrant Rose 🌸', 'hex': '#E91E63', 'color': const Color(0xFFE91E63)},
+    {'name': 'الأحمر الياقوتي', 'nameEn': 'Ruby Red ❤️', 'hex': '#D32F2F', 'color': const Color(0xFFD32F2F)},
+    {'name': 'الأحمر القرمزي', 'nameEn': 'Crimson Red 🌹', 'hex': '#C62828', 'color': const Color(0xFFC62828)},
+    {'name': 'الأحمر الكرزي (Bordeaux)', 'nameEn': 'Dark Bordeaux 🍷', 'hex': '#880E4F', 'color': const Color(0xFF880E4F)},
+    {'name': 'العنابي الكلاسيكي (Maroon)', 'nameEn': 'Classic Maroon 🥀', 'hex': '#B71C1C', 'color': const Color(0xFFB71C1C)},
+
+    // 5. الأخضر والطبيعة (Greens & Nature)
+    {'name': 'الأخضر الزمردي', 'nameEn': 'Emerald Green 💚', 'hex': '#2E7D32', 'color': const Color(0xFF2E7D32)},
+    {'name': 'أخضر الغابات العميق', 'nameEn': 'Forest Green 🌲', 'hex': '#1B5E20', 'color': const Color(0xFF1B5E20)},
+    {'name': 'الأخضر النعناعي (Mint)', 'nameEn': 'Cool Mint 🍃', 'hex': '#009688', 'color': const Color(0xFF009688)},
+    {'name': 'الليموني المنعش (Lime)', 'nameEn': 'Fresh Lime 🍋', 'hex': '#689F38', 'color': const Color(0xFF689F38)},
+    {'name': 'أخضر الزيتون الطبيعي', 'nameEn': 'Olive Green 🫒', 'hex': '#558B2F', 'color': const Color(0xFF558B2F)},
+
+    // 6. الترابيات والداكن الفخم (Earth & Dark Elegance)
+    {'name': 'بني القهوة الفاخر (Mocha)', 'nameEn': 'Rich Mocha ☕', 'hex': '#6D4C41', 'color': const Color(0xFF6D4C41)},
+    {'name': 'البني البرونزي (Bronze)', 'nameEn': 'Classic Bronze 🥉', 'hex': '#795548', 'color': const Color(0xFF795548)},
+    {'name': 'الرمادي الصخري (Slate)', 'nameEn': 'Slate Grey 🩶', 'hex': '#455A64', 'color': const Color(0xFF455A64)},
+    {'name': 'الرمادي الداكن الساطع', 'nameEn': 'Dark Charcoal 🖤', 'hex': '#37474F', 'color': const Color(0xFF37474F)},
+    {'name': 'الأسود الفخم الملكي', 'nameEn': 'Midnight Luxury 🎩', 'hex': '#212121', 'color': const Color(0xFF212121)},
   ];
 
   Future<void> _pickBackupFolder() async {
@@ -884,30 +948,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: _colorThemes.map((theme) {
-                final hex = (theme['hex'] as String).toUpperCase();
-                final isSelected = currentHex == hex;
-                final color = theme['color'] as Color;
+              children: [
+                ..._colorThemes.map((theme) {
+                  final hex = (theme['hex'] as String).toUpperCase();
+                  final isSelected = currentHex == hex;
+                  final color = theme['color'] as Color;
 
-                return InkWell(
-                  onTap: () async {
-                    await settingsProvider.updateSetting('primary_color', theme['hex']);
-                    if (context.mounted) {
-                      TopNotification.showSuccess(
-                        context,
-                        isEng ? '🎨 Theme color updated successfully!' : '🎨 تم تطبيق مظهر [${theme['name']}] على الواجهة وتثبيته بنجاح!',
-                      );
-                    }
-                  },
+                  return InkWell(
+                    onTap: () async {
+                      await settingsProvider.updateSetting('primary_color', theme['hex']);
+                      if (context.mounted) {
+                        TopNotification.showSuccess(
+                          context,
+                          isEng ? '🎨 Theme color updated successfully!' : '🎨 تم تطبيق مظهر [${theme['name']}] على الواجهة وتثبيته بنجاح!',
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? color.withValues(alpha: 0.12) : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? color : Colors.grey.shade300,
+                          width: isSelected ? 2.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: color,
+                            child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            isEng ? (theme['nameEn'] ?? theme['name']) as String : theme['name'] as String,
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? color : Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                // Custom Color Button
+                InkWell(
+                  onTap: () => _showCustomColorDialog(context, settingsProvider),
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: isSelected ? color.withValues(alpha: 0.12) : Colors.grey.shade50,
+                      color: Colors.blueGrey.shade50,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? color : Colors.grey.shade300,
-                        width: isSelected ? 2.5 : 1,
+                        color: Colors.blueGrey.shade300,
+                        width: 1.5,
                       ),
                     ),
                     child: Row(
@@ -915,26 +1016,144 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor: color,
-                          child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                          backgroundColor: settingsProvider.primaryColor,
+                          child: const Icon(Icons.colorize_rounded, size: 14, color: Colors.white),
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          isEng ? (theme['nameEn'] ?? theme['name']) as String : theme['name'] as String,
+                          isEng ? 'Custom Hex Color 🎨' : 'لون مخصص (كود Hex) 🎨',
                           style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? color : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueGrey.shade900,
                             fontSize: 14,
                           ),
                         ),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showCustomColorDialog(BuildContext context, SettingsProvider settingsProvider) {
+    final isEng = settingsProvider.isEnglish;
+    final controller = TextEditingController(text: settingsProvider.themeColorHex);
+    Color previewColor = settingsProvider.primaryColor;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: previewColor,
+                  radius: 14,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  isEng ? 'Custom Theme Color 🎨' : 'اختيار لون مخصص للثيم 🎨',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isEng
+                        ? 'Enter Hex color code (e.g. #FF5722 or #123456):'
+                        : 'أدخل كود اللون بنظام Hex (مثال: #FF5722 أو #123456):',
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: previewColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: InputDecoration(
+                            hintText: '#RRGGBB',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          onChanged: (val) {
+                            String clean = val.replaceAll('#', '').trim();
+                            if (clean.length == 6) {
+                              final intVal = int.tryParse(clean, radix: 16);
+                              if (intVal != null) {
+                                setDialogState(() {
+                                  previewColor = Color(0xFF000000 | intVal);
+                                });
+                              }
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: Text(isEng ? 'Cancel' : 'إلغاء'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: previewColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  String hex = controller.text.trim();
+                  if (!hex.startsWith('#')) hex = '#$hex';
+                  if (RegExp(r'^#([A-Fa-f0-9]{6})$').hasMatch(hex)) {
+                    await settingsProvider.updateSetting('primary_color', hex);
+                    if (context.mounted) {
+                      Navigator.pop(dialogCtx);
+                      TopNotification.showSuccess(
+                        context,
+                        isEng ? '🎨 Custom color applied successfully!' : '🎨 تم تطبيق اللون المخصص وتثبيته بنجاح!',
+                      );
+                    }
+                  } else {
+                    TopNotification.showWarning(
+                      context,
+                      isEng ? 'Invalid Hex color format. Use #RRGGBB' : 'يرجى إدخال كود لون صحيح بصيغة #RRGGBB',
+                    );
+                  }
+                },
+                icon: const Icon(Icons.check, color: Colors.white, size: 18),
+                label: Text(
+                  isEng ? 'Apply Color' : 'تطبيق اللون',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1095,6 +1314,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'subtitle': isEng ? 'Factory reset & data wipe' : 'إعادة تعيين المصنع والمسح الشامل',
         'icon': Icons.engineering_rounded,
         'color': Colors.red,
+      },
+      {
+        'title': isEng ? 'About' : 'حول',
+        'subtitle': isEng ? 'Version, License & Support' : 'إصدار البرنامج، مدة الاشتراك، والدعم',
+        'icon': Icons.info_outline_rounded,
+        'color': Colors.indigo,
       },
     ];
 
@@ -1283,28 +1508,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: SafeArea(
           child: Row(
             children: [
-              Icon(Icons.info_outline_rounded, color: Colors.grey.shade600, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                isEng ? 'Click Save button to apply all changes across system' : 'تأكد من النقرفوق زر الحفظ أدناه لتطبيق كافة التعديلات فورياً',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: _saveSettings,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 3,
+              if (_selectedTab != 5) ...[
+                Icon(Icons.info_outline_rounded, color: Colors.grey.shade600, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  isEng ? 'Click Save button to apply all changes across system' : 'تأكد من النقرفوق زر الحفظ أدناه لتطبيق كافة التعديلات فورياً',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
                 ),
-                icon: const Icon(Icons.save_rounded, size: 22),
-                label: Text(
-                  isEng ? 'Save All Settings 💾' : 'حفظ إعدادات المطعم والطابعات 💾',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: _saveSettings,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 3,
+                  ),
+                  icon: const Icon(Icons.save_rounded, size: 22),
+                  label: Text(
+                    isEng ? 'Save All Settings 💾' : 'حفظ إعدادات المطعم والطابعات 💾',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
+              ] else ...[
+                Icon(Icons.verified_rounded, color: Colors.indigo, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  isEng ? 'CashBox POS - System Info, License & Support' : 'كاش بوكس - معلومات النظام والتراخيص وطلب الصيانة',
+                  style: TextStyle(fontSize: 13, color: Colors.indigo.shade800, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(const ClipboardData(text: '+9647507383367'));
+                    TopNotification.showSuccess(context, 'تم نسخ رقم طلب الصيانة (+9647507383367)');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('نسخ رقم الصيانة: +9647507383367', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
             ],
           ),
         ),
@@ -1324,6 +1573,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _buildBackupAndUpdatesTab(context, settings, isEng);
       case 4:
         return _buildMaintenanceTab(context, settings, isEng);
+      case 5:
+        return _buildAboutTab(context, settings, isEng);
       default:
         return _buildStoreAndReceiptTab(context, settings, isEng);
     }
@@ -2104,6 +2355,511 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       isEng ? 'Factory Reset & Wipe Data...' : 'إعادة تعيين المصنع ومسح البيانات...',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // TAB 5: About Screen (Version, Subscription Remaining Time, Maintenance Phone)
+  Widget _buildAboutTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    const maintenancePhone = '+9647507383367';
+    final daysRemaining = _licenseInfo?.daysRemaining ?? 0;
+    final isActivated = _licenseInfo?.isActivated ?? false;
+    final isExpired = _licenseInfo?.isExpired ?? false;
+
+    Color statusColor;
+    String statusTitle;
+    IconData statusIcon;
+
+    if (isActivated) {
+      statusColor = Colors.green;
+      statusTitle = isEng ? 'Annual Subscription Active' : 'الاشتراك السنوي مفعّل';
+      statusIcon = Icons.verified_user_rounded;
+    } else if (isExpired) {
+      statusColor = Colors.red;
+      statusTitle = isEng ? 'Subscription Expired' : 'انتهت فترة الاشتراك';
+      statusIcon = Icons.lock_clock_rounded;
+    } else {
+      statusColor = Colors.amber.shade800;
+      statusTitle = isEng ? 'Free Trial Period' : 'الفترة التجريبية المجانية';
+      statusIcon = Icons.hourglass_top_rounded;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // App Info & Version Card
+        Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.indigo.shade900,
+                  Colors.indigo.shade700,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: const Icon(
+                    Icons.point_of_sale_rounded,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'كاش بوكس - CashBox POS',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade400,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'v$_currentAppVersion',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        isEng
+                            ? 'Comprehensive Restaurant, Cafe & Hall POS Management System'
+                            : 'النظام الشامل والمتكامل لإدارة مبيعات المطاعم، الكافيهات، والصالات',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _isCheckingUpdate ? null : _checkForUpdatesManually,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white70),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: _isCheckingUpdate
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.sync_rounded, size: 18),
+                  label: Text(
+                    isEng ? 'Check Updates' : 'فحص التحديثات',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Subscription & Remaining Duration Card
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(statusIcon, color: statusColor, size: 22),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          isEng ? 'Subscription & License Status' : 'حالة ومدة الاشتراك بالبرنامج',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        statusTitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+                if (_isLoadingLicense)
+                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                else
+                  Row(
+                    children: [
+                      // Remaining Days Display Box
+                      Expanded(
+                        flex: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isEng ? 'Time Remaining on Subscription' : 'المدة المتبقية لانتهاء مدة الاشتراك:',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade800,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '$daysRemaining',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isEng ? 'Days' : 'يوماً متبقية',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              if (_licenseInfo?.expiryDate != null)
+                                Text(
+                                  isEng
+                                      ? 'Expiry Date: ${_licenseInfo!.expiryDate!.toString().split(' ').first}'
+                                      : 'تاريخ انتهاء الاشتراك: ${_licenseInfo!.expiryDate!.toString().split(' ').first}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                )
+                              else
+                                Text(
+                                  isEng ? 'Valid full activation' : 'تفعيل نشط وساري',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+
+                      // Machine ID & Activation Action Box
+                      Expanded(
+                        flex: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isEng ? 'Machine ID Code' : 'معرّف هذا الجهاز (Machine ID):',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.grey.shade300),
+                                      ),
+                                      child: SelectableText(
+                                        _licenseInfo?.machineId ?? '...',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          letterSpacing: 1.1,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    tooltip: isEng ? 'Copy Machine ID' : 'نسخ معرّف الجهاز',
+                                    icon: const Icon(Icons.copy_rounded, size: 20),
+                                    onPressed: () {
+                                      if (_licenseInfo?.machineId != null) {
+                                        Clipboard.setData(ClipboardData(text: _licenseInfo!.machineId));
+                                        TopNotification.showSuccess(context, 'تم نسخ معرّف الجهاز بنجاح!');
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await showDialog(
+                                      context: context,
+                                      builder: (ctx) => const Dialog(
+                                        backgroundColor: Colors.transparent,
+                                        child: LicenseActivationScreen(isModalDialog: true),
+                                      ),
+                                    );
+                                    _loadLicenseInfo();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  icon: const Icon(Icons.vpn_key_rounded, size: 18),
+                                  label: Text(
+                                    isEng ? 'Renew / Enter License Key' : 'تجديد أو إدخال كود الاشتراك 🔑',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Maintenance & Technical Support Card
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.handyman_rounded, color: Colors.teal, size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      isEng ? 'Maintenance & Technical Support' : 'طلب الصيانة والدعم الفني',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+                Text(
+                  isEng
+                      ? 'For technical support, software maintenance, system setup, or license renewals, contact us directly:'
+                      : 'لطلب الصيانة الفنية الفورية، الاستفسارات، تحديثات النظام، أو تجديد التراخيص، يرجى التواصل معنا عبر الرقم المعتمد أدناه:',
+                  style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+
+                // Main Phone Contact Container
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.teal.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.teal,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.phone_in_talk_rounded,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEng ? 'Maintenance & Support Line' : 'رقم طلب الصيانة والدعم المعتمد',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.teal.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Text(
+                                maintenancePhone,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.black87,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isEng ? 'Available 24/7 for support & inquiries' : 'خدمة الصيانة متوفرة طوال أيام الأسبوع لخدمتكم',
+                              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Actions: Copy, WhatsApp, Call
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Clipboard.setData(const ClipboardData(text: maintenancePhone));
+                              TopNotification.showSuccess(context, 'تم نسخ رقم هاتف الصيانة ($maintenancePhone)');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.teal.shade900,
+                              elevation: 1,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.teal.shade300),
+                              ),
+                            ),
+                            icon: const Icon(Icons.copy_rounded, size: 18),
+                            label: Text(
+                              isEng ? 'Copy' : 'نسخ الرقم',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => _openWhatsApp(maintenancePhone),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF25D366),
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                            label: const Text(
+                              'واتساب',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => _openPhoneCall(maintenancePhone),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade700,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.call, size: 18),
+                            label: Text(
+                              isEng ? 'Call' : 'اتصال',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],

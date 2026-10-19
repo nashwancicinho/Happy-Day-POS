@@ -9,10 +9,21 @@ class TablesRepository {
   Future<List<RestaurantTable>> getAllTables() async {
     final db = await _databaseHelper.database;
 
-    final maps = await db.query(
-      'restaurant_tables',
-      orderBy: 'sort_order ASC, id ASC',
-    );
+    final maps = await db.rawQuery('''
+      SELECT t.*, 
+        CASE 
+          WHEN t.status = 1 THEN COALESCE((
+            SELECT o.total 
+            FROM orders o 
+            WHERE o.table_id = t.id AND o.status IN ('OPEN', 'SUSPENDED') 
+            ORDER BY o.id DESC 
+            LIMIT 1
+          ), 0.0)
+          ELSE 0.0
+        END AS current_order_amount
+      FROM restaurant_tables t
+      ORDER BY t.sort_order ASC, t.id ASC
+    ''');
 
     return maps.map((e) => RestaurantTable.fromMap(e)).toList();
   }

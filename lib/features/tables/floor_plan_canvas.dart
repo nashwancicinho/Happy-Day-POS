@@ -99,6 +99,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     }
 
     final isEng = context.watch<SettingsProvider>().isEnglish;
+    final currencySym = context.watch<SettingsProvider>().currencySymbol;
     final isOccupied = table.status == 1;
     final statusColor = isOccupied ? AppColors.danger : AppColors.success;
     final tableWidth = table.shape == 'rectangle' ? 160.0 : 120.0;
@@ -107,6 +108,13 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     String formatTableName(String rawName) {
       if (!isEng) return rawName;
       return rawName.replaceAll('طاولة', 'Table');
+    }
+
+    String formatBillAmount(double? amount) {
+      final val = amount ?? 0.0;
+      final formatted = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(2);
+      final withCommas = formatted.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+      return '$withCommas $currencySym';
     }
 
     return Positioned(
@@ -190,9 +198,20 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      isEng ? '${table.capacity} Persons' : '${table.capacity} أشخاص',
-                      style: TextStyle(fontSize: 9.5, color: Colors.grey.shade700),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: isOccupied ? FontWeight.bold : FontWeight.w600,
+                            color: isOccupied ? AppColors.danger : Colors.grey.shade700,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Container(

@@ -1,6 +1,7 @@
 import '../../database/database_helper.dart';
 import '../../models/daily_treasury.dart';
 import '../../models/other_expense.dart';
+import '../../models/treasury_transaction.dart';
 
 class TreasuryRepository {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
@@ -125,5 +126,76 @@ class TreasuryRepository {
       return (res.first['total'] as num).toDouble();
     }
     return 0.0;
+  }
+
+  // --- Treasury Transactions (حركات الخزينة: إدخال وإخراج مبالغ) ---
+  Future<int> insertTreasuryTransaction(TreasuryTransactionModel transaction) async {
+    final db = await _databaseHelper.database;
+    return await db.insert('treasury_transactions', transaction.toMap());
+  }
+
+  Future<int> deleteTreasuryTransaction(int id) async {
+    final db = await _databaseHelper.database;
+    return await db.delete('treasury_transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<TreasuryTransactionModel>> getTreasuryTransactions({
+    String? datePrefix,
+    String? fromDate,
+    String? toDate,
+    String? type,
+    bool? onlyActiveSession,
+  }) async {
+    final db = await _databaseHelper.database;
+    List<String> conditions = [];
+    List<dynamic> whereArgs = [];
+
+    if (onlyActiveSession == true) {
+      conditions.add("is_closed = 0");
+    }
+
+    if (fromDate != null && fromDate.isNotEmpty && toDate != null && toDate.isNotEmpty) {
+      conditions.add("DATE(created_at) >= DATE(?) AND DATE(created_at) <= DATE(?)");
+      whereArgs.add(fromDate);
+      whereArgs.add(toDate);
+    } else if (datePrefix != null && datePrefix.isNotEmpty) {
+      conditions.add("created_at LIKE ?");
+      whereArgs.add('$datePrefix%');
+    }
+
+    if (type != null && type.isNotEmpty && type != 'ALL') {
+      conditions.add("type = ?");
+      whereArgs.add(type);
+    }
+
+    String whereClause = conditions.isNotEmpty ? "WHERE ${conditions.join(' AND ')}" : "";
+
+    final maps = await db.rawQuery('''
+      SELECT * FROM treasury_transactions
+      $whereClause
+      ORDER BY id DESC
+    ''', whereArgs);
+
+    return maps.map((e) => TreasuryTransactionModel.fromMap(e)).toList();
+  }
+
+  Future<int> closeActiveTreasurySession() async {
+    final db = await _databaseHelper.database;
+    return await db.update(
+      'treasury_transactions',
+      {'is_closed': 1},
+      where: 'is_closed = 0',
+    );
+  }
+
+  Future<double> getAllTimeTreasuryBalance() async {
+    final db = await _databaseHelper.database;
+    final inRes = await db.rawQuery("SELECT SUM(amount) as total FROM treasury_transactions WHERE type = 'IN'");
+    final outRes = await db.rawQuery("SELECT SUM(amount) as total FROM treasury_transactions WHERE type = 'OUT'");
+
+    final totalIn = (inRes.isNotEmpty && inRes.first['total'] != null) ? (inRes.first['total'] as num).toDouble() : 0.0;
+    final totalOut = (outRes.isNotEmpty && outRes.first['total'] != null) ? (outRes.first['total'] as num).toDouble() : 0.0;
+
+    return totalIn - totalOut;
   }
 }

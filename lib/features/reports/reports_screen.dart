@@ -19,7 +19,8 @@ import '../../models/other_expense.dart';
 enum ReportPeriod { daily, monthly, yearly, customRange, allTime }
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
+  final VoidCallback? onBack;
+  const ReportsScreen({super.key, this.onBack});
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -120,7 +121,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       case 'net_profit':
         return isEng ? 'Items & Products Net Profit Report' : 'تقرير الربح الصافي للمواد والمنتجات';
       case 'treasury':
-        return isEng ? 'Treasury & Daily Expenses Report' : 'تقرير الخزينة والمصروفات اليومية';
+        return isEng ? 'Treasury Report' : 'تقرير الخزينة (المبلغ الداخل والخارج والصافي)';
       case 'invoices':
         return isEng ? 'Detailed Invoices List Report' : 'تقرير قائمة الفواتير والعمليات اليومية';
       case 'cashier':
@@ -169,6 +170,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else {
         topProducts = await ordersProvider.getTopSellingProducts(fromDate: fromStr, toDate: toStr);
         await treasuryProvider.loadTreasuryRecords(fromDate: fromStr, toDate: toStr);
+        await treasuryProvider.loadTreasuryTransactions(fromDate: fromStr, toDate: toStr);
         netProfitReport = await ordersProvider.getProductNetProfitReport(fromDate: fromStr, toDate: toStr);
       }
     } else {
@@ -189,6 +191,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else {
         topProducts = await ordersProvider.getTopSellingProducts(datePrefix: prefix);
         await treasuryProvider.loadTreasuryRecords(datePrefix: prefix);
+        await treasuryProvider.loadTreasuryTransactions(datePrefix: prefix.isEmpty ? null : prefix);
         netProfitReport = await ordersProvider.getProductNetProfitReport(datePrefix: prefix);
       }
     }
@@ -664,13 +667,59 @@ class _ReportsScreenState extends State<ReportsScreen> {
       appBar: AppBar(
         title: Text(_isReportGenerated ? _getReportTypeTitle(isEng) : (isEng ? 'Reports & Analytics Center' : 'مركز إعداد وطباعة التقارير الإدارية')),
         centerTitle: true,
+        leadingWidth: _isReportGenerated ? 160 : 150,
         leading: _isReportGenerated
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                tooltip: isEng ? 'Edit report options' : 'تعديل خيارات التقرير',
+            ? TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                label: Text(
+                  isEng ? 'Report Options' : 'خيارات التقرير',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 onPressed: () => setState(() => _isReportGenerated = false),
               )
-            : null,
+            : TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                label: Text(
+                  isEng ? 'Management' : 'لوحة الإدارة',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                onPressed: () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+        actions: [
+          if (_isReportGenerated)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: TextButton.icon(
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                icon: const Icon(Icons.dashboard_customize_rounded, size: 18),
+                label: Text(
+                  isEng ? 'Management' : 'لوحة الإدارة',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                onPressed: () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+            ),
+        ],
       ),
       body: _isReportGenerated ? _buildGeneratedReportView(context) : _buildReportConfigForm(context),
     );
@@ -792,7 +841,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           _buildTypeChip(
                             context,
                             'treasury',
-                            isEng ? '💰 Treasury & Expenses Report' : '💰 تقرير الخزينة والمصروفات',
+                            isEng ? '💰 Treasury Report' : '💰 تقرير الخزينة',
                             Icons.account_balance_wallet_outlined,
                             isManagerOnly: true,
                           ),
@@ -1387,6 +1436,53 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     return;
                   }
 
+                  if (_selectedReportType == 'treasury') {
+                    final customHeaders = isEng
+                        ? ['#', 'Type', 'Amount', 'Reason / Purpose', 'Notes', 'Executed By', 'Date & Time']
+                        : ['#', 'نوع الحركة', 'المبلغ', 'البيان والسبب', 'الملاحظات', 'المنفذ', 'التاريخ والوقت'];
+                    final customDataRows = treasuryProvider.transactions.map((t) => [
+                      '#${t.id ?? 0}',
+                      t.isDeposit ? (isEng ? 'Deposit (+)' : 'إدخال (+)') : (isEng ? 'Withdrawal (-)' : 'إخراج (-)'),
+                      '${t.isDeposit ? "+" : "-"}${t.amount.toStringAsFixed(0)} ${settingsProvider.currencySymbol}',
+                      t.reason,
+                      t.notes ?? '-',
+                      t.createdBy ?? '-',
+                      _formatFullTime(t.createdAt),
+                    ]).toList();
+
+                    TopNotification.showInfo(context, isEng ? 'Sending Treasury Report to [${settingsProvider.reportsPrinter}]...' : 'جاري إرسال تقرير الخزينة لـ [${settingsProvider.reportsPrinter}] وطباعته...');
+
+                    final firstInvTimeStr = _formatFullTime(_sessionInfo?.firstOrderTime);
+                    final dayCloseTimeStr = _sessionInfo?.isClosed == true
+                        ? _formatFullTime(_sessionInfo?.closingTime)
+                        : (isEng ? 'Open Session' : 'مفتوح (حتى الآن)');
+
+                    final success = await PrintService.printReport(
+                      reportTitle: _getReportTypeTitle(isEng),
+                      dateRangeText: _getPeriodTitle(isEng),
+                      generatedBy: context.read<AuthProvider>().currentUserName,
+                      totalSales: treasuryProvider.totalCashIn,
+                      totalExpenses: treasuryProvider.totalCashOut,
+                      totalOrders: treasuryProvider.transactions.length,
+                      netProfit: treasuryProvider.netBalance,
+                      tableTitle: isEng ? 'Treasury Cash Transactions Breakdown:' : 'سجل تفاصيل حركات الخزينة (الداخل والخارج):',
+                      customHeaders: customHeaders,
+                      customDataRows: customDataRows,
+                      firstInvoiceTime: firstInvTimeStr,
+                      dayClosingTime: dayCloseTimeStr,
+                      settings: settingsProvider,
+                    );
+
+                    if (context.mounted) {
+                      if (success) {
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Treasury Report printed successfully!' : '🖨️ تم طباعة تقرير الخزينة بنجاح!');
+                      } else {
+                        TopNotification.showSuccess(context, isEng ? '🖨️ Report sent to direct printing system!' : '🖨️ تم إرسال التقرير إلى نظام الطباعة المباشرة!');
+                      }
+                    }
+                    return;
+                  }
+
                   final breakdownList = displayProducts.map((p) => {
                     'name': p.productName,
                     'qty': p.quantitySold,
@@ -1551,10 +1647,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       builder: (context, constraints) {
                         final isCashierReport = _selectedReportType == 'cashier';
                         final isNetProfitReport = _selectedReportType == 'net_profit';
+                        final isTreasuryReport = _selectedReportType == 'treasury';
 
-                        final displayTotalSales = isNetProfitReport
-                            ? totalNetProfit
-                            : (isCashierReport ? totalCashierSales : totalSales);
+                        final displayTotalSales = isTreasuryReport
+                            ? treasuryProvider.totalCashIn
+                            : (isNetProfitReport
+                                ? totalNetProfit
+                                : (isCashierReport ? totalCashierSales : totalSales));
 
                       final currencySym = settingsProvider.currencySymbol;
 
@@ -1563,71 +1662,107 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           children: [
                             Expanded(
                               child: _metricCard(
-                                title: isNetProfitReport
-                                    ? (isEng ? 'Total Item Net Profit' : 'إجمالي صافي أرباح المواد')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Total Cashier Sales' : 'إجمالي مبيعات الكاشيرية')
-                                        : (isEng ? 'Total Sales (Revenue)' : 'إجمالي المبيعات (الوارد)')),
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Total Cash In (+)' : 'المبلغ الداخل (+)')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total Item Net Profit' : 'إجمالي صافي أرباح المواد')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Total Cashier Sales' : 'إجمالي مبيعات الكاشيرية')
+                                            : (isEng ? 'Total Sales (Revenue)' : 'إجمالي المبيعات (الوارد)'))),
                                 value: '${displayTotalSales.toStringAsFixed(0)} $currencySym',
-                                subtitle: isNetProfitReport
-                                    ? (isEng ? 'Net profit of sold items' : 'صافي ربح المواد المباعة')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Total cashier sales sum' : 'مجموع مبيعات الكاشيرية')
-                                        : (isEng ? 'Total gross sales' : 'المجموع الإجمالي للمبيعات')),
-                                icon: isNetProfitReport ? Icons.trending_up : Icons.monetization_on,
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Safe cash deposits' : 'إجمالي المبالغ الداخلة للخزينة')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Net profit of sold items' : 'صافي ربح المواد المباعة')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Total cashier sales sum' : 'مجموع مبيعات الكاشيرية')
+                                            : (isEng ? 'Total gross sales' : 'المجموع الإجمالي للمبيعات'))),
+                                icon: isTreasuryReport
+                                    ? Icons.arrow_downward_rounded
+                                    : (isNetProfitReport ? Icons.trending_up : Icons.monetization_on),
                                 color: Colors.green.shade700,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _metricCard(
-                                title: isNetProfitReport
-                                    ? (isEng ? 'Total Sales Revenue' : 'إجمالي إيرادات المبيعات')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Top Selling Cashier' : 'الكاشير الأعلى مبيعات')
-                                        : (isEng ? 'Total Expenses' : 'إجمالي المصروفات')),
-                                value: isNetProfitReport
-                                    ? '${totalNetRevenue.toStringAsFixed(0)} $currencySym'
-                                    : (isCashierReport ? topCashier : '${totalExpenses.toStringAsFixed(0)} $currencySym'),
-                                subtitle: isNetProfitReport
-                                    ? (isEng ? 'Direct sales value' : 'إجمالي قيمة المبيعات المباشرة')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Highest performing cashier' : 'الأعلى أداءً بالفترة')
-                                        : (isEng ? 'Total expenses sum' : 'مجموع المصاريف والنفقات')),
-                                icon: isNetProfitReport ? Icons.attach_money : (isCashierReport ? Icons.star_rounded : Icons.shopping_cart_checkout),
-                                color: isNetProfitReport ? Colors.blue.shade700 : (isCashierReport ? Colors.amber.shade800 : Colors.red.shade700),
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Total Cash Out (-)' : 'المبلغ الخارج (-)')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total Sales Revenue' : 'إجمالي إيرادات المبيعات')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Top Selling Cashier' : 'الكاشير الأعلى مبيعات')
+                                            : (isEng ? 'Total Expenses' : 'إجمالي المصروفات'))),
+                                value: isTreasuryReport
+                                    ? '${treasuryProvider.totalCashOut.toStringAsFixed(0)} $currencySym'
+                                    : (isNetProfitReport
+                                        ? '${totalNetRevenue.toStringAsFixed(0)} $currencySym'
+                                        : (isCashierReport ? topCashier : '${totalExpenses.toStringAsFixed(0)} $currencySym')),
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Safe cash withdrawals' : 'إجمالي المبالغ الخارجة من الخزينة')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Direct sales value' : 'إجمالي قيمة المبيعات المباشرة')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Highest performing cashier' : 'الأعلى أداءً بالفترة')
+                                            : (isEng ? 'Total expenses sum' : 'مجموع المصاريف والنفقات'))),
+                                icon: isTreasuryReport
+                                    ? Icons.arrow_upward_rounded
+                                    : (isNetProfitReport ? Icons.attach_money : (isCashierReport ? Icons.star_rounded : Icons.shopping_cart_checkout)),
+                                color: isTreasuryReport
+                                    ? Colors.red.shade700
+                                    : (isNetProfitReport ? Colors.blue.shade700 : (isCashierReport ? Colors.amber.shade800 : Colors.red.shade700)),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _metricCard(
-                                title: isNetProfitReport
-                                    ? (isEng ? 'Total Cost of Goods (COGS)' : 'إجمالي كلفة المواد (COGS)')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Active Cashiers Count' : 'عدد الكاشيرية النشطين')
-                                        : (isEng ? 'Calculated Net Profit' : 'صافي الربح المحسوب')),
-                                value: isNetProfitReport
-                                    ? '${totalNetCost.toStringAsFixed(0)} $currencySym'
-                                    : (isCashierReport
-                                        ? (isEng ? '${_cashierReportData.length} Cashiers' : '${_cashierReportData.length} كاشير')
-                                        : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym'),
-                                subtitle: isNetProfitReport
-                                    ? (isEng ? 'Total item purchase cost' : 'مجموع سعر شراء المواد')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Present users' : 'المستخدمين المتواجدين')
-                                        : (isEng ? 'Total Revenue - Expenses' : 'الوارد الكلي - المصروفات')),
-                                icon: isNetProfitReport ? Icons.shopping_bag_outlined : (isCashierReport ? Icons.people_alt : Icons.savings),
-                                color: isNetProfitReport ? Colors.deepOrange.shade700 : (isCashierReport ? Colors.teal.shade700 : (calculatedNetProfit >= 0 ? primaryColor : Colors.red.shade900)),
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Net Safe Balance (=)' : 'المبلغ الصافي (=)')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total Cost of Goods (COGS)' : 'إجمالي كلفة المواد (COGS)')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Active Cashiers Count' : 'عدد الكاشيرية النشطين')
+                                            : (isEng ? 'Calculated Net Profit' : 'صافي الربح المحسوب'))),
+                                value: isTreasuryReport
+                                    ? '${treasuryProvider.netBalance.toStringAsFixed(0)} $currencySym'
+                                    : (isNetProfitReport
+                                        ? '${totalNetCost.toStringAsFixed(0)} $currencySym'
+                                        : (isCashierReport
+                                            ? (isEng ? '${_cashierReportData.length} Cashiers' : '${_cashierReportData.length} كاشير')
+                                            : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym')),
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Cash In minus Cash Out' : 'المبلغ الداخل ناقص المبلغ الخارج')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total item purchase cost' : 'مجموع سعر شراء المواد')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Present users' : 'المستخدمين المتواجدين')
+                                            : (isEng ? 'Total Revenue - Expenses' : 'الوارد الكلي - المصروفات'))),
+                                icon: isTreasuryReport
+                                    ? Icons.account_balance_wallet
+                                    : (isNetProfitReport ? Icons.shopping_bag_outlined : (isCashierReport ? Icons.people_alt : Icons.savings)),
+                                color: isTreasuryReport
+                                    ? (treasuryProvider.netBalance >= 0 ? Colors.teal.shade700 : Colors.red.shade800)
+                                    : (isNetProfitReport ? Colors.deepOrange.shade700 : (isCashierReport ? Colors.teal.shade700 : (calculatedNetProfit >= 0 ? primaryColor : Colors.red.shade900))),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _metricCard(
-                                title: isNetProfitReport ? (isEng ? 'Item Profit Margin %' : 'نسبة هامش الربح للصنف') : (isEng ? 'Completed Invoices Count' : 'عدد الفواتير المكتملة'),
-                                value: isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : (isEng ? '$totalOrdersCount Invoices' : '$totalOrdersCount فاتورة'),
-                                subtitle: isNetProfitReport ? (isEng ? 'Average profitability margin' : 'معدل الربحية من المبيعات') : (isEng ? 'Total orders count' : 'إجمالي عدد الطلبات'),
-                                icon: isNetProfitReport ? Icons.pie_chart : Icons.receipt_long,
-                                color: isNetProfitReport ? Colors.purple.shade700 : Colors.blue.shade700,
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Treasury Transactions' : 'عدد حركات الخزينة')
+                                    : (isNetProfitReport ? (isEng ? 'Item Profit Margin %' : 'نسبة هامش الربح للصنف') : (isEng ? 'Completed Invoices Count' : 'عدد الفواتير المكتملة')),
+                                value: isTreasuryReport
+                                    ? (isEng ? '${treasuryProvider.transactions.length} Txns' : '${treasuryProvider.transactions.length} حركة')
+                                    : (isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : (isEng ? '$totalOrdersCount Invoices' : '$totalOrdersCount فاتورة')),
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Audit log entries' : 'إجمالي قيود الخزينة للفترة')
+                                    : (isNetProfitReport ? (isEng ? 'Average profitability margin' : 'معدل الربحية من المبيعات') : (isEng ? 'Total orders count' : 'إجمالي عدد الطلبات')),
+                                icon: isTreasuryReport
+                                    ? Icons.receipt_long
+                                    : (isNetProfitReport ? Icons.pie_chart : Icons.receipt_long),
+                                color: isTreasuryReport
+                                    ? Colors.blue.shade700
+                                    : (isNetProfitReport ? Colors.purple.shade700 : Colors.blue.shade700),
                               ),
                             ),
                           ],
@@ -1641,71 +1776,107 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             SizedBox(
                               width: cardWidth,
                               child: _metricCard(
-                                title: isNetProfitReport
-                                    ? (isEng ? 'Total Item Net Profit' : 'إجمالي صافي أرباح المواد')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Total Cashier Sales' : 'إجمالي مبيعات الكاشيرية')
-                                        : (isEng ? 'Total Sales (Revenue)' : 'إجمالي المبيعات (الوارد)')),
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Total Cash In (+)' : 'المبلغ الداخل (+)')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total Item Net Profit' : 'إجمالي صافي أرباح المواد')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Total Cashier Sales' : 'إجمالي مبيعات الكاشيرية')
+                                            : (isEng ? 'Total Sales (Revenue)' : 'إجمالي المبيعات (الوارد)'))),
                                 value: '${displayTotalSales.toStringAsFixed(0)} $currencySym',
-                                subtitle: isNetProfitReport
-                                    ? (isEng ? 'Net profit of sold items' : 'صافي ربح المواد المباعة')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Total cashier sales sum' : 'مجموع مبيعات الكاشيرية')
-                                        : (isEng ? 'Total gross sales' : 'المجموع الإجمالي للمبيعات')),
-                                icon: isNetProfitReport ? Icons.trending_up : Icons.monetization_on,
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Safe cash deposits' : 'إجمالي المبالغ الداخلة للخزينة')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Net profit of sold items' : 'صافي ربح المواد المباعة')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Total cashier sales sum' : 'مجموع مبيعات الكاشيرية')
+                                            : (isEng ? 'Total gross sales' : 'المجموع الإجمالي للمبيعات'))),
+                                icon: isTreasuryReport
+                                    ? Icons.arrow_downward_rounded
+                                    : (isNetProfitReport ? Icons.trending_up : Icons.monetization_on),
                                 color: Colors.green.shade700,
                               ),
                             ),
                             SizedBox(
                               width: cardWidth,
                               child: _metricCard(
-                                title: isNetProfitReport
-                                    ? (isEng ? 'Total Sales Revenue' : 'إجمالي إيرادات المبيعات')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Top Selling Cashier' : 'الكاشير الأعلى مبيعات')
-                                        : (isEng ? 'Total Expenses' : 'إجمالي المصروفات')),
-                                value: isNetProfitReport
-                                    ? '${totalNetRevenue.toStringAsFixed(0)} $currencySym'
-                                    : (isCashierReport ? topCashier : '${totalExpenses.toStringAsFixed(0)} $currencySym'),
-                                subtitle: isNetProfitReport
-                                    ? (isEng ? 'Direct sales value' : 'إجمالي قيمة المبيعات المباشرة')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Highest performing cashier' : 'الأعلى أداءً بالفترة')
-                                        : (isEng ? 'Total expenses sum' : 'مجموع المصاريف والنفقات')),
-                                icon: isNetProfitReport ? Icons.attach_money : (isCashierReport ? Icons.star_rounded : Icons.shopping_cart_checkout),
-                                color: isNetProfitReport ? Colors.blue.shade700 : (isCashierReport ? Colors.amber.shade800 : Colors.red.shade700),
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Total Cash Out (-)' : 'المبلغ الخارج (-)')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total Sales Revenue' : 'إجمالي إيرادات المبيعات')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Top Selling Cashier' : 'الكاشير الأعلى مبيعات')
+                                            : (isEng ? 'Total Expenses' : 'إجمالي المصروفات'))),
+                                value: isTreasuryReport
+                                    ? '${treasuryProvider.totalCashOut.toStringAsFixed(0)} $currencySym'
+                                    : (isNetProfitReport
+                                        ? '${totalNetRevenue.toStringAsFixed(0)} $currencySym'
+                                        : (isCashierReport ? topCashier : '${totalExpenses.toStringAsFixed(0)} $currencySym')),
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Safe cash withdrawals' : 'إجمالي المبالغ الخارجة من الخزينة')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Direct sales value' : 'إجمالي قيمة المبيعات المباشرة')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Highest performing cashier' : 'الأعلى أداءً بالفترة')
+                                            : (isEng ? 'Total expenses sum' : 'مجموع المصاريف والنفقات'))),
+                                icon: isTreasuryReport
+                                    ? Icons.arrow_upward_rounded
+                                    : (isNetProfitReport ? Icons.attach_money : (isCashierReport ? Icons.star_rounded : Icons.shopping_cart_checkout)),
+                                color: isTreasuryReport
+                                    ? Colors.red.shade700
+                                    : (isNetProfitReport ? Colors.blue.shade700 : (isCashierReport ? Colors.amber.shade800 : Colors.red.shade700)),
                               ),
                             ),
                             SizedBox(
                               width: cardWidth,
                               child: _metricCard(
-                                title: isNetProfitReport
-                                    ? (isEng ? 'Total Cost of Goods (COGS)' : 'إجمالي كلفة المواد (COGS)')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Active Cashiers Count' : 'عدد الكاشيرية النشطين')
-                                        : (isEng ? 'Calculated Net Profit' : 'صافي الربح المحسوب')),
-                                value: isNetProfitReport
-                                    ? '${totalNetCost.toStringAsFixed(0)} $currencySym'
-                                    : (isCashierReport
-                                        ? (isEng ? '${_cashierReportData.length} Cashiers' : '${_cashierReportData.length} كاشير')
-                                        : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym'),
-                                subtitle: isNetProfitReport
-                                    ? (isEng ? 'Total item purchase cost' : 'مجموع سعر شراء المواد')
-                                    : (isCashierReport
-                                        ? (isEng ? 'Present users' : 'المستخدمين المتواجدين')
-                                        : (isEng ? 'Total Revenue - Expenses' : 'الوارد الكلي - المصروفات')),
-                                icon: isNetProfitReport ? Icons.shopping_bag_outlined : (isCashierReport ? Icons.people_alt : Icons.savings),
-                                color: isNetProfitReport ? Colors.deepOrange.shade700 : (isCashierReport ? Colors.teal.shade700 : (calculatedNetProfit >= 0 ? primaryColor : Colors.red.shade900)),
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Net Safe Balance (=)' : 'المبلغ الصافي (=)')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total Cost of Goods (COGS)' : 'إجمالي كلفة المواد (COGS)')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Active Cashiers Count' : 'عدد الكاشيرية النشطين')
+                                            : (isEng ? 'Calculated Net Profit' : 'صافي الربح المحسوب'))),
+                                value: isTreasuryReport
+                                    ? '${treasuryProvider.netBalance.toStringAsFixed(0)} $currencySym'
+                                    : (isNetProfitReport
+                                        ? '${totalNetCost.toStringAsFixed(0)} $currencySym'
+                                        : (isCashierReport
+                                            ? (isEng ? '${_cashierReportData.length} Cashiers' : '${_cashierReportData.length} كاشير')
+                                            : '${calculatedNetProfit.toStringAsFixed(0)} $currencySym')),
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Cash In minus Cash Out' : 'المبلغ الداخل ناقص المبلغ الخارج')
+                                    : (isNetProfitReport
+                                        ? (isEng ? 'Total item purchase cost' : 'مجموع سعر شراء المواد')
+                                        : (isCashierReport
+                                            ? (isEng ? 'Present users' : 'المستخدمين المتواجدين')
+                                            : (isEng ? 'Total Revenue - Expenses' : 'الوارد الكلي - المصروفات'))),
+                                icon: isTreasuryReport
+                                    ? Icons.account_balance_wallet
+                                    : (isNetProfitReport ? Icons.shopping_bag_outlined : (isCashierReport ? Icons.people_alt : Icons.savings)),
+                                color: isTreasuryReport
+                                    ? (treasuryProvider.netBalance >= 0 ? Colors.teal.shade700 : Colors.red.shade800)
+                                    : (isNetProfitReport ? Colors.deepOrange.shade700 : (isCashierReport ? Colors.teal.shade700 : (calculatedNetProfit >= 0 ? primaryColor : Colors.red.shade900))),
                               ),
                             ),
                             SizedBox(
                               width: cardWidth,
                               child: _metricCard(
-                                title: isNetProfitReport ? (isEng ? 'Item Profit Margin %' : 'نسبة هامش الربح للصنف') : (isEng ? 'Completed Invoices Count' : 'عدد الفواتير المكتملة'),
-                                value: isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : (isEng ? '$totalOrdersCount Invoices' : '$totalOrdersCount فاتورة'),
-                                subtitle: isNetProfitReport ? (isEng ? 'Average profitability margin' : 'معدل الربحية من المبيعات') : (isEng ? 'Total orders count' : 'إجمالي عدد الطلبات'),
-                                icon: isNetProfitReport ? Icons.pie_chart : Icons.receipt_long,
-                                color: isNetProfitReport ? Colors.purple.shade700 : Colors.blue.shade700,
+                                title: isTreasuryReport
+                                    ? (isEng ? 'Treasury Transactions' : 'عدد حركات الخزينة')
+                                    : (isNetProfitReport ? (isEng ? 'Item Profit Margin %' : 'نسبة هامش الربح للصنف') : (isEng ? 'Completed Invoices Count' : 'عدد الفواتير المكتملة')),
+                                value: isTreasuryReport
+                                    ? (isEng ? '${treasuryProvider.transactions.length} Txns' : '${treasuryProvider.transactions.length} حركة')
+                                    : (isNetProfitReport ? '${overallProfitMarginPct.toStringAsFixed(1)}%' : (isEng ? '$totalOrdersCount Invoices' : '$totalOrdersCount فاتورة')),
+                                subtitle: isTreasuryReport
+                                    ? (isEng ? 'Audit log entries' : 'إجمالي قيود الخزينة للفترة')
+                                    : (isNetProfitReport ? (isEng ? 'Average profitability margin' : 'معدل الربحية من المبيعات') : (isEng ? 'Total orders count' : 'إجمالي عدد الطلبات')),
+                                icon: isTreasuryReport
+                                    ? Icons.receipt_long
+                                    : (isNetProfitReport ? Icons.pie_chart : Icons.receipt_long),
+                                color: isTreasuryReport
+                                    ? Colors.blue.shade700
+                                    : (isNetProfitReport ? Colors.purple.shade700 : Colors.blue.shade700),
                               ),
                             ),
                           ],
@@ -2541,10 +2712,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildTreasuryReportView(BuildContext context, TreasuryProvider treasuryProvider) {
-    final records = treasuryProvider.treasuryRecords;
+    final transactions = treasuryProvider.transactions;
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
-    if (records.isEmpty) {
+    final totalIn = treasuryProvider.totalCashIn;
+    final totalOut = treasuryProvider.totalCashOut;
+    final netBal = treasuryProvider.netBalance;
+
+    if (transactions.isEmpty) {
       return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -2552,7 +2727,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           padding: const EdgeInsets.all(32.0),
           child: Center(
             child: Text(
-              isEng ? 'No treasury records found for selected period.' : 'لا توجد سجلات خزينة مسجلة للفترة المختارة.',
+              isEng ? 'No treasury transactions found for selected period.' : 'لا توجد حركات خزينة مسجلة للفترة المختارة.',
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ),
@@ -2568,32 +2743,135 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isEng ? 'Treasury & Expenses Log:' : 'سجلات حركة الخزينة والمصروفات:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isEng ? 'Treasury Cash Transactions Details:' : 'تفاصيل سجل حركات الخزينة (الداخل والخارج):',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: netBal >= 0 ? Colors.teal.shade50 : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: netBal >= 0 ? Colors.teal.shade200 : Colors.red.shade200),
+                  ),
+                  child: Text(
+                    '${isEng ? "Net: " : "الصافي: "} ${netBal.toStringAsFixed(0)} $currencySym',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: netBal >= 0 ? Colors.teal.shade800 : Colors.red.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 14),
             Table(
               border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+              columnWidths: const {
+                0: FlexColumnWidth(1),
+                1: FlexColumnWidth(2),
+                2: FlexColumnWidth(2),
+                3: FlexColumnWidth(3),
+                4: FlexColumnWidth(2),
+                5: FlexColumnWidth(2),
+                6: FlexColumnWidth(2.5),
+              },
               children: [
                 TableRow(
                   decoration: BoxDecoration(color: Colors.teal.shade50),
                   children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date' : 'التاريخ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Total Income' : 'الوارد الكلي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Daily Expense' : 'المصروف اليومي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Net Income' : 'الوارد الصافي', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Closed By' : 'المنفذ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? '#' : '#', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Type' : 'نوع الحركة', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Amount' : 'المبلغ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Reason / Purpose' : 'البيان والسبب', style: const TextStyle(fontWeight: FontWeight.bold))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Notes' : 'الملاحظات', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Executed By' : 'المنفذ', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Date & Time' : 'التاريخ والوقت', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                   ],
                 ),
-                ...records.map((r) {
+                ...transactions.map((tx) {
+                  final isDep = tx.isDeposit;
                   return TableRow(
                     children: [
-                      Padding(padding: const EdgeInsets.all(10), child: Text(r.date, textAlign: TextAlign.center)),
-                      Padding(padding: const EdgeInsets.all(10), child: Text('${r.dailyIncome.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text('${r.dailyExpense.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text('${r.netIncome.toStringAsFixed(0)} $currencySym', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      Padding(padding: const EdgeInsets.all(10), child: Text(r.closedBy ?? (isEng ? 'Manager' : 'المدير'), textAlign: TextAlign.center)),
+                      Padding(padding: const EdgeInsets.all(10), child: Text('#${tx.id ?? 0}', textAlign: TextAlign.center)),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isDep ? Colors.green.shade50 : Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: isDep ? Colors.green.shade300 : Colors.red.shade300),
+                            ),
+                            child: Text(
+                              isDep ? (isEng ? 'Deposit (+)' : 'إدخال (+)') : (isEng ? 'Withdrawal (-)' : 'إخراج (-)'),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDep ? Colors.green.shade800 : Colors.red.shade800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          '${isDep ? "+" : "-"}${tx.amount.toStringAsFixed(0)} $currencySym',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDep ? Colors.green.shade700 : Colors.red.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(tx.reason, style: const TextStyle(fontWeight: FontWeight.w600))),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(tx.notes ?? '-', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600))),
+                      Padding(padding: const EdgeInsets.all(10), child: Text(tx.createdBy ?? '-', textAlign: TextAlign.center)),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Text(_formatFullTime(tx.createdAt), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                        ),
+                      ),
                     ],
                   );
                 }),
+                // Total Summary Row
+                TableRow(
+                  decoration: BoxDecoration(color: Colors.grey.shade200),
+                  children: [
+                    const Padding(padding: EdgeInsets.all(10), child: Text('Σ', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Summary' : 'الإجمالي', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${netBal >= 0 ? "+" : ""}${netBal.toStringAsFixed(0)} $currencySym',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: netBal >= 0 ? Colors.teal.shade800 : Colors.red.shade800,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${isEng ? "In: " : "الداخل: "} +${totalIn.toStringAsFixed(0)} | ${isEng ? "Out: " : "الخارج: "} -${totalOut.toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                    const Padding(padding: EdgeInsets.all(10), child: Text('-', textAlign: TextAlign.center)),
+                    Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? '${transactions.length} Txns' : '${transactions.length} حركة', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+                    const Padding(padding: EdgeInsets.all(10), child: Text('-', textAlign: TextAlign.center)),
+                  ],
+                ),
               ],
             ),
           ],

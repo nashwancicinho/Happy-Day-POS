@@ -168,7 +168,6 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                             final table = _tables[index];
                             final id = table['id'] as int;
                             final name = table['name'] as String? ?? 'طاولة $id';
-                            final capacity = table['capacity'] as int? ?? 4;
                             final status = table['status'] as int? ?? 0;
                             final isBusy = status == 1;
 
@@ -243,11 +242,21 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.people, size: 13, color: Colors.grey),
+                                          Icon(
+                                            Icons.receipt_long,
+                                            size: 13,
+                                            color: isBusy ? Colors.orangeAccent : Colors.grey,
+                                          ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            '$capacity أشخاص',
-                                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                            isBusy
+                                                ? '${((table['current_order_amount'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(0)} د.ع'
+                                                : '0 د.ع',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: isBusy ? Colors.orangeAccent : Colors.grey,
+                                              fontWeight: isBusy ? FontWeight.bold : FontWeight.normal,
+                                            ),
                                           ),
                                         ],
                                       ),

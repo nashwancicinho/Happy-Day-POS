@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,6 +23,7 @@ class _TablesScreenState extends State<TablesScreen> {
   bool _isDeleteMode = false;
   bool _isDesignMode = false;
   final bool _isFloorPlanView = true;
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
@@ -29,6 +31,17 @@ class _TablesScreenState extends State<TablesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TablesProvider>().loadTables();
     });
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted && !_isDesignMode) {
+        context.read<TablesProvider>().loadTables();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   void _openCashierForTable(RestaurantTable table) async {
@@ -217,7 +230,15 @@ class _TablesScreenState extends State<TablesScreen> {
   Widget build(BuildContext context) {
     final tablesProvider = context.watch<TablesProvider>();
     final isEng = context.watch<SettingsProvider>().isEnglish;
+    final currencySym = context.watch<SettingsProvider>().currencySymbol;
     final tables = tablesProvider.tables;
+
+    String formatBillAmount(double? amount) {
+      final val = amount ?? 0.0;
+      final formatted = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(2);
+      final withCommas = formatted.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+      return '$withCommas $currencySym';
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -530,10 +551,20 @@ class _TablesScreenState extends State<TablesScreen> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      "السعة: ${table.capacity} شخص",
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 10),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
+                                          style: TextStyle(
+                                            color: isOccupied ? AppColors.danger : Colors.grey.shade700,
+                                            fontSize: 10.5,
+                                            fontWeight: isOccupied ? FontWeight.bold : FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Container(

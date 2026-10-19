@@ -207,6 +207,23 @@ class DatabaseHelper {
       ''');
     } catch (_) {}
 
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS treasury_transactions(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT NOT NULL,
+          amount REAL NOT NULL,
+          reason TEXT NOT NULL,
+          notes TEXT,
+          created_by TEXT,
+          is_closed INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL
+        );
+      ''');
+    } catch (_) {}
+
+    await _addColumnIfMissing(db, 'treasury_transactions', 'is_closed', 'INTEGER DEFAULT 0');
+
     // Suppliers table
     try {
       await db.execute('''
@@ -439,6 +456,20 @@ class DatabaseHelper {
       )
     ''');
 
+    // Treasury Transactions
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS treasury_transactions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        reason TEXT NOT NULL,
+        notes TEXT,
+        created_by TEXT,
+        is_closed INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
     // Seed Minimal Empty Defaults
     await _seedMinimalDefaults(db);
   }
@@ -493,6 +524,7 @@ class DatabaseHelper {
       await txn.delete('users');
       await txn.delete('customers');
       await txn.delete('daily_treasury');
+      await txn.delete('treasury_transactions');
       await txn.delete('other_expenses');
       await txn.delete('purchase_items');
       await txn.delete('purchases');

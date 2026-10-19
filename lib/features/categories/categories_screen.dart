@@ -7,7 +7,9 @@ import '../settings/settings_provider.dart';
 import 'categories_provider.dart';
 
 class CategoriesScreen extends StatelessWidget {
-  const CategoriesScreen({super.key});
+  final VoidCallback? onBack;
+
+  const CategoriesScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,25 @@ class CategoriesScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(isEng ? 'Categories Management' : 'إدارة التصنيفات'),
         centerTitle: true,
+        leadingWidth: 150,
+        leading: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          label: Text(
+            isEng ? 'Management' : 'لوحة الإدارة',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          onPressed: () {
+            if (onBack != null) {
+              onBack!();
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCategoryDialog(context),

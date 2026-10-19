@@ -43,11 +43,12 @@ void main() async {
       WindowOptions windowOptions = const WindowOptions(
         fullScreen: false,
         center: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         skipTaskbar: false,
         titleBarStyle: TitleBarStyle.normal,
       );
       windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.setBackgroundColor(Colors.white);
         await windowManager.setFullScreen(false);
         await windowManager.show();
         await windowManager.focus();

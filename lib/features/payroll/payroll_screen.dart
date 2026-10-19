@@ -12,7 +12,8 @@ import '../settings/settings_provider.dart';
 import 'payroll_provider.dart';
 
 class PayrollScreen extends StatefulWidget {
-  const PayrollScreen({super.key});
+  final VoidCallback? onBack;
+  const PayrollScreen({super.key, this.onBack});
 
   @override
   State<PayrollScreen> createState() => _PayrollScreenState();
@@ -42,6 +43,25 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 150,
+        leading: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          label: Text(
+            isEng ? 'Management' : 'لوحة الإدارة',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
         title: Text(isEng ? 'Employee Payroll & Salaries' : 'إدارة رواتب الموظفين والسُلف والمستحقات'),
         centerTitle: true,
         bottom: TabBar(

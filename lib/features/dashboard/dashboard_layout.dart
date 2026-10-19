@@ -17,6 +17,7 @@ import '../products/presentation/products_screen.dart';
 import '../products/products_provider.dart';
 import '../purchases/purchases_screen.dart';
 import '../treasury/other_expenses_screen.dart';
+import '../treasury/treasury_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/settings_provider.dart';
@@ -30,6 +31,7 @@ import '../orders/orders_provider.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
 import '../../core/services/license_service.dart';
 import '../license/license_activation_screen.dart';
+import '../management/management_hub_screen.dart';
 
 
 
@@ -97,9 +99,40 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     );
   }
 
+  late final List<Widget> pages;
+
+  void _navigateToPage(int index) {
+    context.read<ProductsProvider>().selectCategory(null);
+    context.read<ProductsProvider>().setSearchQuery('');
+    setState(() {
+      selectedIndex = index;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    pages = [
+      const HomeOperationScreen(),
+      const TablesScreen(),
+      const CashierScreen(),
+      ProductsScreen(onBack: () => _navigateToPage(14)),
+      CategoriesScreen(onBack: () => _navigateToPage(14)),
+      InventoryScreen(onBack: () => _navigateToPage(14)),
+      PurchasesScreen(onBack: () => _navigateToPage(14)),
+      const OtherExpensesScreen(),
+      UsersScreen(onBack: () => _navigateToPage(14)),
+      const DebtsScreen(),
+      PayrollScreen(onBack: () => _navigateToPage(14)),
+      ReportsScreen(onBack: () => _navigateToPage(14)),
+      const SettingsScreen(),
+      const DayClosingScreen(),
+      ManagementHubScreen(
+        onNavigate: _navigateToPage,
+      ),
+      const TreasuryScreen(),
+    ];
+
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
@@ -202,22 +235,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     return (shouldExit == true) ? AppExitResponse.exit : AppExitResponse.cancel;
   }
 
-  final List<Widget> pages = const [
-    HomeOperationScreen(),
-    TablesScreen(),
-    CashierScreen(),
-    ProductsScreen(),
-    CategoriesScreen(),
-    InventoryScreen(),
-    PurchasesScreen(),
-    OtherExpensesScreen(),
-    UsersScreen(),
-    DebtsScreen(),
-    PayrollScreen(),
-    ReportsScreen(),
-    SettingsScreen(),
-    DayClosingScreen(),
-  ];
+
 
   @override
   Widget build(BuildContext context) {
@@ -287,15 +305,12 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                             _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEnglish ? "Home" : "الرئيسية"),
                             _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEnglish ? "Tables Map" : "الطاولات"),
                             _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEnglish ? "Cashier & POS" : "الكاشير"),
-                            _buildDrawerTile(3, Icons.fastfood_outlined, Icons.fastfood, isEnglish ? "Products" : "الأصناف"),
-                            _buildDrawerTile(4, Icons.category_outlined, Icons.category, isEnglish ? "Categories" : "التصنيفات"),
-                            _buildDrawerTile(5, Icons.inventory_2_outlined, Icons.inventory_2, isEnglish ? "Inventory" : "المخزن"),
-                            _buildDrawerTile(6, Icons.shopping_bag_outlined, Icons.shopping_bag, isEnglish ? "Purchases" : "المشتريات والموردين"),
+                            _buildDrawerTile(15, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet, isEnglish ? "Treasury" : "الخزينة"),
                             _buildDrawerTile(7, Icons.receipt_long_outlined, Icons.receipt_long, isEnglish ? "Other Expenses" : "مصاريف أخرى"),
-                            _buildDrawerTile(8, Icons.people_outline, Icons.people, isEnglish ? "Users & Roles" : "المستخدمون"),
                             _buildDrawerTile(9, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
-                            _buildDrawerTile(10, Icons.payments_outlined, Icons.payments, isEnglish ? "Employee Payroll" : "رواتب الموظفين والسُلف"),
-                            _buildDrawerTile(11, Icons.bar_chart_outlined, Icons.bar_chart, isEnglish ? "Reports & Sales" : "التقارير"),
+                            _buildDrawerTile(14, Icons.admin_panel_settings_outlined, Icons.admin_panel_settings, isEnglish ? "Management" : "الإدارة"),
+
+                            const Divider(height: 16),
                             _buildDrawerTile(12, Icons.settings_outlined, Icons.settings, isEnglish ? "Settings" : "الإعدادات"),
                             _buildDrawerTile(13, Icons.lock_clock_outlined, Icons.lock_clock, isEnglish ? "Day Closing" : "إغلاق اليوم"),
                           ],
@@ -323,11 +338,41 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                           onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
                       ),
+                      if ([3, 4, 5, 6, 8, 10, 11].contains(selectedIndex)) ...[
+                        const SizedBox(width: 4),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = 14;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white30),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.arrow_back_rounded, size: 16, color: Colors.white),
+                                const SizedBox(width: 5),
+                                Text(
+                                  isEng ? 'Management Hub' : 'لوحة الإدارة',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
+                          color: Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white24),
                         ),
@@ -568,13 +613,15 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         return 'perm_cashier_access_settings';
       case 12:
         return 'perm_cashier_access_day_closing';
+      case 15:
+        return 'perm_cashier_access_settings';
       default:
         return null;
     }
   }
 
   Widget _buildDrawerTile(int index, IconData icon, IconData selectedIcon, String label) {
-    final isSelected = selectedIndex == index;
+    final isSelected = selectedIndex == index || (index == 14 && [3, 4, 5, 6, 8, 10, 11].contains(selectedIndex));
     final primaryColor = Theme.of(context).primaryColor;
     final authProvider = context.watch<AuthProvider>();
     final permKey = _getPermissionKeyForIndex(index);
@@ -626,7 +673,6 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     ),
   );
   }
-
 
   void _confirmLogout(BuildContext parentContext, AuthProvider authProvider) {
     final isEng = parentContext.read<SettingsProvider>().isEnglish;

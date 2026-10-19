@@ -11,7 +11,8 @@ import '../settings/cashier_permissions_card.dart';
 import '../payroll/payroll_screen.dart';
 
 class UsersScreen extends StatelessWidget {
-  const UsersScreen({super.key});
+  final VoidCallback? onBack;
+  const UsersScreen({super.key, this.onBack});
 
   void _showCashierPermissionsDialog(BuildContext context, {int? targetUserId}) {
     showDialog(
@@ -63,6 +64,25 @@ class UsersScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 150,
+        leading: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          label: Text(
+            isEng ? 'Management' : 'لوحة الإدارة',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          onPressed: () {
+            if (onBack != null) {
+              onBack!();
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
+        ),
         title: Text(isEng ? 'Users & Permissions Management' : 'إدارة المستخدمين والموظفين والصلاحيات'),
         centerTitle: true,
         actions: [

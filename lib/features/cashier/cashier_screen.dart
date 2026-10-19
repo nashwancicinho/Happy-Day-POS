@@ -2160,7 +2160,7 @@ class _CashierScreenState extends State<CashierScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                isEng ? '${widget.selectedTable!.name} (Cap. ${widget.selectedTable!.capacity})' : '${widget.selectedTable!.name} (سعة ${widget.selectedTable!.capacity})',
+                                widget.selectedTable!.name,
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
                               ),
                               if (_existingOrderId != null)
@@ -2216,16 +2216,18 @@ class _CashierScreenState extends State<CashierScreen> {
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
-                                                Row(
+                                                Wrap(
+                                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                                  spacing: 4,
+                                                  runSpacing: 2,
                                                   children: [
                                                     Text(
                                                       '${item.price.toStringAsFixed(0)} $_currencySymbol',
                                                       style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
                                                     ),
-                                                    if (item.formattedTime.isNotEmpty) ...[
-                                                      const SizedBox(width: 6),
+                                                    if (item.formattedTime.isNotEmpty)
                                                       Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                                         decoration: BoxDecoration(
                                                           color: Colors.blue.shade50,
                                                           borderRadius: BorderRadius.circular(4),
@@ -2234,16 +2236,15 @@ class _CashierScreenState extends State<CashierScreen> {
                                                         child: Row(
                                                           mainAxisSize: MainAxisSize.min,
                                                           children: [
-                                                            const Icon(Icons.access_time, size: 10, color: Colors.blue),
+                                                            const Icon(Icons.access_time, size: 9, color: Colors.blue),
                                                             const SizedBox(width: 2),
                                                             Text(
                                                               item.formattedTime,
-                                                              style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                                                              style: const TextStyle(color: Colors.blue, fontSize: 9.5, fontWeight: FontWeight.bold),
                                                             ),
-                                                          ],
+                                                         ],
                                                         ),
                                                       ),
-                                                    ],
                                                   ],
                                                 ),
 
