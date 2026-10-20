@@ -34,6 +34,7 @@ class CashierScreen extends StatefulWidget {
   final String initialOrderType;
   final VoidCallback? onBack;
   final VoidCallback? onOpenMenu;
+  final VoidCallback? onOrderCompleted;
 
   const CashierScreen({
     super.key,
@@ -41,6 +42,7 @@ class CashierScreen extends StatefulWidget {
     this.initialOrderType = 'TAKEAWAY',
     this.onBack,
     this.onOpenMenu,
+    this.onOrderCompleted,
   });
 
   @override
@@ -920,16 +922,76 @@ class _CashierScreenState extends State<CashierScreen> {
   // 1. Hold / Suspend Invoice on Table (تعليق الفاتورة)
   Future<void> _holdOrderOnTable() async {
     if (_cart.isEmpty) {
-      if (widget.selectedTable != null) {
-        // عند الدخول على طاولة فارغة أو بدون أصناف، الرجوع مباشرة لشاشة الطاولات
-        _finishOrderFlowNavigation();
-        return;
-      }
-      TopNotification.showWarning(context, 'سلة الطلب فارغة! قم بإضافة مواد أولاً لتعليق الفاتورة.');
+      // عند الضغط على تعليق الفاتورة لسلة فارغة، إتمام تدفق الرجوع
+      _finishOrderFlowNavigation(returnToHome: true);
       return;
     }
 
-    final tableId = widget.selectedTable?.id ?? 1;
+    int tableId;
+    String tableName;
+
+    if (widget.selectedTable != null) {
+      tableId = widget.selectedTable!.id!;
+      tableName = widget.selectedTable!.name;
+    } else {
+      final tablesProvider = context.read<TablesProvider>();
+      await tablesProvider.loadTables();
+      if (!mounted) return;
+      final tables = tablesProvider.tables;
+
+      if (tables.isEmpty) {
+        TopNotification.showWarning(context, 'لا توجد طاولات مضافة في النظام لتعليق الفاتورة عليها.');
+        return;
+      }
+
+      final chosenTable = await showDialog<RestaurantTable>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.pause_circle_filled, color: Colors.deepOrange, size: 28),
+              SizedBox(width: 8),
+              Text('اختر الطاولة لتعليق الفاتورة عليها', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            height: 320,
+            child: ListView.separated(
+              itemCount: tables.length,
+              separatorBuilder: (ctx, index) => const Divider(height: 1),
+              itemBuilder: (ctx, idx) {
+                final t = tables[idx];
+                final isOccupied = t.status == 1;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: isOccupied ? Colors.red.withValues(alpha: 0.15) : Colors.green.withValues(alpha: 0.15),
+                    child: Icon(Icons.table_restaurant, color: isOccupied ? Colors.red : Colors.green),
+                  ),
+                  title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(isOccupied ? 'مشغولة حالياً' : 'شاغرة ومتاحة', style: TextStyle(color: isOccupied ? Colors.red : Colors.green, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  onTap: () => Navigator.pop(ctx, t),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('إلغاء'),
+            ),
+          ],
+        ),
+      );
+
+      if (chosenTable == null || chosenTable.id == null || !mounted) return;
+      tableId = chosenTable.id!;
+      tableName = chosenTable.name;
+    }
+
+    if (!mounted) return;
     final ordersProvider = context.read<OrdersProvider>();
     final settingsProvider = context.read<SettingsProvider>();
 
@@ -962,7 +1024,7 @@ class _CashierScreenState extends State<CashierScreen> {
         order: heldOrder,
         items: kitchenDeltaItems,
         settings: settingsProvider,
-        tableName: widget.selectedTable?.name ?? 'طاولة $tableId',
+        tableName: tableName,
       ).catchError((e) {
         debugPrint('Kitchen print error on hold order: $e');
         return false;
@@ -977,28 +1039,37 @@ class _CashierScreenState extends State<CashierScreen> {
       context,
       kitchenDeltaItems.isNotEmpty
           ? '🍳 تم تعليق الفاتورة وإرسال وطباعة ${kitchenDeltaItems.length} صنف جديد على طابعة المطبخ [$kitchenPrinter] بنجاح!'
-          : '📌 تم تعليق الفاتورة وحفظها للطاولة بنجاح!',
+          : '📌 تم تعليق الفاتورة وحفظها للطاولة [$tableName] بنجاح!',
     );
 
-    _finishOrderFlowNavigation();
+    _finishOrderFlowNavigation(returnToHome: true);
   }
 
 
   void _resetToInitialCashierState() {
     _clearCart();
+    _orderType = widget.selectedTable != null ? 'DINE_IN' : widget.initialOrderType;
     if (mounted) {
       context.read<ProductsProvider>().selectCategory(null);
       context.read<ProductsProvider>().setSearchQuery('');
     }
   }
 
-  void _finishOrderFlowNavigation() {
+  void _finishOrderFlowNavigation({bool returnToHome = true}) {
     _resetToInitialCashierState();
     if (mounted && widget.selectedTable != null) {
       context.read<TablesProvider>().loadTables();
     }
-    if (mounted && Navigator.canPop(context)) {
-      Navigator.pop(context);
+    if (mounted) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context, returnToHome);
+      } else if (returnToHome) {
+        if (widget.onOrderCompleted != null) {
+          widget.onOrderCompleted!();
+        } else if (widget.onBack != null) {
+          widget.onBack!();
+        }
+      }
     }
   }
 
@@ -2100,7 +2171,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                       tooltip: isEng ? 'Back to Tables' : 'رجوع للطاولات',
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
-                                      onPressed: _finishOrderFlowNavigation,
+                                      onPressed: () => _finishOrderFlowNavigation(returnToHome: false),
                                     ),
                                     const SizedBox(width: 8),
                                   ] else ...[
@@ -2479,11 +2550,13 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   Color? _parseColor(String? hexString) {
-    if (hexString == null || hexString.isEmpty) return null;
+    if (hexString == null) return null;
+    final clean = hexString.trim().replaceFirst('#', '');
+    if (clean.isEmpty) return null;
     try {
       final buffer = StringBuffer();
-      if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-      buffer.write(hexString.replaceFirst('#', ''));
+      if (clean.length == 6) buffer.write('ff');
+      buffer.write(clean);
       return Color(int.parse(buffer.toString(), radix: 16));
     } catch (_) {
       return null;
@@ -2547,6 +2620,7 @@ class _CashierScreenState extends State<CashierScreen> {
       itemName: category.name,
       initialImage: category.image,
       initialColor: category.color,
+      defaultFallbackColor: _getCategoryColor(category.copyWith(clearColor: true)),
     );
     if (!context.mounted) return;
     if (result != null) {
@@ -2569,6 +2643,7 @@ class _CashierScreenState extends State<CashierScreen> {
       itemName: product.name,
       initialImage: product.image,
       initialColor: product.color,
+      defaultFallbackColor: _getProductColor(product.copyWith(clearColor: true)),
     );
     if (!context.mounted) return;
     if (result != null) {
@@ -2726,7 +2801,9 @@ class _CashierScreenState extends State<CashierScreen> {
             borderRadius: BorderRadius.circular(14),
             side: BorderSide(
               color: product.isAvailable
-                  ? (isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300)
+                  ? (isDarkBg
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : (bgColor.computeLuminance() > 0.85 ? Colors.grey.shade400 : Colors.grey.shade300))
                   : Colors.red.shade200,
               width: 1.0,
             ),
@@ -2745,14 +2822,20 @@ class _CashierScreenState extends State<CashierScreen> {
                       decoration: BoxDecoration(
                         color: bgColor,
                         gradient: (!hasImage && product.isAvailable)
-                            ? LinearGradient(
-                                colors: [
-                                  bgColor.withValues(alpha: 0.88),
-                                  bgColor,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
+                            ? (bgColor.computeLuminance() > 0.85
+                                ? const LinearGradient(
+                                    colors: [Colors.white, Color(0xFFF8FAFC)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      bgColor.withValues(alpha: 0.88),
+                                      bgColor,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ))
                             : null,
                       ),
                     ),
@@ -2797,7 +2880,9 @@ class _CashierScreenState extends State<CashierScreen> {
                                 decoration: BoxDecoration(
                                   color: isDarkBg
                                       ? Colors.black.withValues(alpha: 0.28)
-                                      : Colors.white.withValues(alpha: 0.75),
+                                      : (bgColor.computeLuminance() > 0.85
+                                          ? const Color(0xFFF1F5F9)
+                                          : Colors.white.withValues(alpha: 0.75)),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isDarkBg
@@ -2922,7 +3007,9 @@ class _CashierScreenState extends State<CashierScreen> {
             borderRadius: BorderRadius.circular(14),
             side: BorderSide(
               color: product.isAvailable
-                  ? (isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300)
+                  ? (isDarkBg
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : (bgColor.computeLuminance() > 0.85 ? Colors.grey.shade400 : Colors.grey.shade300))
                   : Colors.red.shade200,
               width: 1.0,
             ),
@@ -2941,14 +3028,20 @@ class _CashierScreenState extends State<CashierScreen> {
                       decoration: BoxDecoration(
                         color: bgColor,
                         gradient: (!hasImage && product.isAvailable)
-                            ? LinearGradient(
-                                colors: [
-                                  bgColor.withValues(alpha: 0.88),
-                                  bgColor,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
+                            ? (bgColor.computeLuminance() > 0.85
+                                ? const LinearGradient(
+                                    colors: [Colors.white, Color(0xFFF8FAFC)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      bgColor.withValues(alpha: 0.88),
+                                      bgColor,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ))
                             : null,
                       ),
                     ),
@@ -2993,7 +3086,9 @@ class _CashierScreenState extends State<CashierScreen> {
                                 decoration: BoxDecoration(
                                   color: isDarkBg
                                       ? Colors.black.withValues(alpha: 0.28)
-                                      : Colors.white.withValues(alpha: 0.75),
+                                      : (bgColor.computeLuminance() > 0.85
+                                          ? const Color(0xFFF1F5F9)
+                                          : Colors.white.withValues(alpha: 0.75)),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isDarkBg

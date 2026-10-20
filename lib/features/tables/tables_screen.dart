@@ -13,7 +13,10 @@ import 'floor_plan_canvas.dart';
 import 'tables_provider.dart';
 
 class TablesScreen extends StatefulWidget {
-  const TablesScreen({super.key});
+  final VoidCallback? onBack;
+  final VoidCallback? onOrderCompleted;
+
+  const TablesScreen({super.key, this.onBack, this.onOrderCompleted});
 
   @override
   State<TablesScreen> createState() => _TablesScreenState();
@@ -45,15 +48,27 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 
   void _openCashierForTable(RestaurantTable table) async {
-    await Navigator.push(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => CashierScreen(selectedTable: table),
+        builder: (_) => CashierScreen(
+          selectedTable: table,
+          onBack: widget.onBack,
+          onOrderCompleted: widget.onOrderCompleted,
+        ),
       ),
     );
 
     if (!mounted) return;
     context.read<TablesProvider>().loadTables();
+
+    if (result == true) {
+      if (widget.onOrderCompleted != null) {
+        widget.onOrderCompleted!();
+      } else if (widget.onBack != null) {
+        widget.onBack!();
+      }
+    }
   }
 
   void _confirmDeleteTable(BuildContext parentContext, RestaurantTable table) {
@@ -245,17 +260,6 @@ class _TablesScreenState extends State<TablesScreen> {
       floatingActionButton: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (Navigator.canPop(context)) ...[
-            FloatingActionButton(
-              heroTag: 'tables_back_nav_btn',
-              mini: true,
-              backgroundColor: const Color(0xFF1F2937),
-              onPressed: () => Navigator.pop(context),
-              tooltip: isEng ? 'Back' : 'رجوع',
-              child: const Icon(Icons.arrow_back, color: Colors.white),
-            ),
-            const SizedBox(width: 10),
-          ],
           if (_isDesignMode) ...[
             FloatingActionButton.extended(
               heroTag: 'save_design_btn',

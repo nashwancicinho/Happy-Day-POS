@@ -114,13 +114,15 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     );
   }
 
+  bool _openedFromHome = false;
   late final List<Widget> pages;
 
-  void _navigateToPage(int index) {
+  void _navigateToPage(int index, {bool fromHome = false}) {
     context.read<ProductsProvider>().selectCategory(null);
     context.read<ProductsProvider>().setSearchQuery('');
     setState(() {
       selectedIndex = index;
+      _openedFromHome = fromHome;
     });
   }
 
@@ -128,11 +130,25 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   void initState() {
     super.initState();
     pages = [
-      HomeOperationScreen(onNavigate: _navigateToPage),
-      const TablesScreen(),
+      HomeOperationScreen(
+        onNavigate: (index) => _navigateToPage(index, fromHome: true),
+      ),
+      TablesScreen(
+        onBack: () => _navigateToPage(0),
+        onOrderCompleted: () {
+          if (_openedFromHome) {
+            _navigateToPage(0);
+          }
+        },
+      ),
       CashierScreen(
         onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
         onBack: () => _navigateToPage(0),
+        onOrderCompleted: () {
+          if (_openedFromHome) {
+            _navigateToPage(0);
+          }
+        },
       ),
       ProductsScreen(onBack: () => _navigateToPage(14)),
       CategoriesScreen(onBack: () => _navigateToPage(14)),
@@ -361,15 +377,37 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                           onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
                       ),
+                      if (selectedIndex == 1) ...[
+                        const SizedBox(width: 4),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () => _navigateToPage(0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white30),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.home_rounded, size: 16, color: Colors.white),
+                                const SizedBox(width: 5),
+                                Text(
+                                  isEng ? 'Home' : 'الرئيسية',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       if ([3, 4, 5, 6, 8, 10, 11].contains(selectedIndex)) ...[
                         const SizedBox(width: 4),
                         InkWell(
                           borderRadius: BorderRadius.circular(20),
-                          onTap: () {
-                            setState(() {
-                              selectedIndex = 14;
-                            });
-                          },
+                          onTap: () => _navigateToPage(14, fromHome: false),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
@@ -686,11 +724,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
             if (!mounted) return;
           }
 
-          context.read<ProductsProvider>().selectCategory(null);
-          context.read<ProductsProvider>().setSearchQuery('');
-          setState(() {
-            selectedIndex = index;
-          });
+          _navigateToPage(index, fromHome: false);
         },
       ),
     ),

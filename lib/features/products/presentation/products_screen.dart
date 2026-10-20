@@ -1517,6 +1517,7 @@ class ProductsScreen extends StatelessWidget {
       itemName: product.name,
       initialImage: product.image,
       initialColor: product.color,
+      defaultFallbackColor: const Color(0xFF1D4ED8),
     );
     if (!context.mounted) return;
     if (result != null) {

@@ -13,12 +13,14 @@ class CustomizeItemAppearanceDialog extends StatefulWidget {
   final String itemName;
   final String? initialImage;
   final String? initialColor;
+  final Color? defaultFallbackColor;
 
   const CustomizeItemAppearanceDialog({
     super.key,
     required this.itemName,
     this.initialImage,
     this.initialColor,
+    this.defaultFallbackColor,
   });
 
   static Future<Map<String, String?>?> show(
@@ -26,6 +28,7 @@ class CustomizeItemAppearanceDialog extends StatefulWidget {
     required String itemName,
     String? initialImage,
     String? initialColor,
+    Color? defaultFallbackColor,
   }) {
     return showDialog<Map<String, String?>?>(
       context: context,
@@ -33,6 +36,7 @@ class CustomizeItemAppearanceDialog extends StatefulWidget {
         itemName: itemName,
         initialImage: initialImage,
         initialColor: initialColor,
+        defaultFallbackColor: defaultFallbackColor,
       ),
     );
   }
@@ -47,7 +51,15 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
 
   // Preset Colors Palette (Hex String -> Label) - Deeper & Richer Colors
   final List<Map<String, String?>> _colorPresets = [
-    {'name': 'افتراضي (تلقائي)', 'nameEn': 'Default (Auto)', 'hex': null},
+    // 0. Auto / Default Dynamic (نظام الألوان التلقائي)
+    {'name': 'تلقائي (حسب النظام) 🎨', 'nameEn': 'System Auto 🎨', 'hex': null},
+
+    // Whites & Neutrals (الأبيض والفاتح)
+    {'name': 'أبيض ناصع ⚪', 'nameEn': 'Pure White', 'hex': '#FFFFFF'},
+    {'name': 'أبيض عاجي 🪽', 'nameEn': 'Ivory White', 'hex': '#F8FAFC'},
+    {'name': 'أوف وايت ناعم 🥛', 'nameEn': 'Soft Off-White', 'hex': '#F1F5F9'},
+    {'name': 'رمادي فاتح 🩶', 'nameEn': 'Light Gray', 'hex': '#E2E8F0'},
+
     // Reds & Corals
     {'name': 'أحمر كلاسيكي 🟥', 'nameEn': 'Crimson Red', 'hex': '#DC2626'},
     {'name': 'أحمر عنابي 🍷', 'nameEn': 'Burgundy', 'hex': '#991B1B'},
@@ -135,11 +147,13 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
   }
 
   Color _parseHexColor(String? hexString) {
-    if (hexString == null || hexString.isEmpty) return Colors.white;
+    if (hexString == null) return Colors.white;
+    final clean = hexString.trim().replaceFirst('#', '');
+    if (clean.isEmpty) return Colors.white;
     try {
       final buffer = StringBuffer();
-      if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-      buffer.write(hexString.replaceFirst('#', ''));
+      if (clean.length == 6) buffer.write('ff');
+      buffer.write(clean);
       return Color(int.parse(buffer.toString(), radix: 16));
     } catch (_) {
       return Colors.white;
@@ -153,9 +167,12 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
   @override
   Widget build(BuildContext context) {
     final isEng = context.watch<SettingsProvider>().isEnglish;
-    final cardBgColor = _parseHexColor(_selectedColor);
+    final isAuto = _selectedColor == null || _selectedColor!.trim().isEmpty;
+    final cardBgColor = isAuto
+        ? (widget.defaultFallbackColor ?? const Color(0xFF1D4ED8))
+        : _parseHexColor(_selectedColor);
     final hasImage = _selectedImage != null && _selectedImage!.isNotEmpty && File(_selectedImage!).existsSync();
-    final isDarkBg = hasImage || (_selectedColor != null && _isDarkColor(cardBgColor));
+    final isDarkBg = hasImage || _isDarkColor(cardBgColor);
     final textColor = isDarkBg ? Colors.white : Colors.black87;
 
     return Dialog(
@@ -205,9 +222,62 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                 const Divider(height: 28),
 
                 // Live Preview Card Section
-                Text(
-                  isEng ? 'Live Card Preview:' : 'معاينة المظهر الحية:',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                Row(
+                  children: [
+                    Text(
+                      isEng ? 'Live Card Preview:' : 'معاينة المظهر الحية:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isAuto
+                            ? Colors.blueGrey.shade50
+                            : (_selectedColor?.toUpperCase() == '#FFFFFF'
+                                ? Colors.grey.shade100
+                                : cardBgColor.withValues(alpha: 0.15)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isAuto
+                              ? Colors.blueGrey.shade200
+                              : (_selectedColor?.toUpperCase() == '#FFFFFF'
+                                  ? Colors.grey.shade400
+                                  : cardBgColor.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isAuto)
+                            const Icon(Icons.auto_awesome, size: 13, color: Colors.blueGrey)
+                          else
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: cardBgColor,
+                                border: Border.all(color: Colors.grey.shade400),
+                              ),
+                            ),
+                          const SizedBox(width: 5),
+                          Text(
+                            isAuto
+                                ? (isEng ? 'System Auto Color' : 'لون تلقائي حسب النظام 🎨')
+                                : (_selectedColor?.toUpperCase() == '#FFFFFF'
+                                    ? (isEng ? 'Pure White ⚪' : 'لون أبيض ناصع ⚪')
+                                    : (isEng ? 'Custom Color' : 'لون مخصص')),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isAuto ? Colors.blueGrey.shade800 : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Center(
@@ -217,9 +287,18 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                     decoration: BoxDecoration(
                       color: cardBgColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.amber.shade300, width: 1.5),
+                      border: Border.all(
+                        color: _selectedColor?.toUpperCase() == '#FFFFFF'
+                            ? Colors.grey.shade400
+                            : Colors.amber.shade300,
+                        width: 1.5,
+                      ),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 4)),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
                     ),
                     child: ClipRRect(
@@ -317,9 +396,15 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                   children: _colorPresets.map((preset) {
                     final hex = preset['hex'];
                     final name = isEng ? (preset['nameEn'] ?? preset['name']!) : preset['name']!;
-                    final isSelected = _selectedColor == hex;
-                    final colorVal = _parseHexColor(hex);
-                    final isDarkChip = hex != null && _isDarkColor(colorVal);
+                    final isAutoPreset = hex == null;
+                    final isWhitePreset = hex != null &&
+                        (hex.toUpperCase() == '#FFFFFF' ||
+                            hex.toUpperCase() == '#F8FAFC' ||
+                            hex.toUpperCase() == '#F1F5F9');
+                    final isSelected = (isAuto && isAutoPreset) ||
+                        (!isAuto && !isAutoPreset && _selectedColor!.trim().toUpperCase() == hex.trim().toUpperCase());
+                    final colorVal = isAutoPreset ? const Color(0xFFF1F5F9) : _parseHexColor(hex);
+                    final isDarkChip = !isAutoPreset && _isDarkColor(colorVal);
 
                     return GestureDetector(
                       onTap: () {
@@ -334,26 +419,48 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                           color: colorVal,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? Colors.deepOrange : (isDarkChip ? Colors.white30 : Colors.grey.shade300),
-                            width: isSelected ? 2.5 : 1.0,
+                            color: isSelected
+                                ? Colors.deepOrange
+                                : (isWhitePreset
+                                    ? Colors.grey.shade400
+                                    : (isAutoPreset
+                                        ? Colors.blueGrey.shade300
+                                        : (isDarkChip ? Colors.white30 : Colors.grey.shade300))),
+                            width: isSelected ? 2.5 : (isWhitePreset ? 1.5 : 1.0),
                           ),
                           boxShadow: isSelected
-                              ? [BoxShadow(color: Colors.orange.withValues(alpha: 0.3), blurRadius: 6, spreadRadius: 1)]
-                              : null,
+                              ? [BoxShadow(color: Colors.orange.withValues(alpha: 0.35), blurRadius: 6, spreadRadius: 1)]
+                              : (isWhitePreset
+                                  ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 3, offset: const Offset(0, 1))]
+                                  : null),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (isSelected)
-                              Icon(Icons.check_circle, size: 14, color: isDarkChip ? Colors.amberAccent : Colors.deepOrange)
+                              Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: isDarkChip ? Colors.amberAccent : Colors.deepOrange,
+                              )
+                            else if (isAutoPreset)
+                              const Icon(
+                                Icons.auto_awesome,
+                                size: 14,
+                                color: Colors.blueGrey,
+                              )
                             else
                               Container(
                                 width: 12,
                                 height: 12,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: colorVal == Colors.white ? Colors.grey.shade300 : colorVal,
-                                  border: Border.all(color: isDarkChip ? Colors.white54 : Colors.grey.shade400),
+                                  color: colorVal,
+                                  border: Border.all(
+                                    color: isWhitePreset
+                                        ? Colors.grey.shade400
+                                        : (isDarkChip ? Colors.white54 : Colors.grey.shade400),
+                                  ),
                                 ),
                               ),
                             const SizedBox(width: 6),
