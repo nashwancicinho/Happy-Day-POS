@@ -128,6 +128,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
 
   Widget _buildCustomerReceipt(SettingsProvider settings) {
     final logoIconName = settings.settings['store_logo_icon'] ?? 'storefront';
+    final displayItems = PrintService.mergeDuplicateItems(widget.items);
 
     return Container(
       color: Colors.white,
@@ -346,7 +347,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                 ),
 
                 // Item Rows
-                ...widget.items.asMap().entries.map((entry) {
+                ...displayItems.asMap().entries.map((entry) {
                   final idx = entry.key + 1;
                   final item = entry.value;
                   return TableRow(
@@ -369,7 +370,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
                     Padding(
                       padding: const EdgeInsets.all(4),
                       child: Text(
-                        widget.items.fold<double>(0, (sum, i) => sum + i.quantity).toStringAsFixed(0),
+                        displayItems.fold<double>(0, (sum, i) => sum + i.quantity).toStringAsFixed(0),
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         textAlign: TextAlign.center,
                       ),
@@ -504,7 +505,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> with Single
   }
 
   Widget _buildKitchenTicket() {
-    final kitchenItems = widget.items.where((item) => item.printToKitchen).toList();
+    final kitchenItems = PrintService.mergeKitchenDuplicateItems(
+      widget.items.where((item) => item.printToKitchen).toList(),
+    );
 
     return Container(
       color: Colors.yellow.shade50,

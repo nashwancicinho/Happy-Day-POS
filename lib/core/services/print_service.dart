@@ -293,6 +293,70 @@ class PrintService {
     }
   }
 
+  /// دمج المواد المكررة لتطبع كبند واحد بالكمية والقيمة الإجمالية في الفاتورة
+  static List<OrderItemModel> mergeDuplicateItems(List<OrderItemModel> items) {
+    if (items.isEmpty) return [];
+
+    final Map<String, OrderItemModel> mergedMap = {};
+
+    for (final item in items) {
+      final priceKey = item.price.toStringAsFixed(2);
+      final pName = (item.productName ?? '').trim();
+      final key = '${item.productId}_${pName}_$priceKey';
+
+      if (mergedMap.containsKey(key)) {
+        final existing = mergedMap[key]!;
+        final newQty = existing.quantity + item.quantity;
+        final newDiscount = existing.discount + item.discount;
+
+        String? combinedNotes = existing.notes;
+        final incomingNote = item.notes?.trim();
+        if (incomingNote != null && incomingNote.isNotEmpty) {
+          if (combinedNotes == null || combinedNotes.trim().isEmpty) {
+            combinedNotes = incomingNote;
+          } else if (!combinedNotes.contains(incomingNote)) {
+            combinedNotes = '$combinedNotes + $incomingNote';
+          }
+        }
+
+        mergedMap[key] = existing.copyWith(
+          quantity: newQty,
+          discount: newDiscount,
+          notes: combinedNotes,
+        );
+      } else {
+        mergedMap[key] = item;
+      }
+    }
+
+    return mergedMap.values.toList();
+  }
+
+  /// دمج المواد المكررة لأمر المطبخ (مع مطابقة الملاحظات لتفادي خلط تحضيرات الأصناف)
+  static List<OrderItemModel> mergeKitchenDuplicateItems(List<OrderItemModel> items) {
+    if (items.isEmpty) return [];
+
+    final Map<String, OrderItemModel> mergedMap = {};
+
+    for (final item in items) {
+      final pName = (item.productName ?? '').trim();
+      final noteKey = (item.notes ?? '').trim();
+      final targetPrinter = (item.kitchenPrinter ?? '').trim();
+      final key = '${item.productId}_${pName}_${targetPrinter}_$noteKey';
+
+      if (mergedMap.containsKey(key)) {
+        final existing = mergedMap[key]!;
+        mergedMap[key] = existing.copyWith(
+          quantity: existing.quantity + item.quantity,
+        );
+      } else {
+        mergedMap[key] = item;
+      }
+    }
+
+    return mergedMap.values.toList();
+  }
+
   /// طباعة الفاتورة للزبون أوتوماتيكياً على طابعة الكاشير المحددة
   static Future<bool> printCustomerReceipt({
     required OrderModel order,
@@ -303,6 +367,7 @@ class PrintService {
     double changeDue = 0.0,
   }) async {
     try {
+      final mergedItems = mergeDuplicateItems(items);
       final arabicFont = await _loadArabicFont(isBold: false);
       final arabicFontBold = await _loadArabicFont(isBold: true);
 
@@ -570,7 +635,7 @@ class PrintService {
                         ),
 
                         // Item Rows
-                        ...items.asMap().entries.map((entry) {
+                        ...mergedItems.asMap().entries.map((entry) {
                           final idx = entry.key + 1;
                           final item = entry.value;
                           final rawName = (item.productName != null && item.productName!.isNotEmpty)
@@ -619,7 +684,7 @@ class PrintService {
                             pw.Padding(
                               padding: const pw.EdgeInsets.all(2),
                               child: pw.Text(
-                                items.fold<double>(0, (sum, i) => sum + i.quantity).toStringAsFixed(0),
+                                mergedItems.fold<double>(0, (sum, i) => sum + i.quantity).toStringAsFixed(0),
                                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5),
                                 textAlign: pw.TextAlign.center,
                               ),
@@ -791,12 +856,13 @@ class PrintService {
         return true;
       }
 
+      final mergedKitchenItems = mergeKitchenDuplicateItems(kitchenItems);
       final arabicFont = await _loadArabicFont(isBold: false);
       final arabicFontBold = await _loadArabicFont(isBold: true);
 
       // Group items by target kitchen printer
       final Map<String, List<OrderItemModel>> itemsByPrinter = {};
-      for (var item in kitchenItems) {
+      for (var item in mergedKitchenItems) {
         final targetPrinter =
             (item.kitchenPrinter != null && item.kitchenPrinter!.isNotEmpty)
             ? item.kitchenPrinter!
