@@ -41,7 +41,7 @@ void main() async {
     try {
       await windowManager.ensureInitialized();
       WindowOptions windowOptions = const WindowOptions(
-        fullScreen: false,
+        fullScreen: true,
         center: false,
         backgroundColor: Colors.white,
         skipTaskbar: false,
@@ -49,9 +49,8 @@ void main() async {
       );
       windowManager.waitUntilReadyToShow(windowOptions, () async {
         await windowManager.setBackgroundColor(Colors.white);
-        await windowManager.setFullScreen(false);
+        await windowManager.setFullScreen(true);
         await windowManager.show();
-        await windowManager.maximize();
         await windowManager.focus();
       });
     } catch (e) {

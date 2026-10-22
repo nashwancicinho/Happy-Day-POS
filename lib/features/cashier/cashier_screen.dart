@@ -51,9 +51,10 @@ class CashierScreen extends StatefulWidget {
   State<CashierScreen> createState() => _CashierScreenState();
 }
 
-class _CashierScreenState extends State<CashierScreen> {
+class _CashierScreenState extends State<CashierScreen> with WindowListener {
   late String _orderType;
   final List<OrderItemModel> _cart = [];
+  final Set<String> _selectedItemKeys = {};
   final ScrollController _cartScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   int? _existingOrderId;
@@ -68,6 +69,13 @@ class _CashierScreenState extends State<CashierScreen> {
         debugPrint('windowManager toggle error in Cashier: $e');
       }
     }
+  }
+
+  @override
+  void onWindowMaximize() async {
+    try {
+      await windowManager.setFullScreen(true);
+    } catch (_) {}
   }
 
   String get _currencySymbol => context.watch<SettingsProvider>().currencySymbol;
@@ -87,6 +95,9 @@ class _CashierScreenState extends State<CashierScreen> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.addListener(this);
+    }
     _orderType = widget.selectedTable != null ? 'DINE_IN' : widget.initialOrderType;
     if (widget.selectedTable != null) {
       _loadTableOrder();
@@ -109,6 +120,9 @@ class _CashierScreenState extends State<CashierScreen> {
 
   @override
   void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
     LocalServerService.instance.removeListener(_onServerTableOrderUpdated);
     _cartScrollController.dispose();
     _searchController.dispose();
@@ -129,6 +143,7 @@ class _CashierScreenState extends State<CashierScreen> {
         if (mounted) {
           setState(() {
             _cart.clear();
+            _selectedItemKeys.clear();
             _cart.addAll(items.map((i) => i.copyWith(isNew: false)));
           });
           _scrollToBottom();
@@ -819,6 +834,7 @@ class _CashierScreenState extends State<CashierScreen> {
     final hadItems = _cart.isNotEmpty;
     setState(() {
       _cart.clear();
+      _selectedItemKeys.clear();
       _existingOrderId = null;
       _discountAmount = 0.0;
     });
@@ -2092,7 +2108,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         Container(
                           width: cartWidth,
                           color: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -2100,46 +2116,40 @@ class _CashierScreenState extends State<CashierScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (Navigator.canPop(context)) ...[
                                     IconButton(
                                       icon: const BackButtonIcon(),
                                       tooltip: isEng ? 'Back to Tables' : 'رجوع للطاولات',
-                                      padding: EdgeInsets.zero,
+                                      padding: const EdgeInsets.all(4),
                                       constraints: const BoxConstraints(),
                                       onPressed: () => _finishOrderFlowNavigation(returnToHome: false),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                   ] else ...[
                                     if (widget.onOpenMenu != null) ...[
                                       IconButton(
                                         icon: Icon(Icons.menu, size: 24, color: AppColors.primary),
                                         tooltip: isEng ? 'Main Menu' : 'القائمة الرئيسية',
-                                        padding: EdgeInsets.zero,
+                                        padding: const EdgeInsets.all(4),
                                         constraints: const BoxConstraints(),
                                         onPressed: widget.onOpenMenu,
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                     ],
                                     if (widget.onBack != null) ...[
                                       IconButton(
                                         icon: Icon(Icons.home_outlined, size: 24, color: AppColors.primary),
                                         tooltip: isEng ? 'Home' : 'الرئيسية',
-                                        padding: EdgeInsets.zero,
+                                        padding: const EdgeInsets.all(4),
                                         constraints: const BoxConstraints(),
                                         onPressed: widget.onBack,
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                     ],
                                   ],
-                                  Icon(Icons.shopping_cart_checkout, color: AppColors.primary),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isEng ? 'Order Cart' : 'سلة الطلب',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
                                   if (widget.selectedTable != null) ...[
-                                    const SizedBox(width: 6),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                       decoration: BoxDecoration(
@@ -2251,147 +2261,197 @@ class _CashierScreenState extends State<CashierScreen> {
                                 itemBuilder: (context, index) {
                                   final item = _cart[index];
                                   final isNew = item.isNew;
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
-                                    decoration: BoxDecoration(
-                                      color: isNew ? const Color(0xFFF0FDF4) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: isNew
+                                  final itemKey = item.id != null ? 'id_${item.id}' : 'idx_$index';
+                                  final isSelected = _selectedItemKeys.contains(itemKey);
+
+                                  final Color cardBgColor = isSelected
+                                      ? const Color(0xFFEFF6FF)
+                                      : (isNew ? const Color(0xFFF0FDF4) : Colors.transparent);
+                                  final Border cardBorder = isSelected
+                                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.6)
+                                      : (isNew
                                           ? Border.all(color: const Color(0xFF86EFAC), width: 1.2)
-                                          : Border.all(color: Colors.grey.shade200, width: 0.8),
+                                          : Border.all(color: Colors.grey.shade200, width: 0.8));
+                                  final Color titleColor = isSelected
+                                      ? const Color(0xFF1D4ED8)
+                                      : (isNew ? const Color(0xFF15803D) : Colors.black87);
+                                  final Color priceColor = isSelected
+                                      ? const Color(0xFF1D4ED8)
+                                      : (isNew ? const Color(0xFF15803D) : Colors.black87);
+
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 1.5, horizontal: 2),
+                                    decoration: BoxDecoration(
+                                      color: cardBgColor,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: cardBorder,
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  item.productName ?? (isEng ? 'Item' : 'صنف'),
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                    color: isNew ? const Color(0xFF15803D) : Colors.black87,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 1),
-                                                FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  alignment: AlignmentDirectional.centerStart,
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Text(
-                                                        '${item.price.toStringAsFixed(0)} $_currencySymbol',
-                                                        style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: () {
+                                          setState(() {
+                                            if (_selectedItemKeys.contains(itemKey)) {
+                                              _selectedItemKeys.remove(itemKey);
+                                            } else {
+                                              _selectedItemKeys.add(itemKey);
+                                            }
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      item.productName ?? (isEng ? 'Item' : 'صنف'),
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
+                                                        color: titleColor,
                                                       ),
-                                                      if (item.formattedTime.isNotEmpty) ...[
-                                                        const SizedBox(width: 5),
-                                                        Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                          decoration: BoxDecoration(
-                                                            color: isNew ? const Color(0xFFDCFCE7) : Colors.blue.shade50,
-                                                            borderRadius: BorderRadius.circular(4),
-                                                            border: Border.all(
-                                                              color: isNew ? const Color(0xFF86EFAC) : Colors.blue.shade200,
-                                                              width: 0.5,
-                                                            ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 1),
+                                                    FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      alignment: AlignmentDirectional.centerStart,
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            '${item.price.toStringAsFixed(0)} $_currencySymbol',
+                                                            style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
                                                           ),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Icon(
-                                                                Icons.access_time,
-                                                                size: 9,
-                                                                color: isNew ? const Color(0xFF16A34A) : Colors.blue,
-                                                              ),
-                                                              const SizedBox(width: 2),
-                                                              Text(
-                                                                item.formattedTime,
-                                                                style: TextStyle(
-                                                                  color: isNew ? const Color(0xFF15803D) : Colors.blue,
-                                                                  fontSize: 9.5,
-                                                                  fontWeight: FontWeight.bold,
+                                                          if (item.formattedTime.isNotEmpty) ...[
+                                                            const SizedBox(width: 5),
+                                                            Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                              decoration: BoxDecoration(
+                                                                color: isNew ? const Color(0xFFDCFCE7) : Colors.blue.shade50,
+                                                                borderRadius: BorderRadius.circular(4),
+                                                                border: Border.all(
+                                                                  color: isNew ? const Color(0xFF86EFAC) : Colors.blue.shade200,
+                                                                  width: 0.5,
                                                                 ),
                                                               ),
-                                                            ],
+                                                              child: Row(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.access_time,
+                                                                    size: 9,
+                                                                    color: isNew ? const Color(0xFF16A34A) : Colors.blue,
+                                                                  ),
+                                                                  const SizedBox(width: 2),
+                                                                  Text(
+                                                                    item.formattedTime,
+                                                                    style: TextStyle(
+                                                                      color: isNew ? const Color(0xFF15803D) : Colors.blue,
+                                                                      fontSize: 9.5,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ],
+                                                      ),
+                                                    ),
+
+                                                    if (item.notes != null && item.notes!.isNotEmpty)
+                                                      Text(
+                                                        '📌 ${item.notes}',
+                                                        style: const TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              SizedBox(
+                                                width: 74,
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    IconButton(
+                                                      constraints: const BoxConstraints(),
+                                                      padding: const EdgeInsets.all(2),
+                                                      icon: const Icon(Icons.remove_circle_outline, size: 18),
+                                                      onPressed: () => _updateQuantity(index, -1),
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Container(
+                                                      width: 26,
+                                                      height: 22,
+                                                      alignment: Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                        color: isNew
+                                                            ? const Color(0xFFDCFCE7)
+                                                            : AppColors.primary.withValues(alpha: 0.1),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: isNew
+                                                            ? Border.all(color: const Color(0xFF86EFAC), width: 0.8)
+                                                            : null,
+                                                      ),
+                                                      child: FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        child: Text(
+                                                          item.formattedQuantity,
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 12,
+                                                            color: isNew ? const Color(0xFF15803D) : AppColors.primary,
                                                           ),
                                                         ),
-                                                      ],
-                                                    ],
-                                                  ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    IconButton(
+                                                      constraints: const BoxConstraints(),
+                                                      padding: const EdgeInsets.all(2),
+                                                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                                                      onPressed: () => _updateQuantity(index, 1),
+                                                    ),
+                                                  ],
                                                 ),
-
-                                                if (item.notes != null && item.notes!.isNotEmpty)
-                                                  Text(
-                                                    '📌 ${item.notes}',
-                                                    style: const TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              IconButton(
-                                                constraints: const BoxConstraints(),
-                                                padding: const EdgeInsets.all(2),
-                                                icon: const Icon(Icons.remove_circle_outline, size: 18),
-                                                onPressed: () => _updateQuantity(index, -1),
                                               ),
-                                              const SizedBox(width: 2),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                decoration: BoxDecoration(
-                                                  color: isNew
-                                                      ? const Color(0xFFDCFCE7)
-                                                      : AppColors.primary.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  border: isNew
-                                                      ? Border.all(color: const Color(0xFF86EFAC), width: 0.8)
-                                                      : null,
-                                                ),
-                                                child: Text(
-                                                  item.formattedQuantity,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
-                                                    color: isNew ? const Color(0xFF15803D) : AppColors.primary,
+                                              const SizedBox(width: 4),
+                                              SizedBox(
+                                                width: 65,
+                                                child: Align(
+                                                  alignment: AlignmentDirectional.centerEnd,
+                                                  child: FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    child: Text(
+                                                      '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 12,
+                                                        color: priceColor,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 2),
                                               IconButton(
                                                 constraints: const BoxConstraints(),
                                                 padding: const EdgeInsets.all(2),
-                                                icon: const Icon(Icons.add_circle_outline, size: 18),
-                                                onPressed: () => _updateQuantity(index, 1),
+                                                icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                                onPressed: () => _removeFromCart(index),
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                              color: isNew ? const Color(0xFF15803D) : Colors.black87,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            constraints: const BoxConstraints(),
-                                            padding: const EdgeInsets.all(2),
-                                            icon: const Icon(Icons.close, size: 16, color: Colors.grey),
-                                            onPressed: () => _removeFromCart(index),
-                                          ),
-                                        ],
+                                        ),
                                       ),
                                     ),
                                   );

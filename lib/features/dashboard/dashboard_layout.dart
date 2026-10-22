@@ -44,7 +44,7 @@ class DashboardLayout extends StatefulWidget {
   State<DashboardLayout> createState() => _DashboardLayoutState();
 }
 
-class _DashboardLayoutState extends State<DashboardLayout> {
+class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int selectedIndex = 0;
   late final AppLifecycleListener _lifecycleListener;
@@ -172,6 +172,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     );
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.addListener(this);
       windowManager.isFullScreen().then((isFS) {
         if (mounted) setState(() => _isFullscreen = isFS);
       }).catchError((_) {});
@@ -215,8 +216,31 @@ class _DashboardLayoutState extends State<DashboardLayout> {
 
   @override
   void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
     _lifecycleListener.dispose();
     super.dispose();
+  }
+
+  @override
+  void onWindowMaximize() async {
+    try {
+      await windowManager.setFullScreen(true);
+      if (mounted) setState(() => _isFullscreen = true);
+    } catch (e) {
+      debugPrint('onWindowMaximize error: $e');
+    }
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    if (mounted) setState(() => _isFullscreen = true);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    if (mounted) setState(() => _isFullscreen = false);
   }
 
   Future<AppExitResponse> _handleExitRequested() async {
