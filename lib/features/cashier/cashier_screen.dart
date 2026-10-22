@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/services/print_service.dart';
+import '../../core/services/sound_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/customize_item_appearance_dialog.dart';
 import '../../core/widgets/item_note_dialog.dart';
@@ -53,6 +54,7 @@ class _CashierScreenState extends State<CashierScreen> {
   late String _orderType;
   final List<OrderItemModel> _cart = [];
   final ScrollController _cartScrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
@@ -98,6 +100,7 @@ class _CashierScreenState extends State<CashierScreen> {
   void dispose() {
     LocalServerService.instance.removeListener(_onServerTableOrderUpdated);
     _cartScrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -115,7 +118,7 @@ class _CashierScreenState extends State<CashierScreen> {
         if (mounted) {
           setState(() {
             _cart.clear();
-            _cart.addAll(items);
+            _cart.addAll(items.map((i) => i.copyWith(isNew: false)));
           });
           _scrollToBottom();
         }
@@ -161,6 +164,7 @@ class _CashierScreenState extends State<CashierScreen> {
     setState(() {
       final now = DateTime.now();
       final index = _cart.indexWhere((item) {
+        if (!item.isNew) return false;
         if (item.productId != product.id || item.price != price) return false;
         if (item.createdAt == null) return true;
         // Merge only if added within the last 60 seconds (same order action)
@@ -179,6 +183,7 @@ class _CashierScreenState extends State<CashierScreen> {
         _cart[index] = existing.copyWith(
           quantity: newQty,
           notes: notes ?? existing.notes,
+          isNew: true,
         );
       } else {
         if (product.trackStock && quantity > product.stockQuantity) {
@@ -197,9 +202,11 @@ class _CashierScreenState extends State<CashierScreen> {
           printToKitchen: product.printToKitchen,
           kitchenPrinter: product.kitchenPrinter,
           createdAt: now,
+          isNew: true,
         ));
       }
     });
+    SoundService.instance.playBeep();
     _scrollToBottom();
   }
 
@@ -754,136 +761,29 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
-  void _showEditCartItemDialog(int index) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
-    final item = _cart[index];
-    final quantityController = TextEditingController(text: item.formattedQuantity);
-    final priceController = TextEditingController(text: item.price.toStringAsFixed(0));
-    final notesController = TextEditingController(text: item.notes ?? '');
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            final qtyVal = double.tryParse(quantityController.text.trim()) ?? 0.0;
-            final priceVal = double.tryParse(priceController.text.trim()) ?? 0.0;
-            final calculatedTotal = qtyVal * priceVal;
-
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              title: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: const Icon(Icons.edit, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'تعديل ${item.productName ?? "الصنف"}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: quantityController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'الكمية / الوزن',
-                        prefixIcon: const Icon(Icons.fitness_center),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onChanged: (_) => setStateDialog(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: priceController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'سعر البيع ($currencySym)',
-                        prefixIcon: Icon(isEng ? Icons.attach_money : Icons.payments_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onChanged: (_) => setStateDialog(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: notesController,
-                      decoration: InputDecoration(
-                        labelText: 'ملاحظة الخاصة بالمطبخ / الطلب',
-                        prefixIcon: const Icon(Icons.note_alt_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('المجموع الإجمالي:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text(
-                            '${calculatedTotal.toStringAsFixed(0)} $currencySym',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                  onPressed: () {
-                    if (qtyVal <= 0) {
-                      TopNotification.showWarning(context, 'يرجى إدخال كمية أكبر من الصفر');
-                      return;
-                    }
-                    Navigator.pop(ctx);
-                    setState(() {
-                      _cart[index] = item.copyWith(
-                        quantity: qtyVal,
-                        price: priceVal,
-                        notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
-                      );
-                    });
-                  },
-                  child: const Text('حفظ التعديل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   void _updateQuantity(int index, double delta) {
+    bool isRemoved = false;
     setState(() {
       final item = _cart[index];
       final newQty = item.quantity + delta;
       if (newQty <= 0) {
         _cart.removeAt(index);
+        isRemoved = true;
       } else {
-        _cart[index] = item.copyWith(quantity: newQty);
+        final markAsNew = delta > 0 ? true : item.isNew;
+        _cart[index] = item.copyWith(
+          quantity: newQty,
+          isNew: markAsNew,
+        );
       }
     });
+    if (isRemoved) {
+      SoundService.instance.playDelete();
+    } else if (delta > 0) {
+      SoundService.instance.playBeep();
+    }
   }
 
   Future<void> _removeFromCart(int index) async {
@@ -900,15 +800,20 @@ class _CashierScreenState extends State<CashierScreen> {
     setState(() {
       _cart.removeAt(index);
     });
+    SoundService.instance.playDelete();
   }
 
 
   void _clearCart() {
+    final hadItems = _cart.isNotEmpty;
     setState(() {
       _cart.clear();
       _existingOrderId = null;
       _discountAmount = 0.0;
     });
+    if (hadItems) {
+      SoundService.instance.playDelete();
+    }
   }
 
   double get _subtotalAmount {
@@ -1008,6 +913,15 @@ class _CashierScreenState extends State<CashierScreen> {
       status: 'OPEN',
     );
 
+    if (mounted) {
+      setState(() {
+        for (int i = 0; i < _cart.length; i++) {
+          _cart[i] = _cart[i].copyWith(isNew: false);
+        }
+        _existingOrderId = orderId;
+      });
+    }
+
     final heldOrder = OrderModel(
       id: orderId,
       tableId: tableId,
@@ -1035,6 +949,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
     final kitchenPrinter = settingsProvider.kitchenPrinter;
 
+    SoundService.instance.playCashRegister();
     TopNotification.showSuccess(
       context,
       kitchenDeltaItems.isNotEmpty
@@ -1048,6 +963,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
   void _resetToInitialCashierState() {
     _clearCart();
+    _searchController.clear();
     _orderType = widget.selectedTable != null ? 'DINE_IN' : widget.initialOrderType;
     if (mounted) {
       context.read<ProductsProvider>().selectCategory(null);
@@ -1316,6 +1232,7 @@ class _CashierScreenState extends State<CashierScreen> {
 
 
     if (!mounted) return;
+    SoundService.instance.playCashRegister();
     TopNotification.showSuccess(
       context,
       '⚡ تم إتمام الدفع كاش وطباعة الفاتورة #$orderId مباشرة! 🖨️',
@@ -2150,11 +2067,17 @@ class _CashierScreenState extends State<CashierScreen> {
         child: Scaffold(
           body: _isLoadingTableOrder
               ? const Center(child: CircularProgressIndicator())
-              : Row(
-                  children: [
-                    // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
-                    Container(
-                      width: 380,
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cartWidth = constraints.maxWidth < 1050
+                        ? 330.0
+                        : (constraints.maxWidth < 1200 ? 350.0 : 380.0);
+
+                    return Row(
+                      children: [
+                        // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
+                        Container(
+                          width: cartWidth,
                       color: Colors.white,
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -2304,13 +2227,21 @@ class _CashierScreenState extends State<CashierScreen> {
                             : ListView.separated(
                                 controller: _cartScrollController,
                                 itemCount: _cart.length,
-                                separatorBuilder: (_, _) => const Divider(height: 1),
+                                separatorBuilder: (_, _) => const SizedBox(height: 2),
                                 itemBuilder: (context, index) {
                                   final item = _cart[index];
-                                  return InkWell(
-                                    onLongPress: () => _showEditCartItemDialog(index),
+                                  final isNew = item.isNew;
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+                                    decoration: BoxDecoration(
+                                      color: isNew ? const Color(0xFFF0FDF4) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: isNew
+                                          ? Border.all(color: const Color(0xFF86EFAC), width: 1.2)
+                                          : Border.all(color: Colors.grey.shade200, width: 0.8),
+                                    ),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                       child: Row(
                                         children: [
                                           Expanded(
@@ -2319,7 +2250,11 @@ class _CashierScreenState extends State<CashierScreen> {
                                               children: [
                                                 Text(
                                                   item.productName ?? (isEng ? 'Item' : 'صنف'),
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
+                                                    color: isNew ? const Color(0xFF15803D) : Colors.black87,
+                                                  ),
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
@@ -2336,20 +2271,31 @@ class _CashierScreenState extends State<CashierScreen> {
                                                       Container(
                                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                                         decoration: BoxDecoration(
-                                                          color: Colors.blue.shade50,
+                                                          color: isNew ? const Color(0xFFDCFCE7) : Colors.blue.shade50,
                                                           borderRadius: BorderRadius.circular(4),
-                                                          border: Border.all(color: Colors.blue.shade200, width: 0.5),
+                                                          border: Border.all(
+                                                            color: isNew ? const Color(0xFF86EFAC) : Colors.blue.shade200,
+                                                            width: 0.5,
+                                                          ),
                                                         ),
                                                         child: Row(
                                                           mainAxisSize: MainAxisSize.min,
                                                           children: [
-                                                            const Icon(Icons.access_time, size: 9, color: Colors.blue),
+                                                            Icon(
+                                                              Icons.access_time,
+                                                              size: 9,
+                                                              color: isNew ? const Color(0xFF16A34A) : Colors.blue,
+                                                            ),
                                                             const SizedBox(width: 2),
                                                             Text(
                                                               item.formattedTime,
-                                                              style: const TextStyle(color: Colors.blue, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                                              style: TextStyle(
+                                                                color: isNew ? const Color(0xFF15803D) : Colors.blue,
+                                                                fontSize: 9.5,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
                                                             ),
-                                                         ],
+                                                          ],
                                                         ),
                                                       ),
                                                   ],
@@ -2375,17 +2321,23 @@ class _CashierScreenState extends State<CashierScreen> {
                                                 onPressed: () => _updateQuantity(index, -1),
                                               ),
                                               const SizedBox(width: 2),
-                                              InkWell(
-                                                onTap: () => _showEditCartItemDialog(index),
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(4),
-                                                  ),
-                                                  child: Text(
-                                                    item.formattedQuantity,
-                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: isNew
+                                                      ? const Color(0xFFDCFCE7)
+                                                      : AppColors.primary.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: isNew
+                                                      ? Border.all(color: const Color(0xFF86EFAC), width: 0.8)
+                                                      : null,
+                                                ),
+                                                child: Text(
+                                                  item.formattedQuantity,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: isNew ? const Color(0xFF15803D) : AppColors.primary,
                                                   ),
                                                 ),
                                               ),
@@ -2398,34 +2350,30 @@ class _CashierScreenState extends State<CashierScreen> {
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(width: 2),
-                                          IconButton(
-                                            constraints: const BoxConstraints(),
-                                            padding: const EdgeInsets.all(2),
-                                            icon: const Icon(Icons.edit_note, size: 18, color: Colors.blue),
-                                            tooltip: isEng ? 'Edit price or qty' : 'تعديل السعر أو الوزن',
-                                            onPressed: () => _showEditCartItemDialog(index),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            child: FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                alignment: Alignment.centerLeft,
+                                                child: Text(
+                                                  '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: isNew ? const Color(0xFF15803D) : Colors.black87,
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          IconButton(
-                                            constraints: const BoxConstraints(),
-                                            padding: const EdgeInsets.all(2),
-                                            icon: const Icon(Icons.close, size: 16, color: Colors.grey),
-                                            onPressed: () => _removeFromCart(index),
-                                          ),
-                                        ],
+                                            IconButton(
+                                              constraints: const BoxConstraints(),
+                                              padding: const EdgeInsets.all(2),
+                                              icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                              onPressed: () => _removeFromCart(index),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
                                   );
                                 },
                               ),
@@ -2512,15 +2460,34 @@ class _CashierScreenState extends State<CashierScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
                         child: TextField(
+                          controller: _searchController,
                           decoration: InputDecoration(
-                            hintText: 'ابحث عن صنف أو منتج...',
-                            prefixIcon: const Icon(Icons.search),
+                            hintText: isEng ? 'Search item or scan barcode...' : 'ابحث عن صنف أو امسح الباركود...',
+                            prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
                             isDense: true,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             filled: true,
                             fillColor: Colors.white,
                           ),
                           onChanged: (val) => productsProvider.setSearchQuery(val),
+                          onSubmitted: (val) {
+                            final clean = val.trim();
+                            if (clean.isEmpty) return;
+                            final match = productsProvider.products.firstWhere(
+                              (p) => (p.barcode != null && p.barcode!.trim() == clean) || p.name.trim() == clean,
+                              orElse: () => productsProvider.products.firstWhere(
+                                (p) => p.name.trim().toLowerCase().contains(clean.toLowerCase()),
+                                orElse: () => const ProductModel(name: '', price: 0),
+                              ),
+                            );
+                            if (match.name.isNotEmpty && match.id != null) {
+                              _addToCart(match);
+                              _searchController.clear();
+                              productsProvider.setSearchQuery('');
+                            } else {
+                              TopNotification.showWarning(context, isEng ? 'Item not found for barcode: $clean' : 'لم يتم العثور على صنف بالباركود: $clean');
+                            }
+                          },
                         ),
                       ),
 
@@ -2534,20 +2501,14 @@ class _CashierScreenState extends State<CashierScreen> {
                   ),
                 ),
               ],
-            ),
+            );
+          },
+        ),
         ),
       ),
     );
   }
 
-  String _getCategoryName(CategoriesProvider categoriesProvider, int? categoryId) {
-    if (categoryId == null) return 'الكل';
-    final match = categoriesProvider.categories.firstWhere(
-      (c) => c.id == categoryId,
-      orElse: () => categoriesProvider.categories.isNotEmpty ? categoriesProvider.categories.first : categoriesProvider.categories.first,
-    );
-    return match.name;
-  }
 
   Color? _parseColor(String? hexString) {
     if (hexString == null) return null;
@@ -2690,13 +2651,10 @@ class _CashierScreenState extends State<CashierScreen> {
       itemBuilder: (context, index) {
         if (index < categories.length) {
           final category = categories[index];
-          final itemsCount = productsProvider.allProducts.where((p) => p.categoryId == category.id).length;
           final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
           final bgColor = _getCategoryColor(category, index);
           final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
           final textColor = isDarkBg ? Colors.white : Colors.black87;
-          final badgeBg = isDarkBg ? Colors.white24 : AppColors.primary.withValues(alpha: 0.1);
-          final badgeTextColor = isDarkBg ? Colors.white : AppColors.primary;
 
           return Card(
             elevation: 3,

@@ -11,6 +11,7 @@ class OrderItemModel {
   final bool printToKitchen;
   final String? kitchenPrinter;
   final DateTime? createdAt;
+  final bool isNew;
 
   const OrderItemModel({
     this.id,
@@ -25,6 +26,7 @@ class OrderItemModel {
     this.printToKitchen = false,
     this.kitchenPrinter,
     this.createdAt,
+    this.isNew = false,
   });
 
   double get subtotal => (price * quantity) - discount;
@@ -74,6 +76,7 @@ class OrderItemModel {
       printToKitchen: printToKitchen ?? ((map['print_to_kitchen'] as int? ?? 0) == 1),
       kitchenPrinter: kitchenPrinter ?? map['kitchen_printer'] as String?,
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
+      isNew: (map['is_new'] as int? ?? 0) == 1,
     );
   }
 
@@ -90,6 +93,7 @@ class OrderItemModel {
     bool? printToKitchen,
     String? kitchenPrinter,
     DateTime? createdAt,
+    bool? isNew,
   }) {
     return OrderItemModel(
       id: id ?? this.id,
@@ -104,6 +108,7 @@ class OrderItemModel {
       printToKitchen: printToKitchen ?? this.printToKitchen,
       kitchenPrinter: kitchenPrinter ?? this.kitchenPrinter,
       createdAt: createdAt ?? this.createdAt,
+      isNew: isNew ?? this.isNew,
     );
   }
 }

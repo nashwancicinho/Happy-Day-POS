@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/sound_service.dart';
 
 enum TopNotificationType { success, warning, error, info }
 
@@ -120,10 +121,12 @@ class TopNotification {
   }
 
   static void showWarning(BuildContext context, String message) {
+    SoundService.instance.playWarning();
     show(context, message: message, type: TopNotificationType.warning);
   }
 
   static void showError(BuildContext context, String message) {
+    SoundService.instance.playWarning();
     show(context, message: message, type: TopNotificationType.error);
   }
 

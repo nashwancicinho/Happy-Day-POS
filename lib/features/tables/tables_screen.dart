@@ -509,7 +509,7 @@ class _TablesScreenState extends State<TablesScreen> {
                     padding: const EdgeInsets.all(12),
                     itemCount: tables.length,
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 160,
+                      maxCrossAxisExtent: 135,
                       childAspectRatio: 1.1,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,

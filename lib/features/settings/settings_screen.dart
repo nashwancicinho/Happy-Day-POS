@@ -1542,7 +1542,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ElevatedButton.icon(
                   onPressed: () {
                     Clipboard.setData(const ClipboardData(text: '+9647507383367'));
-                    TopNotification.showSuccess(context, 'تم نسخ رقم طلب الصيانة (+9647507383367)');
+                    TopNotification.showSuccess(context, 'تم نسخ رقم طلب الصيانة (\u202A+9647507383367\u202C)');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal.shade700,
@@ -1551,7 +1551,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('نسخ رقم الصيانة: +9647507383367', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isEng ? 'Copy Maintenance: ' : 'نسخ رقم الصيانة: ',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          '+9647507383367',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -2214,6 +2229,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 settings.setShowTopNotifications(val);
               },
             ),
+            const Divider(height: 20),
+            SwitchListTile(
+              value: settings.isSoundEnabled,
+              activeTrackColor: AppColors.primary,
+              secondary: Icon(
+                settings.isSoundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                color: settings.isSoundEnabled ? AppColors.primary : Colors.grey,
+                size: 28,
+              ),
+              title: Text(
+                isEng ? 'POS Sound Effects' : 'المؤثرات الصوتية للكاشير (POS Sounds)',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              subtitle: Text(
+                isEng
+                    ? 'Play audio feedback on barcode scan, item addition, payment success, and delete.'
+                    : 'تشغيل أصوات تفاعلية عند إضافة مادة أو مسح باركود، إتمام الدفع، وحذف المواد والتنبيهات.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              ),
+              onChanged: (val) {
+                settings.setSoundEnabled(val);
+              },
+            ),
           ],
         ),
       ),
@@ -2390,483 +2428,566 @@ class _SettingsScreenState extends State<SettingsScreen> {
       statusIcon = Icons.hourglass_top_rounded;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // App Info & Version Card
-        Card(
-          elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.indigo.shade900,
-                  Colors.indigo.shade700,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                  ),
-                  child: const Icon(
-                    Icons.point_of_sale_rounded,
-                    size: 48,
-                    color: Colors.white,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // App Info & Version Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.indigo.shade900,
+                      Colors.indigo.shade700,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'كاش بوكس - CashBox POS',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade400,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'v$_currentAppVersion',
-                              style: const TextStyle(
-                                fontSize: 12,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 580;
+
+                    final titleSection = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 10,
+                          runSpacing: 4,
+                          children: [
+                            const Text(
+                              'كاش بوكس - CashBox POS',
+                              style: TextStyle(
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: Colors.white,
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade400,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                'v$_currentAppVersion',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          isEng
+                              ? 'Comprehensive Restaurant, Cafe & Hall POS Management System'
+                              : 'النظام الشامل والمتكامل لإدارة مبيعات المطاعم، الكافيهات، والصالات',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    );
+
+                    final updateBtn = OutlinedButton.icon(
+                      onPressed: _isCheckingUpdate ? null : _checkForUpdatesManually,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white70),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: _isCheckingUpdate
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.sync_rounded, size: 16),
+                      label: Text(
+                        isEng ? 'Check Updates' : 'فحص التحديثات',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    );
+
+                    final iconContainer = Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: const Icon(
+                        Icons.point_of_sale_rounded,
+                        size: 34,
+                        color: Colors.white,
+                      ),
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              iconContainer,
+                              const SizedBox(width: 12),
+                              Expanded(child: titleSection),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: updateBtn,
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        isEng
-                            ? 'Comprehensive Restaurant, Cafe & Hall POS Management System'
-                            : 'النظام الشامل والمتكامل لإدارة مبيعات المطاعم، الكافيهات، والصالات',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
-                      ),
-                    ],
-                  ),
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        iconContainer,
+                        const SizedBox(width: 16),
+                        Expanded(child: titleSection),
+                        const SizedBox(width: 12),
+                        updateBtn,
+                      ],
+                    );
+                  },
                 ),
-                OutlinedButton.icon(
-                  onPressed: _isCheckingUpdate ? null : _checkForUpdatesManually,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white70),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: _isCheckingUpdate
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.sync_rounded, size: 18),
-                  label: Text(
-                    isEng ? 'Check Updates' : 'فحص التحديثات',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
 
-        const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-        // Subscription & Remaining Duration Card
-        Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Subscription & Remaining Duration Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 10,
+                      runSpacing: 6,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(statusIcon, color: statusColor, size: 18),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isEng ? 'Subscription & License Status' : 'حالة ومدة الاشتراك بالبرنامج',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            statusTitle,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    if (_isLoadingLicense)
+                      const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
+                    else
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 580;
+
+                          final remainingDaysBox = Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.07),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEng ? 'Time Remaining on Subscription' : 'المدة المتبقية لانتهاء مدة الاشتراك:',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Text(
+                                      '$daysRemaining',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        color: statusColor,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isEng ? 'Days' : 'يوماً متبقية',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: statusColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                if (_licenseInfo?.expiryDate != null)
+                                  Text(
+                                    isEng
+                                        ? 'Expiry Date: ${_licenseInfo!.expiryDate!.toString().split(' ').first}'
+                                        : 'تاريخ انتهاء الاشتراك: ${_licenseInfo!.expiryDate!.toString().split(' ').first}',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                  )
+                                else
+                                  Text(
+                                    isEng ? 'Valid full activation' : 'تفعيل نشط وساري',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                  ),
+                              ],
+                            ),
+                          );
+
+                          final machineIdBox = Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEng ? 'Machine ID Code' : 'معرّف هذا الجهاز (Machine ID):',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey.shade300),
+                                        ),
+                                        child: SelectableText(
+                                          _licenseInfo?.machineId ?? '...',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            letterSpacing: 1.1,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      tooltip: isEng ? 'Copy Machine ID' : 'نسخ معرّف الجهاز',
+                                      icon: const Icon(Icons.copy_rounded, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        if (_licenseInfo?.machineId != null) {
+                                          Clipboard.setData(ClipboardData(text: _licenseInfo!.machineId));
+                                          TopNotification.showSuccess(context, 'تم نسخ معرّف الجهاز بنجاح!');
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+                                      await showDialog(
+                                        context: context,
+                                        builder: (ctx) => const Dialog(
+                                          backgroundColor: Colors.transparent,
+                                          child: LicenseActivationScreen(isModalDialog: true),
+                                        ),
+                                      );
+                                      _loadLicenseInfo();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.indigo,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    icon: const Icon(Icons.vpn_key_rounded, size: 16),
+                                    label: Text(
+                                      isEng ? 'Renew / Enter License Key' : 'تجديد أو إدخال كود الاشتراك 🔑',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (isNarrow) {
+                            return Column(
+                              children: [
+                                remainingDaysBox,
+                                const SizedBox(height: 10),
+                                machineIdBox,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(flex: 5, child: remainingDaysBox),
+                              const SizedBox(width: 12),
+                              Expanded(flex: 5, child: machineIdBox),
+                            ],
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Maintenance & Technical Support Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.teal.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(statusIcon, color: statusColor, size: 22),
+                          child: const Icon(Icons.handyman_rounded, color: Colors.teal, size: 18),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Text(
-                          isEng ? 'Subscription & License Status' : 'حالة ومدة الاشتراك بالبرنامج',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          isEng ? 'Maintenance & Technical Support' : 'طلب الصيانة والدعم الفني',
+                          style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-                      ),
-                      child: Text(
-                        statusTitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
-                      ),
+                    const Divider(height: 20),
+                    Text(
+                      isEng
+                          ? 'For technical support, software maintenance, system setup, or license renewals, contact us directly:'
+                          : 'لطلب الصيانة الفنية الفورية، الاستفسارات، تحديثات النظام، أو تجديد التراخيص، يرجى التواصل معنا عبر الرقم المعتمد أدناه:',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.3),
                     ),
-                  ],
-                ),
-                const Divider(height: 28),
-                if (_isLoadingLicense)
-                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
-                else
-                  Row(
-                    children: [
-                      // Remaining Days Display Box
-                      Expanded(
-                        flex: 5,
-                        child: Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: statusColor.withValues(alpha: 0.25)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isEng ? 'Time Remaining on Subscription' : 'المدة المتبقية لانتهاء مدة الاشتراك:',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    '$daysRemaining',
-                                    style: TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.w900,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isEng ? 'Days' : 'يوماً متبقية',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              if (_licenseInfo?.expiryDate != null)
-                                Text(
-                                  isEng
-                                      ? 'Expiry Date: ${_licenseInfo!.expiryDate!.toString().split(' ').first}'
-                                      : 'تاريخ انتهاء الاشتراك: ${_licenseInfo!.expiryDate!.toString().split(' ').first}',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                )
-                              else
-                                Text(
-                                  isEng ? 'Valid full activation' : 'تفعيل نشط وساري',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
+                    const SizedBox(height: 12),
 
-                      // Machine ID & Activation Action Box
-                      Expanded(
-                        flex: 5,
-                        child: Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    // Main Phone Contact Container
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade50.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.teal.shade200),
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 620;
+
+                          final phoneInfo = Row(
                             children: [
-                              Text(
-                                isEng ? 'Machine ID Code' : 'معرّف هذا الجهاز (Machine ID):',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade800,
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.teal,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.phone_in_talk_rounded,
+                                  color: Colors.white,
+                                  size: 24,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.grey.shade300),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isEng ? 'Maintenance & Support Line' : 'رقم طلب الصيانة والدعم المعتمد',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.teal.shade900,
                                       ),
-                                      child: SelectableText(
-                                        _licenseInfo?.machineId ?? '...',
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Directionality(
+                                      textDirection: TextDirection.ltr,
+                                      child: Text(
+                                        maintenancePhone,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          letterSpacing: 1.1,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
                                           color: Colors.black87,
+                                          letterSpacing: 1.1,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    tooltip: isEng ? 'Copy Machine ID' : 'نسخ معرّف الجهاز',
-                                    icon: const Icon(Icons.copy_rounded, size: 20),
-                                    onPressed: () {
-                                      if (_licenseInfo?.machineId != null) {
-                                        Clipboard.setData(ClipboardData(text: _licenseInfo!.machineId));
-                                        TopNotification.showSuccess(context, 'تم نسخ معرّف الجهاز بنجاح!');
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    await showDialog(
-                                      context: context,
-                                      builder: (ctx) => const Dialog(
-                                        backgroundColor: Colors.transparent,
-                                        child: LicenseActivationScreen(isModalDialog: true),
-                                      ),
-                                    );
-                                    _loadLicenseInfo();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  icon: const Icon(Icons.vpn_key_rounded, size: 18),
-                                  label: Text(
-                                    isEng ? 'Renew / Enter License Key' : 'تجديد أو إدخال كود الاشتراك 🔑',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isEng ? 'Available 24/7 for support & inquiries' : 'خدمة الصيانة متوفرة طوال أيام الأسبوع لخدمتكم',
+                                      style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
+                          );
 
-        const SizedBox(height: 20),
+                          final actionButtons = Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Clipboard.setData(const ClipboardData(text: maintenancePhone));
+                                  TopNotification.showSuccess(context, 'تم نسخ رقم هاتف الصيانة ($maintenancePhone)');
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.teal.shade900,
+                                  elevation: 1,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: BorderSide(color: Colors.teal.shade300),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.copy_rounded, size: 16),
+                                label: Text(
+                                  isEng ? 'Copy' : 'نسخ الرقم',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () => _openWhatsApp(maintenancePhone),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF25D366),
+                                  foregroundColor: Colors.white,
+                                  elevation: 1,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                                label: const Text(
+                                  'واتساب',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () => _openPhoneCall(maintenancePhone),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal.shade700,
+                                  foregroundColor: Colors.white,
+                                  elevation: 1,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                icon: const Icon(Icons.call, size: 16),
+                                label: Text(
+                                  isEng ? 'Call' : 'اتصال',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          );
 
-        // Maintenance & Technical Support Card
-        Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                          if (isNarrow) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                phoneInfo,
+                                const SizedBox(height: 12),
+                                actionButtons,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(child: phoneInfo),
+                              const SizedBox(width: 12),
+                              actionButtons,
+                            ],
+                          );
+                        },
                       ),
-                      child: const Icon(Icons.handyman_rounded, color: Colors.teal, size: 22),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      isEng ? 'Maintenance & Technical Support' : 'طلب الصيانة والدعم الفني',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-                const Divider(height: 28),
-                Text(
-                  isEng
-                      ? 'For technical support, software maintenance, system setup, or license renewals, contact us directly:'
-                      : 'لطلب الصيانة الفنية الفورية، الاستفسارات، تحديثات النظام، أو تجديد التراخيص، يرجى التواصل معنا عبر الرقم المعتمد أدناه:',
-                  style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700, height: 1.4),
-                ),
-                const SizedBox(height: 16),
-
-                // Main Phone Contact Container
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.shade50.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.teal.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.teal,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.phone_in_talk_rounded,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isEng ? 'Maintenance & Support Line' : 'رقم طلب الصيانة والدعم المعتمد',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.teal.shade900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Directionality(
-                              textDirection: TextDirection.ltr,
-                              child: Text(
-                                maintenancePhone,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black87,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isEng ? 'Available 24/7 for support & inquiries' : 'خدمة الصيانة متوفرة طوال أيام الأسبوع لخدمتكم',
-                              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Actions: Copy, WhatsApp, Call
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Clipboard.setData(const ClipboardData(text: maintenancePhone));
-                              TopNotification.showSuccess(context, 'تم نسخ رقم هاتف الصيانة ($maintenancePhone)');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.teal.shade900,
-                              elevation: 1,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: Colors.teal.shade300),
-                              ),
-                            ),
-                            icon: const Icon(Icons.copy_rounded, size: 18),
-                            label: Text(
-                              isEng ? 'Copy' : 'نسخ الرقم',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _openWhatsApp(maintenancePhone),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF25D366),
-                              foregroundColor: Colors.white,
-                              elevation: 2,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                            label: const Text(
-                              'واتساب',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _openPhoneCall(maintenancePhone),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade700,
-                              foregroundColor: Colors.white,
-                              elevation: 2,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.call, size: 18),
-                            label: Text(
-                              isEng ? 'Call' : 'اتصال',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

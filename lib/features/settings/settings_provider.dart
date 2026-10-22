@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
+import '../../core/services/sound_service.dart';
 import '../../database/database_helper.dart';
 import 'settings_repository.dart';
 
@@ -39,6 +40,15 @@ class SettingsProvider extends ChangeNotifier {
   double get screenScale => double.tryParse(_settings['app_screen_scale'] ?? '1.0') ?? 1.0;
   bool get autoOpenCashDrawer => (_settings['auto_open_cash_drawer'] ?? 'true') == 'true';
   bool get showSoldItemsInDayClosing => (_settings['show_sold_items_in_day_closing'] ?? 'false') == 'true';
+  bool get isSoundEnabled => (_settings['sound_enabled'] ?? 'true') == 'true';
+
+  Future<void> setSoundEnabled(bool value) async {
+    SoundService.instance.isEnabled = value;
+    await updateSetting('sound_enabled', value.toString());
+    if (value) {
+      SoundService.instance.playBeep();
+    }
+  }
 
   Future<void> setShowTopNotifications(bool value) async {
     TopNotification.enabled = value;
@@ -71,6 +81,7 @@ class SettingsProvider extends ChangeNotifier {
 
     _settings = await _repository.getAllSettings();
     TopNotification.enabled = showTopNotifications;
+    SoundService.instance.isEnabled = isSoundEnabled;
     _isLoading = false;
     notifyListeners();
   }

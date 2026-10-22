@@ -86,10 +86,10 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     double posY = table.posY;
 
     if (posX < 0 || posY < 0) {
-      const double cardSize = 130;
-      const double spacing = 20;
-      const double paddingLeft = 40;
-      const double paddingTop = 60;
+      const double cardSize = 105;
+      const double spacing = 16;
+      const double paddingLeft = 30;
+      const double paddingTop = 45;
       int cols = ((canvasW - paddingLeft) / (cardSize + spacing)).floor();
       if (cols < 1) cols = 1;
       int row = index ~/ cols;
@@ -102,8 +102,8 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     final isOccupied = table.status == 1;
     final statusColor = isOccupied ? AppColors.danger : AppColors.success;
-    final tableWidth = table.shape == 'rectangle' ? 160.0 : 120.0;
-    final tableHeight = table.shape == 'rectangle' ? 110.0 : 120.0;
+    final tableWidth = table.shape == 'rectangle' ? 130.0 : 98.0;
+    final tableHeight = table.shape == 'rectangle' ? 90.0 : 98.0;
 
     String formatTableName(String rawName) {
       if (!isEng) return rawName;
@@ -154,11 +154,11 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
               // Main Table Body Box / Cylinder
               AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: tableWidth - 24,
-                height: tableHeight - 24,
+                width: tableWidth - 18,
+                height: tableHeight - 18,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: table.shape == 'round' ? BorderRadius.circular(100) : BorderRadius.circular(16),
+                  borderRadius: table.shape == 'round' ? BorderRadius.circular(100) : BorderRadius.circular(13),
                   border: Border.all(
                     color: widget.isDeleteMode
                         ? Colors.red
@@ -170,9 +170,9 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                   boxShadow: [
                     BoxShadow(
                       color: (widget.isDesignMode ? Colors.purple : statusColor).withValues(alpha: 0.25),
-                      blurRadius: 10,
+                      blurRadius: 8,
                       spreadRadius: 1,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -184,14 +184,14 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                       widget.isDesignMode
                           ? Icons.open_with_rounded
                           : (table.shape == 'round' ? Icons.circle_outlined : Icons.table_restaurant),
-                      size: widget.isDesignMode ? 22 : 20,
+                      size: widget.isDesignMode ? 18 : 16,
                       color: widget.isDesignMode ? Colors.purple : statusColor,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       formatTableName(table.name),
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
@@ -199,13 +199,13 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
                           formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
                           style: TextStyle(
-                            fontSize: 10.5,
+                            fontSize: 9.5,
                             fontWeight: isOccupied ? FontWeight.bold : FontWeight.w600,
                             color: isOccupied ? AppColors.danger : Colors.grey.shade700,
                           ),
@@ -213,17 +213,17 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
                         isEng ? (isOccupied ? 'Occupied' : 'Vacant') : (isOccupied ? 'مشغولة' : 'شاغرة'),
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                           color: statusColor,
                         ),
@@ -334,22 +334,23 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
   // Visual Chair Indicators around table shape
   Widget _buildChairsAroundTable(RestaurantTable table) {
     final chairColor = Colors.grey.shade400;
-    const double chairSize = 10.0;
+    const double chairSize = 8.0;
+    const double chairLength = 18.0;
 
     return Stack(
       children: [
         // Top Chair
         Positioned(
-          top: 2,
+          top: 1,
           left: 0,
           right: 0,
           child: Center(
             child: Container(
-              width: 24,
+              width: chairLength,
               height: chairSize,
               decoration: BoxDecoration(
                 color: chairColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
@@ -357,16 +358,16 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
 
         // Bottom Chair
         Positioned(
-          bottom: 2,
+          bottom: 1,
           left: 0,
           right: 0,
           child: Center(
             child: Container(
-              width: 24,
+              width: chairLength,
               height: chairSize,
               decoration: BoxDecoration(
                 color: chairColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
@@ -374,16 +375,16 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
 
         // Left Chair
         Positioned(
-          left: 2,
+          left: 1,
           top: 0,
           bottom: 0,
           child: Center(
             child: Container(
               width: chairSize,
-              height: 24,
+              height: chairLength,
               decoration: BoxDecoration(
                 color: chairColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
@@ -391,16 +392,16 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
 
         // Right Chair
         Positioned(
-          right: 2,
+          right: 1,
           top: 0,
           bottom: 0,
           child: Center(
             child: Container(
               width: chairSize,
-              height: 24,
+              height: chairLength,
               decoration: BoxDecoration(
                 color: chairColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
