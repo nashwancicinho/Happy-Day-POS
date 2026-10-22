@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../core/services/print_service.dart';
 import '../../core/services/sound_service.dart';
@@ -58,6 +59,23 @@ class _CashierScreenState extends State<CashierScreen> {
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
+  bool _isFullscreen = false;
+
+  void _toggleFullscreen() async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      try {
+        final current = await windowManager.isFullScreen();
+        await windowManager.setFullScreen(!current);
+        if (mounted) {
+          setState(() {
+            _isFullscreen = !current;
+          });
+        }
+      } catch (e) {
+        debugPrint('windowManager toggle error in Cashier: $e');
+      }
+    }
+  }
 
   String get _currencySymbol => context.watch<SettingsProvider>().currencySymbol;
 
@@ -79,6 +97,11 @@ class _CashierScreenState extends State<CashierScreen> {
     _orderType = widget.selectedTable != null ? 'DINE_IN' : widget.initialOrderType;
     if (widget.selectedTable != null) {
       _loadTableOrder();
+    }
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.isFullScreen().then((isFS) {
+        if (mounted) setState(() => _isFullscreen = isFS);
+      }).catchError((_) {});
     }
     LocalServerService.instance.addListener(_onServerTableOrderUpdated);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2061,14 +2084,16 @@ class _CashierScreenState extends State<CashierScreen> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyD, control: true): _openCashDrawer,
         const SingleActivator(LogicalKeyboardKey.keyD, meta: true): _openCashDrawer,
+        const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
       },
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: _isLoadingTableOrder
-              ? const Center(child: CircularProgressIndicator())
-              : LayoutBuilder(
-                  builder: (context, constraints) {
+          body: SafeArea(
+            child: _isLoadingTableOrder
+                ? const Center(child: CircularProgressIndicator())
+                : LayoutBuilder(
+                    builder: (context, constraints) {
                     final cartWidth = constraints.maxWidth < 1050
                         ? 330.0
                         : (constraints.maxWidth < 1200 ? 350.0 : 380.0);
@@ -2160,6 +2185,20 @@ class _CashierScreenState extends State<CashierScreen> {
                                       },
                                     ),
                                   ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
+                                IconButton(
+                                  icon: Icon(
+                                    _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                                    color: Colors.grey.shade700,
+                                    size: 20,
+                                  ),
+                                  tooltip: isEng ? 'Fullscreen (F11)' : 'شاشة كاملة (F11)',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: _toggleFullscreen,
                                 ),
                                 const SizedBox(width: 6),
                               ],
@@ -2465,6 +2504,7 @@ class _CashierScreenState extends State<CashierScreen> {
                             hintText: isEng ? 'Search item or scan barcode...' : 'ابحث عن صنف أو امسح الباركود...',
                             prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
                             isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             filled: true,
                             fillColor: Colors.white,
@@ -2504,6 +2544,7 @@ class _CashierScreenState extends State<CashierScreen> {
             );
           },
         ),
+          ),
         ),
       ),
     );

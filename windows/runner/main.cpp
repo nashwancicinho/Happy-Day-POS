@@ -26,7 +26,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(0, 0);
-  Win32Window::Size size(1024, 768);
+  Win32Window::Size size(1024, 700);
   if (!window.Create(L"happy_day_pos", origin, size)) {
     return EXIT_FAILURE;
   }
