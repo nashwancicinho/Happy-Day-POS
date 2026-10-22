@@ -561,53 +561,6 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                             },
                           ),
 
-                          const SizedBox(width: 8),
-
-                          // Zoom Controls
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white12,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                  padding: EdgeInsets.zero,
-                                  icon: const Icon(Icons.zoom_out, color: Colors.white, size: 20),
-                                  tooltip: isEng ? 'Zoom Out (-)' : 'تصغير الشاشة (-)',
-                                  onPressed: () {
-                                    final newScale = (currentScale - 0.1).clamp(0.7, 1.5);
-                                    context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
-                                  },
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    context.read<SettingsProvider>().setScreenScale(1.0);
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                                    child: Text(
-                                      '${(currentScale * 100).toInt()}%',
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                  padding: EdgeInsets.zero,
-                                  icon: const Icon(Icons.zoom_in, color: Colors.white, size: 20),
-                                  tooltip: isEng ? 'Zoom In (+)' : 'تكبير الشاشة (+)',
-                                  onPressed: () {
-                                    final newScale = (currentScale + 0.1).clamp(0.7, 1.5);
-                                    context.read<SettingsProvider>().setScreenScale(double.parse(newScale.toStringAsFixed(1)));
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
 
                           const SizedBox(width: 6),
 
