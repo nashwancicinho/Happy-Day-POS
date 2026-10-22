@@ -85,9 +85,12 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     double posX = table.posX;
     double posY = table.posY;
 
+    final tablesCardSize = context.watch<SettingsProvider>().tablesCardSize;
+    final scale = (tablesCardSize / 135.0).clamp(0.65, 1.8);
+
     if (posX < 0 || posY < 0) {
-      const double cardSize = 105;
-      const double spacing = 16;
+      final double cardSize = 105 * scale;
+      final double spacing = 16 * scale;
       const double paddingLeft = 30;
       const double paddingTop = 45;
       int cols = ((canvasW - paddingLeft) / (cardSize + spacing)).floor();
@@ -102,8 +105,8 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     final isOccupied = table.status == 1;
     final statusColor = isOccupied ? AppColors.danger : AppColors.success;
-    final tableWidth = table.shape == 'rectangle' ? 130.0 : 98.0;
-    final tableHeight = table.shape == 'rectangle' ? 90.0 : 98.0;
+    final tableWidth = (table.shape == 'rectangle' ? 130.0 : 98.0) * scale;
+    final tableHeight = (table.shape == 'rectangle' ? 90.0 : 98.0) * scale;
 
     String formatTableName(String rawName) {
       if (!isEng) return rawName;
@@ -149,16 +152,16 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
             alignment: Alignment.center,
             children: [
               // Chairs Surrounding Visual Representation
-              _buildChairsAroundTable(table),
+              _buildChairsAroundTable(table, scale),
 
               // Main Table Body Box / Cylinder
               AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: tableWidth - 18,
-                height: tableHeight - 18,
+                width: tableWidth - (18 * scale),
+                height: tableHeight - (18 * scale),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: table.shape == 'round' ? BorderRadius.circular(100) : BorderRadius.circular(13),
+                  borderRadius: table.shape == 'round' ? BorderRadius.circular(100) : BorderRadius.circular((13 * scale).clamp(8.0, 20.0)),
                   border: Border.all(
                     color: widget.isDeleteMode
                         ? Colors.red
@@ -184,14 +187,14 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                       widget.isDesignMode
                           ? Icons.open_with_rounded
                           : (table.shape == 'round' ? Icons.circle_outlined : Icons.table_restaurant),
-                      size: widget.isDesignMode ? 18 : 16,
+                      size: (widget.isDesignMode ? 18 : 16) * scale,
                       color: widget.isDesignMode ? Colors.purple : statusColor,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       formatTableName(table.name),
-                      style: const TextStyle(
-                        fontSize: 11.5,
+                      style: TextStyle(
+                        fontSize: (11.5 * scale).clamp(9.0, 18.0),
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
@@ -205,7 +208,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                         child: Text(
                           formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
                           style: TextStyle(
-                            fontSize: 9.5,
+                            fontSize: (9.5 * scale).clamp(7.5, 15.0),
                             fontWeight: isOccupied ? FontWeight.bold : FontWeight.w600,
                             color: isOccupied ? AppColors.danger : Colors.grey.shade700,
                           ),
@@ -215,7 +218,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                     ),
                     const SizedBox(height: 2),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: EdgeInsets.symmetric(horizontal: (5 * scale).clamp(3.0, 8.0), vertical: 1),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(5),
@@ -223,7 +226,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                       child: Text(
                         isEng ? (isOccupied ? 'Occupied' : 'Vacant') : (isOccupied ? 'مشغولة' : 'شاغرة'),
                         style: TextStyle(
-                          fontSize: 8,
+                          fontSize: (8.0 * scale).clamp(6.5, 13.0),
                           fontWeight: FontWeight.bold,
                           color: statusColor,
                         ),
@@ -332,10 +335,10 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
   }
 
   // Visual Chair Indicators around table shape
-  Widget _buildChairsAroundTable(RestaurantTable table) {
+  Widget _buildChairsAroundTable(RestaurantTable table, double scale) {
     final chairColor = Colors.grey.shade400;
-    const double chairSize = 8.0;
-    const double chairLength = 18.0;
+    final double chairSize = 8.0 * scale;
+    final double chairLength = 18.0 * scale;
 
     return Stack(
       children: [
