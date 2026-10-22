@@ -2083,16 +2083,16 @@ class _CashierScreenState extends State<CashierScreen> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                     final cartWidth = constraints.maxWidth < 1050
-                        ? 330.0
-                        : (constraints.maxWidth < 1200 ? 350.0 : 380.0);
+                        ? 340.0
+                        : (constraints.maxWidth < 1200 ? 360.0 : 380.0);
 
                     return Row(
                       children: [
                         // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
                         Container(
                           width: cartWidth,
-                      color: Colors.white,
-                      padding: const EdgeInsets.all(12),
+                          color: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -2261,12 +2261,13 @@ class _CashierScreenState extends State<CashierScreen> {
                                           : Border.all(color: Colors.grey.shade200, width: 0.8),
                                     ),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                       child: Row(
                                         children: [
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
                                                   item.productName ?? (isEng ? 'Item' : 'صنف'),
@@ -2278,47 +2279,52 @@ class _CashierScreenState extends State<CashierScreen> {
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
-                                                Wrap(
-                                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                                  spacing: 4,
-                                                  runSpacing: 2,
-                                                  children: [
-                                                    Text(
-                                                      '${item.price.toStringAsFixed(0)} $_currencySymbol',
-                                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                                                    ),
-                                                    if (item.formattedTime.isNotEmpty)
-                                                      Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                        decoration: BoxDecoration(
-                                                          color: isNew ? const Color(0xFFDCFCE7) : Colors.blue.shade50,
-                                                          borderRadius: BorderRadius.circular(4),
-                                                          border: Border.all(
-                                                            color: isNew ? const Color(0xFF86EFAC) : Colors.blue.shade200,
-                                                            width: 0.5,
+                                                const SizedBox(height: 1),
+                                                FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  alignment: AlignmentDirectional.centerStart,
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        '${item.price.toStringAsFixed(0)} $_currencySymbol',
+                                                        style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                                                      ),
+                                                      if (item.formattedTime.isNotEmpty) ...[
+                                                        const SizedBox(width: 5),
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                          decoration: BoxDecoration(
+                                                            color: isNew ? const Color(0xFFDCFCE7) : Colors.blue.shade50,
+                                                            borderRadius: BorderRadius.circular(4),
+                                                            border: Border.all(
+                                                              color: isNew ? const Color(0xFF86EFAC) : Colors.blue.shade200,
+                                                              width: 0.5,
+                                                            ),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Icon(
+                                                                Icons.access_time,
+                                                                size: 9,
+                                                                color: isNew ? const Color(0xFF16A34A) : Colors.blue,
+                                                              ),
+                                                              const SizedBox(width: 2),
+                                                              Text(
+                                                                item.formattedTime,
+                                                                style: TextStyle(
+                                                                  color: isNew ? const Color(0xFF15803D) : Colors.blue,
+                                                                  fontSize: 9.5,
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
                                                         ),
-                                                        child: Row(
-                                                          mainAxisSize: MainAxisSize.min,
-                                                          children: [
-                                                            Icon(
-                                                              Icons.access_time,
-                                                              size: 9,
-                                                              color: isNew ? const Color(0xFF16A34A) : Colors.blue,
-                                                            ),
-                                                            const SizedBox(width: 2),
-                                                            Text(
-                                                              item.formattedTime,
-                                                              style: TextStyle(
-                                                                color: isNew ? const Color(0xFF15803D) : Colors.blue,
-                                                                fontSize: 9.5,
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                  ],
+                                                      ],
+                                                    ],
+                                                  ),
                                                 ),
 
                                                 if (item.notes != null && item.notes!.isNotEmpty)
@@ -2370,30 +2376,24 @@ class _CashierScreenState extends State<CashierScreen> {
                                               ),
                                             ],
                                           ),
-                                            const SizedBox(width: 4),
-                                            Flexible(
-                                              child: FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(
-                                                  '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
-                                                    color: isNew ? const Color(0xFF15803D) : Colors.black87,
-                                                  ),
-                                                ),
-                                              ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${item.subtotal.toStringAsFixed(0)} $_currencySymbol',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color: isNew ? const Color(0xFF15803D) : Colors.black87,
                                             ),
-                                            IconButton(
-                                              constraints: const BoxConstraints(),
-                                              padding: const EdgeInsets.all(2),
-                                              icon: const Icon(Icons.close, size: 16, color: Colors.grey),
-                                              onPressed: () => _removeFromCart(index),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                          IconButton(
+                                            constraints: const BoxConstraints(),
+                                            padding: const EdgeInsets.all(2),
+                                            icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                            onPressed: () => _removeFromCart(index),
+                                          ),
+                                        ],
                                       ),
+                                    ),
                                   );
                                 },
                               ),
