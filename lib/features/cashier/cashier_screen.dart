@@ -59,18 +59,11 @@ class _CashierScreenState extends State<CashierScreen> {
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
-  bool _isFullscreen = false;
-
   void _toggleFullscreen() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
         final current = await windowManager.isFullScreen();
         await windowManager.setFullScreen(!current);
-        if (mounted) {
-          setState(() {
-            _isFullscreen = !current;
-          });
-        }
       } catch (e) {
         debugPrint('windowManager toggle error in Cashier: $e');
       }
@@ -97,11 +90,6 @@ class _CashierScreenState extends State<CashierScreen> {
     _orderType = widget.selectedTable != null ? 'DINE_IN' : widget.initialOrderType;
     if (widget.selectedTable != null) {
       _loadTableOrder();
-    }
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      windowManager.isFullScreen().then((isFS) {
-        if (mounted) setState(() => _isFullscreen = isFS);
-      }).catchError((_) {});
     }
     LocalServerService.instance.addListener(_onServerTableOrderUpdated);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2147,11 +2135,30 @@ class _CashierScreenState extends State<CashierScreen> {
                                   Icon(Icons.shopping_cart_checkout, color: AppColors.primary),
                                   const SizedBox(width: 8),
                                   Text(
-                                    _existingOrderId != null
-                                        ? (isEng ? 'Table Order' : 'طلب الطاولة')
-                                        : (isEng ? 'Order Cart' : 'سلة الطلب'),
-                                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                                    isEng ? 'Order Cart' : 'سلة الطلب',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                   ),
+                                  if (widget.selectedTable != null) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                                      ),
+                                      child: Text(
+                                        widget.selectedTable!.name.replaceAll(RegExp(r'[^0-9\u0660-\u0669\u06F0-\u06F9]'), '').trim().isNotEmpty
+                                            ? widget.selectedTable!.name.replaceAll(RegExp(r'[^0-9\u0660-\u0669\u06F0-\u06F9]'), '').trim()
+                                            : widget.selectedTable!.name,
+                                        style: TextStyle(
+                                          color: Colors.orange.shade900,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                           Row(
@@ -2188,63 +2195,37 @@ class _CashierScreenState extends State<CashierScreen> {
                                 ),
                                 const SizedBox(width: 6),
                               ],
-                              if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
-                                IconButton(
-                                  icon: Icon(
-                                    _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                                    color: Colors.grey.shade700,
-                                    size: 20,
-                                  ),
-                                  tooltip: isEng ? 'Fullscreen (F11)' : 'شاشة كاملة (F11)',
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: _toggleFullscreen,
+                              ElevatedButton.icon(
+                                onPressed: _cancelOrderAndGoHome,
+                                icon: const Icon(Icons.cancel_outlined, size: 15, color: Colors.white),
+                                label: Text(
+                                  isEng ? 'Cancel' : 'إلغاء الفاتورة',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
-                                const SizedBox(width: 6),
-                              ],
-                              if (_cart.isNotEmpty)
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade700,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 1,
+                                ),
+                              ),
+                              if (_cart.isNotEmpty) ...[
+                                const SizedBox(width: 4),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                                  icon: const Icon(Icons.delete_sweep, color: Colors.red, size: 20),
                                   tooltip: isEng ? 'Clear Cart' : 'تفريغ السلة',
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                   onPressed: _clearCart,
                                 ),
+                              ],
                             ],
                           ),
                         ],
                       ),
-
-                      if (widget.selectedTable != null) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.orange.shade300),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                widget.selectedTable!.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
-                              ),
-                              if (_existingOrderId != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(isEng ? 'Open Order 📌' : 'طلب مفتوح 📌', style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
 
                       const Divider(height: 14),
 
@@ -2461,25 +2442,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         ),
                       ],
 
-                      const SizedBox(height: 10),
-
-                      // Action Button (Cancel Invoice)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 40,
-                        child: ElevatedButton(
-                          onPressed: _cancelOrderAndGoHome,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade700,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text(
-                            'إلغاء الفاتورة',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 8),
 
                       // Quick Action Buttons (Under Cart)
                       _buildAroniumQuickActionBar(context),
@@ -2681,12 +2644,12 @@ class _CashierScreenState extends State<CashierScreen> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(7),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 88,
+        maxCrossAxisExtent: 98,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
+        crossAxisSpacing: 7,
+        mainAxisSpacing: 7,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
@@ -2760,7 +2723,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 Text(
                                   category.name,
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: textColor,
                                     shadows: isDarkBg
@@ -2863,7 +2826,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 product.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 11.5,
+                                  fontSize: 12.5,
                                   color: textColor,
                                   shadows: isDarkBg
                                       ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
@@ -2895,7 +2858,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   style: TextStyle(
                                     color: priceColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 10.5,
+                                    fontSize: 11.5,
                                   ),
                                 ),
                               ),
@@ -2922,12 +2885,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final totalGridItems = products.length + 1;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(7),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 88,
+        maxCrossAxisExtent: 98,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
+        crossAxisSpacing: 7,
+        mainAxisSpacing: 7,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
@@ -2954,11 +2917,11 @@ class _CashierScreenState extends State<CashierScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircleAvatar(
-                        radius: 14,
+                        radius: 15,
                         backgroundColor: Colors.white,
                         child: Icon(
                           Icons.arrow_back,
-                          size: 16,
+                          size: 18,
                           color: Colors.black87,
                         ),
                       ),
@@ -2967,7 +2930,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         'الرجوع',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 11.5,
+                          fontSize: 12.5,
                           color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
@@ -2979,7 +2942,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         '← القائمة',
                         style: TextStyle(
                           color: Colors.grey,
-                          fontSize: 9.5,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -3069,7 +3032,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 product.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 11.5,
+                                  fontSize: 12.5,
                                   color: textColor,
                                   shadows: isDarkBg
                                       ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
@@ -3101,7 +3064,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   style: TextStyle(
                                     color: priceColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 10.5,
+                                    fontSize: 11.5,
                                   ),
                                 ),
                               ),
