@@ -2681,12 +2681,12 @@ class _CashierScreenState extends State<CashierScreen> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 105,
+        maxCrossAxisExtent: 88,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
@@ -2698,18 +2698,18 @@ class _CashierScreenState extends State<CashierScreen> {
           final textColor = isDarkBg ? Colors.white : Colors.black87;
 
           return Card(
-            elevation: 3,
+            elevation: 2,
             color: hasImage ? Colors.black : bgColor,
             clipBehavior: Clip.antiAlias,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               side: BorderSide(
                 color: isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300,
                 width: 1.0,
               ),
             ),
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               onTap: () {
                 productsProvider.selectCategory(category.id);
               },
@@ -2760,7 +2760,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 Text(
                                   category.name,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: textColor,
                                     shadows: isDarkBg
@@ -2793,11 +2793,11 @@ class _CashierScreenState extends State<CashierScreen> {
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
-          elevation: 3,
+          elevation: 2,
           color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             side: BorderSide(
               color: product.isAvailable
                   ? (isDarkBg
@@ -2808,12 +2808,12 @@ class _CashierScreenState extends State<CashierScreen> {
             ),
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             onTap: () => _addToCart(product),
             onSecondaryTap: () => _customizeProductAppearance(context, product),
             onLongPress: () => _customizeProductAppearance(context, product),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -2863,7 +2863,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 product.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                                  fontSize: 11.5,
                                   color: textColor,
                                   shadows: isDarkBg
                                       ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
@@ -2873,16 +2873,16 @@ class _CashierScreenState extends State<CashierScreen> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 3),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                 decoration: BoxDecoration(
                                   color: isDarkBg
                                       ? Colors.black.withValues(alpha: 0.28)
                                       : (bgColor.computeLuminance() > 0.85
                                           ? const Color(0xFFF1F5F9)
                                           : Colors.white.withValues(alpha: 0.75)),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: isDarkBg
                                         ? Colors.white.withValues(alpha: 0.2)
@@ -2895,7 +2895,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   style: TextStyle(
                                     color: priceColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontSize: 10.5,
                                   ),
                                 ),
                               ),
@@ -2922,12 +2922,12 @@ class _CashierScreenState extends State<CashierScreen> {
     final totalGridItems = products.length + 1;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 105,
+        maxCrossAxisExtent: 88,
         childAspectRatio: 1.0,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
@@ -2938,36 +2938,36 @@ class _CashierScreenState extends State<CashierScreen> {
               productsProvider.setSearchQuery('');
             },
             child: Card(
-              elevation: 3,
+              elevation: 2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(10),
                 side: BorderSide(color: Colors.grey.shade300, width: 1.2),
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(10),
                   color: Colors.grey.shade100,
                 ),
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(4),
                 child: const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircleAvatar(
-                        radius: 18,
+                        radius: 14,
                         backgroundColor: Colors.white,
                         child: Icon(
                           Icons.arrow_back,
-                          size: 20,
+                          size: 16,
                           color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      SizedBox(height: 3),
                       Text(
                         'الرجوع',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 11.5,
                           color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
@@ -2979,7 +2979,7 @@ class _CashierScreenState extends State<CashierScreen> {
                         '← القائمة',
                         style: TextStyle(
                           color: Colors.grey,
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2999,11 +2999,11 @@ class _CashierScreenState extends State<CashierScreen> {
         final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
 
         return Card(
-          elevation: 3,
+          elevation: 2,
           color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             side: BorderSide(
               color: product.isAvailable
                   ? (isDarkBg
@@ -3014,12 +3014,12 @@ class _CashierScreenState extends State<CashierScreen> {
             ),
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             onTap: () => _addToCart(product),
             onSecondaryTap: () => _customizeProductAppearance(context, product),
             onLongPress: () => _customizeProductAppearance(context, product),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -3069,7 +3069,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 product.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                                  fontSize: 11.5,
                                   color: textColor,
                                   shadows: isDarkBg
                                       ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
@@ -3079,16 +3079,16 @@ class _CashierScreenState extends State<CashierScreen> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 3),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                 decoration: BoxDecoration(
                                   color: isDarkBg
                                       ? Colors.black.withValues(alpha: 0.28)
                                       : (bgColor.computeLuminance() > 0.85
                                           ? const Color(0xFFF1F5F9)
                                           : Colors.white.withValues(alpha: 0.75)),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: isDarkBg
                                         ? Colors.white.withValues(alpha: 0.2)
@@ -3101,7 +3101,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   style: TextStyle(
                                     color: priceColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontSize: 10.5,
                                   ),
                                 ),
                               ),

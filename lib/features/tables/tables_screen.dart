@@ -295,29 +295,19 @@ class _TablesScreenState extends State<TablesScreen> {
             color: const Color(0xFF1F2937),
             elevation: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(30),
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.menu, color: Colors.white, size: 24),
-                  const SizedBox(width: 8),
-                  Text(
-                    isEng ? 'Table Options' : 'خيارات الطاولات',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                ],
-              ),
+              child: const Icon(Icons.menu, color: Colors.white, size: 24),
             ),
             onSelected: (value) {
               if (value == 'add') {
