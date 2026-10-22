@@ -63,6 +63,18 @@ class SettingsProvider extends ChangeNotifier {
     await updateSetting('app_screen_scale', value.toString());
   }
 
+  double get tablesCardSize => double.tryParse(_settings['tables_card_size'] ?? '135.0') ?? 135.0;
+
+  Future<void> setTablesCardSize(double value) async {
+    await updateSetting('tables_card_size', value.toStringAsFixed(1));
+  }
+
+  double get cashierItemSize => double.tryParse(_settings['cashier_item_size'] ?? '98.0') ?? 98.0;
+
+  Future<void> setCashierItemSize(double value) async {
+    await updateSetting('cashier_item_size', value.toStringAsFixed(1));
+  }
+
   Color get primaryColor {
     final hex = themeColorHex.replaceAll('#', '');
     final val = int.tryParse(hex, radix: 16);

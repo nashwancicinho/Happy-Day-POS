@@ -2181,10 +2181,239 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         _buildLanguageSection(context, settings),
         const SizedBox(height: 20),
+        _buildDisplaySizesSection(context, settings),
+        const SizedBox(height: 20),
         _buildThemeColorSection(context, settings),
         const SizedBox(height: 20),
         _buildTopNotificationSection(context, settings),
       ],
+    );
+  }
+
+  Widget _buildDisplaySizesSection(BuildContext context, SettingsProvider settings) {
+    final isEng = settings.isEnglish;
+    final cashierItemSize = settings.cashierItemSize;
+    final tablesCardSize = settings.tablesCardSize;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.aspect_ratio_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEng ? 'Display Sizes (Cashier & Tables)' : 'التحكم بأحجام العرض (الكاشير والطاولات)',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isEng
+                            ? 'Adjust the size of item cards in cashier and tables to best fit your screen.'
+                            : 'تخصيص قياس بطاقات المواد في شاشة الكاشير وبطاقات الطاولات لتناسب شاشتك بدقة.',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+
+            // 1. Cashier Items Card Size
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.grid_view_rounded, size: 20, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Text(
+                      isEng ? 'Cashier Items & Categories Size:' : 'حجم بطاقات المواد والتصنيفات في الكاشير:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Text(
+                    '${cashierItemSize.toInt()} px',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade900, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Presets for Cashier Items
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _buildSizePresetChip(
+                  label: isEng ? 'Small (85px)' : 'صغير (85px)',
+                  isSelected: (cashierItemSize - 85).abs() < 2,
+                  onTap: () => settings.setCashierItemSize(85.0),
+                ),
+                _buildSizePresetChip(
+                  label: isEng ? 'Default / Medium (98px)' : 'افتراضي / متوسط (98px)',
+                  isSelected: (cashierItemSize - 98).abs() < 2,
+                  onTap: () => settings.setCashierItemSize(98.0),
+                ),
+                _buildSizePresetChip(
+                  label: isEng ? 'Large (115px)' : 'كبير (115px)',
+                  isSelected: (cashierItemSize - 115).abs() < 2,
+                  onTap: () => settings.setCashierItemSize(115.0),
+                ),
+                _buildSizePresetChip(
+                  label: isEng ? 'Extra Large (130px)' : 'كبير جداً (130px)',
+                  isSelected: (cashierItemSize - 130).abs() < 2,
+                  onTap: () => settings.setCashierItemSize(130.0),
+                ),
+              ],
+            ),
+            Slider(
+              value: cashierItemSize.clamp(75.0, 140.0),
+              min: 75.0,
+              max: 140.0,
+              divisions: 65,
+              activeColor: AppColors.primary,
+              label: '${cashierItemSize.toInt()} px',
+              onChanged: (val) {
+                settings.setCashierItemSize(val);
+              },
+            ),
+
+            const Divider(height: 28),
+
+            // 2. Tables Card Size
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.table_restaurant_rounded, size: 20, color: Colors.teal),
+                    const SizedBox(width: 8),
+                    Text(
+                      isEng ? 'Tables Card Size:' : 'حجم بطاقات الطاولات:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.teal.shade300),
+                  ),
+                  child: Text(
+                    '${tablesCardSize.toInt()} px',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal.shade900, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Presets for Tables
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _buildSizePresetChip(
+                  label: isEng ? 'Small (105px)' : 'صغير (105px)',
+                  isSelected: (tablesCardSize - 105).abs() < 2,
+                  onTap: () => settings.setTablesCardSize(105.0),
+                ),
+                _buildSizePresetChip(
+                  label: isEng ? 'Default / Medium (135px)' : 'افتراضي / متوسط (135px)',
+                  isSelected: (tablesCardSize - 135).abs() < 2,
+                  onTap: () => settings.setTablesCardSize(135.0),
+                ),
+                _buildSizePresetChip(
+                  label: isEng ? 'Large (165px)' : 'كبير (165px)',
+                  isSelected: (tablesCardSize - 165).abs() < 2,
+                  onTap: () => settings.setTablesCardSize(165.0),
+                ),
+                _buildSizePresetChip(
+                  label: isEng ? 'Extra Large (195px)' : 'كبير جداً (195px)',
+                  isSelected: (tablesCardSize - 195).abs() < 2,
+                  onTap: () => settings.setTablesCardSize(195.0),
+                ),
+              ],
+            ),
+            Slider(
+              value: tablesCardSize.clamp(90.0, 200.0),
+              min: 90.0,
+              max: 200.0,
+              divisions: 110,
+              activeColor: Colors.teal,
+              label: '${tablesCardSize.toInt()} px',
+              onChanged: (val) {
+                settings.setTablesCardSize(val);
+              },
+            ),
+
+            const SizedBox(height: 10),
+            // Reset Button
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton.icon(
+                icon: const Icon(Icons.restore_rounded, size: 18),
+                label: Text(isEng ? 'Reset to Default Sizes' : 'استعادة الأحجام الافتراضية'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey.shade700,
+                ),
+                onPressed: () {
+                  settings.setCashierItemSize(98.0);
+                  settings.setTablesCardSize(135.0);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSizePresetChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onTap(),
+      selectedColor: AppColors.primary.withValues(alpha: 0.18),
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.primary : Colors.black87,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 12.5,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : Colors.grey.shade300,
+          width: isSelected ? 1.5 : 1.0,
+        ),
+      ),
     );
   }
 

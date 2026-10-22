@@ -244,8 +244,13 @@ class _TablesScreenState extends State<TablesScreen> {
   @override
   Widget build(BuildContext context) {
     final tablesProvider = context.watch<TablesProvider>();
-    final isEng = context.watch<SettingsProvider>().isEnglish;
-    final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final currencySym = settings.currencySymbol;
+    final tableCardSize = settings.tablesCardSize;
+    final tableIconSize = (tableCardSize * 0.19).clamp(20.0, 36.0);
+    final tableNameFontSize = (tableCardSize * 0.104).clamp(11.5, 18.0);
+    final tableAmountFontSize = (tableCardSize * 0.08).clamp(9.0, 14.0);
     final tables = tablesProvider.tables;
 
     String formatBillAmount(double? amount) {
@@ -498,8 +503,8 @@ class _TablesScreenState extends State<TablesScreen> {
                     : GridView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: tables.length,
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 135,
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: tableCardSize,
                       childAspectRatio: 1.1,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
@@ -538,14 +543,14 @@ class _TablesScreenState extends State<TablesScreen> {
                                     // Table Icon & Status
                                     Icon(
                                       Icons.table_restaurant,
-                                      size: 26,
+                                      size: tableIconSize,
                                       color: _isDeleteMode ? Colors.red : color,
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       table.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
+                                      style: TextStyle(
+                                        fontSize: tableNameFontSize,
                                         fontWeight: FontWeight.bold,
                                       ),
                                       maxLines: 1,
@@ -559,7 +564,7 @@ class _TablesScreenState extends State<TablesScreen> {
                                           formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
                                           style: TextStyle(
                                             color: isOccupied ? AppColors.danger : Colors.grey.shade700,
-                                            fontSize: 10.5,
+                                            fontSize: tableAmountFontSize,
                                             fontWeight: isOccupied ? FontWeight.bold : FontWeight.w600,
                                           ),
                                           maxLines: 1,

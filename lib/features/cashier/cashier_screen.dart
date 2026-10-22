@@ -2643,10 +2643,15 @@ class _CashierScreenState extends State<CashierScreen> {
       );
     }
 
+    final itemExtent = context.watch<SettingsProvider>().cashierItemSize;
+    final catFontSize = (itemExtent * 0.133).clamp(10.5, 16.0);
+    final prodFontSize = (itemExtent * 0.127).clamp(10.0, 15.5);
+    final priceFontSize = (itemExtent * 0.117).clamp(9.5, 14.5);
+
     return GridView.builder(
       padding: const EdgeInsets.all(7),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 98,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: itemExtent,
         childAspectRatio: 1.0,
         crossAxisSpacing: 7,
         mainAxisSpacing: 7,
@@ -2723,7 +2728,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 Text(
                                   category.name,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: catFontSize,
                                     fontWeight: FontWeight.bold,
                                     color: textColor,
                                     shadows: isDarkBg
@@ -2826,7 +2831,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 product.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
+                                  fontSize: prodFontSize,
                                   color: textColor,
                                   shadows: isDarkBg
                                       ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
@@ -2858,7 +2863,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   style: TextStyle(
                                     color: priceColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 11.5,
+                                    fontSize: priceFontSize,
                                   ),
                                 ),
                               ),
@@ -2884,10 +2889,14 @@ class _CashierScreenState extends State<CashierScreen> {
     final products = productsProvider.cashierProducts;
     final totalGridItems = products.length + 1;
 
+    final itemExtent = context.watch<SettingsProvider>().cashierItemSize;
+    final prodFontSize = (itemExtent * 0.127).clamp(10.0, 15.5);
+    final priceFontSize = (itemExtent * 0.117).clamp(9.5, 14.5);
+
     return GridView.builder(
       padding: const EdgeInsets.all(7),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 98,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: itemExtent,
         childAspectRatio: 1.0,
         crossAxisSpacing: 7,
         mainAxisSpacing: 7,
@@ -3032,7 +3041,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 product.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
+                                  fontSize: prodFontSize,
                                   color: textColor,
                                   shadows: isDarkBg
                                       ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
@@ -3064,7 +3073,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                   style: TextStyle(
                                     color: priceColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 11.5,
+                                    fontSize: priceFontSize,
                                   ),
                                 ),
                               ),
