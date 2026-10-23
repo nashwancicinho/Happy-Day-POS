@@ -8,14 +8,16 @@ class OtherExpensesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(isEng ? 'Other Expenses & Outflows' : 'إدارة المصاريف والنثريات الأخرى 💸'),
         centerTitle: true,
       ),
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
       body: const Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16.0),

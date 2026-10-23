@@ -28,6 +28,7 @@ class ProductsScreen extends StatelessWidget {
     final settingsProvider = context.watch<SettingsProvider>();
     final currencySym = settingsProvider.currencySymbol;
     final isEng = settingsProvider.isEnglish;
+    final isDark = settingsProvider.isDarkMode;
 
     String formatUnit(String rawUnit) {
       if (!isEng) return rawUnit;
@@ -84,7 +85,7 @@ class ProductsScreen extends StatelessWidget {
         label: Text(isEng ? 'Add New Product ➕' : 'إضافة مادة / صنف جديد'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Column(
           children: [
             // Search & Filter Header
@@ -92,16 +93,27 @@ class ProductsScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       hintText: isEng ? 'Search product or barcode...' : 'بحث باسم الصنف أو الباركود...',
-                      prefixIcon: const Icon(Icons.search),
+                      hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                      prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.grey.shade400),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.grey.shade400),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? const Color(0xFF1F2937) : Colors.white,
                     ),
                     onChanged: (val) => productsProvider.setSearchQuery(val),
                   ),
@@ -112,26 +124,34 @@ class ProductsScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade400),
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade400),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
                         value: productsProvider.selectedCategoryId,
-                        hint: Text(isEng ? 'All Categories' : 'كل التصنيفات', style: const TextStyle(fontSize: 13)),
+                        dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                        iconEnabledColor: isDark ? Colors.white70 : Colors.black87,
+                        hint: Text(
+                          isEng ? 'All Categories' : 'كل التصنيفات',
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
+                        ),
                         isDense: true,
                         isExpanded: true,
                         items: [
                           DropdownMenuItem<int?>(
                             value: null,
-                            child: Text(isEng ? 'All Categories' : 'جميع التصنيفات', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              isEng ? 'All Categories' : 'جميع التصنيفات',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                            ),
                           ),
                           ...categoriesProvider.categories.map((cat) {
                             final cName = (cat.name == 'عام' && isEng) ? 'General' : cat.name;
                             return DropdownMenuItem<int?>(
                               value: cat.id,
-                              child: Text(cName, style: const TextStyle(fontSize: 13)),
+                              child: Text(cName, style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87)),
                             );
                           }),
                         ],
@@ -163,170 +183,248 @@ class ProductsScreen extends StatelessWidget {
                     )
                   : Card(
                       elevation: 3,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(8),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minWidth: 950),
-                            child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
-                              columns: [
-                                const DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Item Name / Barcode' : 'اسم الصنف / الباركود', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Category' : 'التصنيف', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Cost (Buy)' : 'الكلُفة (الشراء)', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Sale Price' : 'سعر البيع', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Profit' : 'الربح', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Unit & Weight' : 'الوحدة والوزن', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Stock' : 'المخزون', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Status' : 'الحالة', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Actions' : 'العمليات', style: const TextStyle(fontWeight: FontWeight.bold))),
-                              ],
-                              rows: productsProvider.products.map((product) {
-                                final rawCat = product.categoryId == null
-                                    ? (isEng ? '📌 Main Screen' : '📌 الشاشة الرئيسية (مباشر)')
-                                    : categoriesProvider.categories
-                                        .firstWhere(
-                                          (c) => c.id == product.categoryId,
-                                          orElse: () => const CategoryModel(name: 'عام'),
-                                        )
-                                        .name;
-                                final catName = (rawCat == 'عام' && isEng) ? 'General' : rawCat;
-
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text('#${product.id}')),
-                                    DataCell(
-                                      Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                          if (product.barcode != null && product.barcode!.isNotEmpty)
-                                            Text(
-                                              isEng ? 'Barcode: ${product.barcode}' : 'باركود: ${product.barcode}',
-                                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                                            ),
-                                        ],
-                                      ),
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                child: DataTable(
+                                  columnSpacing: 10,
+                                  horizontalMargin: 8,
+                                  headingRowHeight: 40,
+                                  dataRowMinHeight: 42,
+                                  dataRowMaxHeight: 52,
+                                  headingRowColor: WidgetStateProperty.all(
+                                    isDark ? const Color(0xFF242F3E) : Colors.orange.shade50,
+                                  ),
+                                  dataRowColor: WidgetStateProperty.resolveWith((states) {
+                                    if (states.contains(WidgetState.hovered)) {
+                                      return isDark ? const Color(0xFF2D3B4E) : Colors.grey.shade100;
+                                    }
+                                    return isDark ? const Color(0xFF1F2937) : Colors.white;
+                                  }),
+                                  dividerThickness: 1,
+                                  border: TableBorder(
+                                    horizontalInside: BorderSide(
+                                      color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+                                      width: 1,
                                     ),
-                                    DataCell(
-                                       Column(
-                                         mainAxisAlignment: MainAxisAlignment.center,
-                                         crossAxisAlignment: CrossAxisAlignment.start,
-                                         children: [
-                                           Chip(
-                                             label: Text(catName, style: const TextStyle(fontSize: 11)),
-                                             backgroundColor: Colors.blue.shade50,
-                                             visualDensity: VisualDensity.compact,
-                                           ),
-                                           Text(
-                                             product.displayLocation == 'BOTH'
-                                                 ? '🌟 رئيسية وتصنيف'
-                                                 : (product.displayLocation == 'MAIN_ONLY' ? '📌 رئيسية فقط' : '📂 داخل التصنيف فقط'),
-                                             style: TextStyle(fontSize: 10, color: Colors.purple.shade700, fontWeight: FontWeight.bold),
-                                           ),
-                                         ],
-                                       ),
-                                     ),
-                                    DataCell(Text('${product.buyPrice.toStringAsFixed(0)} $currencySym')),
-                                    DataCell(Text(
-                                      '${product.price.toStringAsFixed(0)} $currencySym',
-                                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
-                                    )),
-                                    DataCell(Text(
-                                      '${product.profitMargin.toStringAsFixed(0)} $currencySym',
-                                      style: TextStyle(
-                                        color: product.profitMargin >= 0 ? Colors.green.shade800 : Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    )),
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          Text(formatUnit(product.unit)),
-                                          if (product.isWeighted) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.purple.shade50,
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                isEng ? 'Weighted' : 'موزونة',
-                                                style: const TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    DataCell(
-                                      product.trackStock
-                                          ? Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: product.isLowStock ? Colors.red.shade50 : Colors.green.shade50,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: product.isLowStock ? Colors.red.shade300 : Colors.green.shade300,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                '${product.stockQuantity.toStringAsFixed(0)} ${formatUnit(product.unit)}',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: product.isLowStock ? Colors.red.shade900 : Colors.green.shade900,
-                                                ),
-                                              ),
-                                            )
-                                          : Text(isEng ? 'Untracked' : 'غير متتبع'),
-                                    ),
-                                    DataCell(
-                                      Switch(
-                                        value: product.isAvailable,
-                                        activeTrackColor: AppColors.success,
-                                        onChanged: (_) {
-                                          productsProvider.toggleAvailability(product);
-                                        },
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.palette_outlined, color: Colors.orange),
-                                            tooltip: isEng ? 'Customize Color & Appearance' : 'تخصيص اللون والمظهر 🎨',
-                                            onPressed: () => _customizeProductAppearance(context, product),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.qr_code_scanner, color: Colors.purple),
-                                            tooltip: isEng ? 'Print Barcode Label' : 'طباعة ملصق الباركود',
-                                            onPressed: () => _showPrintBarcodeQuantityDialog(context, product),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.edit, color: Colors.blue),
-                                            tooltip: isEng ? 'Edit Product' : 'تعديل البيانات',
-                                            onPressed: () => _showProductDialog(context, product: product),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.red),
-                                            tooltip: isEng ? 'Delete Product' : 'حذف المادة',
-                                            onPressed: () => productsProvider.deleteProduct(product.id!),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  ),
+                                  columns: [
+                                    DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Item / Barcode' : 'اسم الصنف / الباركود', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Category' : 'التصنيف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Cost' : 'الكلُفة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Sale Price' : 'سعر البيع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Profit' : 'الربح', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Unit' : 'الوحدة والوزن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Stock' : 'المخزون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Status' : 'الحالة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
+                                    DataColumn(label: Text(isEng ? 'Actions' : 'العمليات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87))),
                                   ],
-                                );
-                              }).toList(),
+                                  rows: productsProvider.products.map((product) {
+                                    final rawCat = product.categoryId == null
+                                        ? (isEng ? '📌 Main' : '📌 الشاشة الرئيسية')
+                                        : categoriesProvider.categories
+                                            .firstWhere(
+                                              (c) => c.id == product.categoryId,
+                                              orElse: () => const CategoryModel(name: 'عام'),
+                                            )
+                                            .name;
+                                    final catName = (rawCat == 'عام' && isEng) ? 'General' : rawCat;
+
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(Text('#${product.id}', style: TextStyle(fontSize: 11.5, color: isDark ? Colors.grey.shade300 : Colors.black87))),
+                                        DataCell(
+                                          Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(product.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black87)),
+                                              if (product.barcode != null && product.barcode!.isNotEmpty)
+                                                Text(
+                                                  isEng ? 'Barcode: ${product.barcode}' : 'باركود: ${product.barcode}',
+                                                  style: TextStyle(fontSize: 10, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.5) : Colors.blue.shade50,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(color: isDark ? Colors.blue.shade700 : Colors.blue.shade200),
+                                                ),
+                                                child: Text(
+                                                  catName,
+                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.blue.shade200 : Colors.blue.shade900),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 1),
+                                              Text(
+                                                product.displayLocation == 'BOTH'
+                                                    ? '🌟 رئيسية وتصنيف'
+                                                    : (product.displayLocation == 'MAIN_ONLY' ? '📌 رئيسية فقط' : '📂 داخل التصنيف'),
+                                                style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  color: isDark ? const Color(0xFFD8B4FE) : Colors.purple.shade700,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        DataCell(Text(
+                                          '${product.buyPrice.toStringAsFixed(0)} $currencySym',
+                                          style: TextStyle(fontSize: 11.5, color: isDark ? Colors.grey.shade300 : Colors.black87),
+                                        )),
+                                        DataCell(Text(
+                                          '${product.price.toStringAsFixed(0)} $currencySym',
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFFBBF24) : AppColors.primary),
+                                        )),
+                                        DataCell(Text(
+                                          '${product.profitMargin.toStringAsFixed(0)} $currencySym',
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            color: product.profitMargin >= 0
+                                                ? (isDark ? const Color(0xFF34D399) : Colors.green.shade800)
+                                                : (isDark ? const Color(0xFFF87171) : Colors.red),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )),
+                                        DataCell(
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(formatUnit(product.unit), style: TextStyle(fontSize: 11.5, color: isDark ? Colors.grey.shade300 : Colors.black87)),
+                                              if (product.isWeighted) ...[
+                                                const SizedBox(width: 4),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                  decoration: BoxDecoration(
+                                                    color: isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : Colors.purple.shade50,
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    border: Border.all(color: isDark ? const Color(0xFF7E22CE) : Colors.purple.shade200),
+                                                  ),
+                                                  child: Text(
+                                                    isEng ? 'Weighted' : 'موزونة',
+                                                    style: TextStyle(
+                                                      fontSize: 9.5,
+                                                      color: isDark ? const Color(0xFFD8B4FE) : Colors.purple,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        DataCell(
+                                          product.trackStock
+                                              ? Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: product.isLowStock
+                                                        ? (isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : Colors.red.shade50)
+                                                        : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : Colors.green.shade50),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(
+                                                      color: product.isLowStock
+                                                          ? (isDark ? const Color(0xFF991B1B) : Colors.red.shade300)
+                                                          : (isDark ? const Color(0xFF059669) : Colors.green.shade300),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    '${product.stockQuantity.toStringAsFixed(0)} ${formatUnit(product.unit)}',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: product.isLowStock
+                                                          ? (isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900)
+                                                          : (isDark ? const Color(0xFF6EE7B7) : Colors.green.shade900),
+                                                    ),
+                                                  ),
+                                                )
+                                              : Text(isEng ? 'Untracked' : 'غير متتبع', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+                                        ),
+                                        DataCell(
+                                          Transform.scale(
+                                            scale: 0.8,
+                                            child: Switch(
+                                              value: product.isAvailable,
+                                              activeTrackColor: AppColors.success,
+                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              onChanged: (_) {
+                                                productsProvider.toggleAvailability(product);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                padding: const EdgeInsets.all(4),
+                                                constraints: const BoxConstraints(),
+                                                iconSize: 18,
+                                                icon: const Icon(Icons.palette_outlined, color: Colors.orangeAccent),
+                                                tooltip: isEng ? 'Customize Color & Appearance' : 'تخصيص اللون والمظهر 🎨',
+                                                onPressed: () => _customizeProductAppearance(context, product),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              IconButton(
+                                                padding: const EdgeInsets.all(4),
+                                                constraints: const BoxConstraints(),
+                                                iconSize: 18,
+                                                icon: Icon(Icons.qr_code_scanner, color: isDark ? const Color(0xFFC084FC) : Colors.purple),
+                                                tooltip: isEng ? 'Print Barcode Label' : 'طباعة ملصق الباركود',
+                                                onPressed: () => _showPrintBarcodeQuantityDialog(context, product),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              IconButton(
+                                                padding: const EdgeInsets.all(4),
+                                                constraints: const BoxConstraints(),
+                                                iconSize: 18,
+                                                icon: Icon(Icons.edit, color: isDark ? const Color(0xFF60A5FA) : Colors.blue),
+                                                tooltip: isEng ? 'Edit Product' : 'تعديل البيانات',
+                                                onPressed: () => _showProductDialog(context, product: product),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              IconButton(
+                                                padding: const EdgeInsets.all(4),
+                                                constraints: const BoxConstraints(),
+                                                iconSize: 18,
+                                                icon: Icon(Icons.delete, color: isDark ? const Color(0xFFF87171) : Colors.red),
+                                                tooltip: isEng ? 'Delete Product' : 'حذف المادة',
+                                                onPressed: () => productsProvider.deleteProduct(product.id!),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ),
             ),
@@ -337,7 +435,9 @@ class ProductsScreen extends StatelessWidget {
   }
 
   void _showProductDialog(BuildContext context, {ProductModel? product}) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     final nameController = TextEditingController(text: product?.name ?? '');
     final barcodeController = TextEditingController(text: product?.barcode ?? '');
     final buyPriceController = TextEditingController(text: product != null ? product.buyPrice.toStringAsFixed(0) : '0');
@@ -358,7 +458,7 @@ class ProductsScreen extends StatelessWidget {
     List<dynamic> systemPrinters = [];
     bool isPrintersLoaded = false;
 
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final currencySym = settings.currencySymbol;
     final categories = context.read<CategoriesProvider>().categories;
 
     final availableUnits = ['قطعة', 'كيلوغرام', 'غرام', 'لتر', 'علبة', 'طقم', 'متر', 'كارتون'];
@@ -432,6 +532,7 @@ class ProductsScreen extends StatelessWidget {
             final calculatedProfit = sellPriceVal - buyPriceVal;
 
             return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
               insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Row(
@@ -445,11 +546,11 @@ class ProductsScreen extends StatelessWidget {
                     product == null
                         ? (isEng ? 'Add New Product / Item' : 'إضافة مادة / صنف جديد')
                         : (isEng ? 'Edit Product Details' : 'تعديل بيانات المادة'),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: isDark ? Colors.white : Colors.black87),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
@@ -462,9 +563,9 @@ class ProductsScreen extends StatelessWidget {
                       final section1 = Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,6 +574,7 @@ class ProductsScreen extends StatelessWidget {
                             const SizedBox(height: 12),
                             TextField(
                               controller: nameController,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Product Name *' : 'اسم المادة / الصنف *',
                                 prefixIcon: const Icon(Icons.fastfood),
@@ -484,6 +586,8 @@ class ProductsScreen extends StatelessWidget {
                             // 1. Category / Section Selection
                             DropdownButtonFormField<int?>(
                               initialValue: selectedCatId,
+                              dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               isExpanded: true,
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Category / Section' : 'القسم / التصنيف الرئيسي',
@@ -508,6 +612,8 @@ class ProductsScreen extends StatelessWidget {
                             // 2. POS Display Location Option
                             DropdownButtonFormField<String>(
                               initialValue: selectedDisplayLocation,
+                              dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               isExpanded: true,
                               decoration: InputDecoration(
                                 labelText: isEng ? 'POS Display Location *' : 'خيار مكان عرض المادة بالكاشير *',
@@ -519,7 +625,7 @@ class ProductsScreen extends StatelessWidget {
                                   value: 'CATEGORY_ONLY',
                                   child: Text(
                                     isEng ? '📂 Display Inside Selected Category Only' : '📂 عرض داخل التصنيف المحدد فقط',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.lightBlueAccent : Colors.blue),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -527,7 +633,7 @@ class ProductsScreen extends StatelessWidget {
                                   value: 'BOTH',
                                   child: Text(
                                     isEng ? '🌟 Display in Both (Main Screen + Inside Category)' : '🌟 عرض في الاثنين (الشاشة الرئيسية + داخل التصنيف)',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -535,7 +641,7 @@ class ProductsScreen extends StatelessWidget {
                                   value: 'MAIN_ONLY',
                                   child: Text(
                                     isEng ? '📌 Display on Main Screen Only' : '📌 عرض في الشاشة الرئيسية المباشرة فقط',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFC084FC) : Colors.purple),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -554,6 +660,7 @@ class ProductsScreen extends StatelessWidget {
                                 Expanded(
                                   child: TextField(
                                     controller: barcodeController,
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                     decoration: InputDecoration(
                                       labelText: isEng ? 'Barcode (Optional)' : 'الباركود (خيار الباركود)',
                                       prefixIcon: const Icon(Icons.qr_code_scanner),
@@ -564,8 +671,8 @@ class ProductsScreen extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey.shade200,
-                                    foregroundColor: Colors.black87,
+                                    backgroundColor: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+                                    foregroundColor: isDark ? Colors.white : Colors.black87,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
@@ -582,12 +689,12 @@ class ProductsScreen extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.purple.shade50,
-                                    foregroundColor: Colors.purple.shade900,
+                                    backgroundColor: isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : Colors.purple.shade50,
+                                    foregroundColor: isDark ? const Color(0xFFD8B4FE) : Colors.purple.shade900,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(color: Colors.purple.shade300),
+                                      side: BorderSide(color: isDark ? const Color(0xFF7E22CE) : Colors.purple.shade300),
                                     ),
                                   ),
                                   onPressed: () {
@@ -599,7 +706,7 @@ class ProductsScreen extends StatelessWidget {
                                         isEng ? 'Please enter product name first.' : 'يرجى كتابة اسم المادة أولاً لطباعة الباركود.',
                                       );
                                       return;
-                                    }
+                                      }
                                     final tempProduct = ProductModel(
                                       id: product?.id ?? 999,
                                       name: pName,
@@ -610,7 +717,7 @@ class ProductsScreen extends StatelessWidget {
                                     );
                                     _showPrintBarcodeQuantityDialog(context, tempProduct);
                                   },
-                                  icon: const Icon(Icons.print_rounded, size: 18, color: Colors.purple),
+                                  icon: Icon(Icons.print_rounded, size: 18, color: isDark ? const Color(0xFFD8B4FE) : Colors.purple),
                                   label: Text(isEng ? 'Print Barcode' : 'طباعة باركود', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                               ],
@@ -622,9 +729,9 @@ class ProductsScreen extends StatelessWidget {
                       final section2 = Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,6 +744,7 @@ class ProductsScreen extends StatelessWidget {
                                   child: TextField(
                                     controller: buyPriceController,
                                     keyboardType: TextInputType.number,
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                     decoration: InputDecoration(
                                       labelText: isEng ? 'Cost Price ($currencySym)' : 'سعر الكلفة / الشراء ($currencySym)',
                                       prefixIcon: const Icon(Icons.shopping_bag_outlined),
@@ -650,6 +758,7 @@ class ProductsScreen extends StatelessWidget {
                                   child: TextField(
                                     controller: sellPriceController,
                                     keyboardType: TextInputType.number,
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                     decoration: InputDecoration(
                                       labelText: isEng ? 'Sale Price ($currencySym) *' : 'سعر البيع ($currencySym) *',
                                       prefixIcon: const Icon(Icons.sell_outlined),
@@ -664,10 +773,14 @@ class ProductsScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: calculatedProfit >= 0 ? Colors.green.shade50 : Colors.red.shade50,
+                                color: calculatedProfit >= 0
+                                    ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : Colors.green.shade50)
+                                    : (isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : Colors.red.shade50),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: calculatedProfit >= 0 ? Colors.green.shade200 : Colors.red.shade200,
+                                  color: calculatedProfit >= 0
+                                      ? (isDark ? const Color(0xFF059669) : Colors.green.shade200)
+                                      : (isDark ? const Color(0xFF991B1B) : Colors.red.shade200),
                                 ),
                               ),
                               child: Row(
@@ -675,14 +788,16 @@ class ProductsScreen extends StatelessWidget {
                                 children: [
                                   Text(
                                     isEng ? 'Expected Net Profit per item:' : 'صافي الربح المتوقع للقطعة:',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                                   ),
                                   Text(
                                     '${calculatedProfit.toStringAsFixed(0)} $currencySym',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      color: calculatedProfit >= 0 ? Colors.green.shade900 : Colors.red.shade900,
+                                      color: calculatedProfit >= 0
+                                          ? (isDark ? const Color(0xFF34D399) : Colors.green.shade900)
+                                          : (isDark ? const Color(0xFFF87171) : Colors.red.shade900),
                                     ),
                                   ),
                                 ],
@@ -695,9 +810,15 @@ class ProductsScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(isEng ? 'Allow Cashier Price Override' : 'خيار تغيير السعر: السماح للتعديل المباشر بالكاشير', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Text(
+                                        isEng ? 'Allow Cashier Price Override' : 'خيار تغيير السعر: السماح للتعديل المباشر بالكاشير',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                                      ),
                                       const SizedBox(height: 2),
-                                      Text(isEng ? 'Cashier can change the sale price directly during checkout' : 'يمكن للكاشير تغيير سعر البيع لهذه المادة مباشرة', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                      Text(
+                                        isEng ? 'Cashier can change the sale price directly during checkout' : 'يمكن للكاشير تغيير سعر البيع لهذه المادة مباشرة',
+                                        style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -718,9 +839,9 @@ class ProductsScreen extends StatelessWidget {
                       final sectionRecipe = Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50.withValues(alpha: 0.5),
+                          color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.2) : Colors.orange.shade50.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.shade200),
+                          border: Border.all(color: isDark ? const Color(0xFF9A3412) : Colors.orange.shade200),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,22 +873,22 @@ class ProductsScreen extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 child: Text(
                                   isEng ? 'No raw material ingredients added yet for this product.' : 'لم يتم إضافة مواد أولية لهذه المادة بعد.',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontStyle: FontStyle.italic),
+                                  style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13, fontStyle: FontStyle.italic),
                                 ),
                               )
                             else
                               Column(
                                 children: [
-                                  const Divider(),
+                                  Divider(color: isDark ? const Color(0xFF475569) : null),
                                   ...recipeItems.asMap().entries.map((entry) {
                                     final idx = entry.key;
                                     final item = entry.value;
                                     return Container(
                                       margin: const EdgeInsets.only(bottom: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.orange.shade100),
+                                        border: Border.all(color: isDark ? const Color(0xFF475569) : Colors.orange.shade100),
                                       ),
                                       child: ListTile(
                                         dense: true,
@@ -777,14 +898,17 @@ class ProductsScreen extends StatelessWidget {
                                           backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                                           child: Text('${idx + 1}', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold)),
                                         ),
-                                        title: Text(item.rawMaterialName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                        subtitle: Text('الكمية: ${item.quantityRequired} ${item.rawMaterialUnit} (كلفة: ${item.costPerUnit} $currencySym)', style: const TextStyle(fontSize: 11)),
+                                        title: Text(item.rawMaterialName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87)),
+                                        subtitle: Text(
+                                          'الكمية: ${item.quantityRequired} ${item.rawMaterialUnit} (كلفة: ${item.costPerUnit} $currencySym)',
+                                          style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade300 : Colors.black54),
+                                        ),
                                         trailing: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
                                               '${item.totalCost.toStringAsFixed(0)} $currencySym',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown, fontSize: 12),
+                                              style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFFBBF24) : Colors.brown, fontSize: 12),
                                             ),
                                             IconButton(
                                               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
@@ -799,7 +923,7 @@ class ProductsScreen extends StatelessWidget {
                                       ),
                                     );
                                   }),
-                                  const Divider(),
+                                  Divider(color: isDark ? const Color(0xFF475569) : null),
                                   Wrap(
                                     alignment: WrapAlignment.spaceBetween,
                                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -808,20 +932,20 @@ class ProductsScreen extends StatelessWidget {
                                     children: [
                                       Text(
                                         isEng ? 'Total Recipe Cost:' : 'كلفة المواد الأولية:',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
                                       ),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             '${recipeItems.fold(0.0, (sum, i) => sum + i.totalCost).toStringAsFixed(0)} $currencySym',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange),
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? const Color(0xFFFBBF24) : Colors.orange),
                                           ),
                                           const SizedBox(width: 8),
                                           ElevatedButton.icon(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.orange.shade100,
-                                              foregroundColor: Colors.orange.shade900,
+                                              backgroundColor: isDark ? const Color(0xFF78350F) : Colors.orange.shade100,
+                                              foregroundColor: isDark ? const Color(0xFFFED7AA) : Colors.orange.shade900,
                                               elevation: 0,
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
@@ -848,9 +972,9 @@ class ProductsScreen extends StatelessWidget {
                       final section3 = Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -859,6 +983,8 @@ class ProductsScreen extends StatelessWidget {
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
                               initialValue: availableUnits.contains(selectedUnit) ? selectedUnit : availableUnits.first,
+                              dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Unit of Measurement' : 'خيار وحدة القياس',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -880,8 +1006,14 @@ class ProductsScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: Text(isEng ? 'Weighted Product (Sold by weight)' : 'خيار الوزن: مادة مباعة بالوزن (موزونة)'),
-                              subtitle: Text(isEng ? 'Total price calculated as price multiplied by scale weight' : 'يتم حساب إجمالي السعر ضرب الكمية الموزونة'),
+                              title: Text(
+                                isEng ? 'Weighted Product (Sold by weight)' : 'خيار الوزن: مادة مباعة بالوزن (موزونة)',
+                                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                              ),
+                              subtitle: Text(
+                                isEng ? 'Total price calculated as price multiplied by scale weight' : 'يتم حساب إجمالي السعر ضرب الكمية الموزونة',
+                                style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                              ),
                               value: isWeighted,
                               onChanged: (val) {
                                 setState(() {
@@ -896,9 +1028,9 @@ class ProductsScreen extends StatelessWidget {
                       final section4 = Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -911,9 +1043,15 @@ class ProductsScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(isEng ? 'Enable Stock Inventory Tracking' : 'تفعيل خيار تتبع الكمية بالمخزن', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Text(
+                                        isEng ? 'Enable Stock Inventory Tracking' : 'تفعيل خيار تتبع الكمية بالمخزن',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                                      ),
                                       const SizedBox(height: 2),
-                                      Text(isEng ? 'Automatically deduct stock on sales and trigger low stock alerts' : 'خصم الكميات تلقائياً عند إنشاء المبيعات والتنبيه', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                      Text(
+                                        isEng ? 'Automatically deduct stock on sales and trigger low stock alerts' : 'خصم الكميات تلقائياً عند إنشاء المبيعات والتنبيه',
+                                        style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -935,6 +1073,7 @@ class ProductsScreen extends StatelessWidget {
                                     child: TextField(
                                       controller: stockController,
                                       keyboardType: TextInputType.number,
+                                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                       decoration: InputDecoration(
                                         labelText: isEng ? 'Available Stock Qty' : 'الكمية المتاحة بالمخزن',
                                         prefixIcon: const Icon(Icons.inventory),
@@ -947,6 +1086,7 @@ class ProductsScreen extends StatelessWidget {
                                     child: TextField(
                                       controller: minStockController,
                                       keyboardType: TextInputType.number,
+                                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                       decoration: InputDecoration(
                                         labelText: isEng ? 'Low Stock Warning Limit' : 'الحد الأدنى للتنبيه',
                                         prefixIcon: const Icon(Icons.warning_amber),
@@ -961,7 +1101,10 @@ class ProductsScreen extends StatelessWidget {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text(isEng ? 'Available for sale currently' : 'مادة متوفرة للبيع حالياً', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  child: Text(
+                                    isEng ? 'Available for sale currently' : 'مادة متوفرة للبيع حالياً',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                                  ),
                                 ),
                                 Switch(
                                   value: isAvailable,
@@ -980,9 +1123,9 @@ class ProductsScreen extends StatelessWidget {
                       final section5 = Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,14 +1138,20 @@ class ProductsScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(isEng ? '🍳 Print product to Kitchen Printer automatically' : '🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Text(
+                                        isEng ? '🍳 Print product to Kitchen Printer automatically' : '🍳 طباعة هذا الصنف أوتوماتيكياً على طابعة المطبخ',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                                      ),
                                       const SizedBox(height: 2),
-                                      Text(isEng ? 'Sends this item to kitchen ticket printer on hold/order' : 'إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                      Text(
+                                        isEng ? 'Sends this item to kitchen ticket printer on hold/order' : 'إرسال هذا الصنف لطابعة المطبخ عند تعليق الفاتورة والطلب دون الحاجة لطباعة فاتورة الكاشير',
+                                        style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 Switch(
-                                  activeColor: Colors.orange,
+                                  activeTrackColor: Colors.orange,
                                   value: printToKitchen,
                                   onChanged: (val) {
                                     setState(() {
@@ -1017,9 +1166,9 @@ class ProductsScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.shade50,
+                                  color: isDark ? const Color(0xFF7C2D12).withValues(alpha: 0.25) : Colors.orange.shade50,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.orange.shade200),
+                                  border: Border.all(color: isDark ? const Color(0xFF9A3412) : Colors.orange.shade200),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1031,7 +1180,7 @@ class ProductsScreen extends StatelessWidget {
                                         Expanded(
                                           child: Text(
                                             isEng ? 'Select target kitchen printer for this item:' : 'اختر طابعة المطبخ المراد إرسال هذا الصنف إليها:',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -1040,13 +1189,15 @@ class ProductsScreen extends StatelessWidget {
                                     const SizedBox(height: 10),
                                     DropdownButtonFormField<String?>(
                                       initialValue: selectedKitchenPrinter,
+                                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         labelText: isEng ? 'Target Kitchen Printer' : 'طابعة المطبخ المستهدفة',
                                         prefixIcon: const Icon(Icons.soup_kitchen, color: Colors.deepOrange),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                         filled: true,
-                                        fillColor: Colors.white,
+                                        fillColor: isDark ? const Color(0xFF1F2937) : Colors.white,
                                       ),
                                       items: [
                                         DropdownMenuItem<String?>(
@@ -1074,7 +1225,7 @@ class ProductsScreen extends StatelessWidget {
                                       selectedKitchenPrinter == null || selectedKitchenPrinter!.isEmpty
                                           ? (isEng ? 'Item will be sent to system default kitchen printer.' : 'سيتم إرسال هذا الصنف إلى طابعة المطبخ الرئيسية المحددة بالإعدادات.')
                                           : (isEng ? 'Item routed directly to: $selectedKitchenPrinter' : 'سيتم توجيه هذا الصنف مباشرة إلى طابعة: $selectedKitchenPrinter'),
-                                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900, fontWeight: FontWeight.bold),
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFFED7AA) : Colors.orange.shade900, fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
@@ -1084,7 +1235,7 @@ class ProductsScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
+                                  color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -1094,7 +1245,7 @@ class ProductsScreen extends StatelessWidget {
                                     Expanded(
                                       child: Text(
                                         isEng ? 'Kitchen print disabled for this item.' : 'طباعة المطبخ غير مفعلة لهذا الصنف ولن تظهر أو تطبع في المطبخ.',
-                                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.black54),
                                       ),
                                     ),
                                   ],
@@ -1246,8 +1397,10 @@ class ProductsScreen extends StatelessWidget {
     StateSetter parentSetState,
     List<ProductRecipeItemModel> recipeItems,
   ) async {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+    final currencySym = settings.currencySymbol;
     final rawMaterialsProvider = context.read<RawMaterialsProvider>();
     final rawMaterials = rawMaterialsProvider.rawMaterials;
 
@@ -1274,6 +1427,7 @@ class ProductsScreen extends StatelessWidget {
             final calculatedCost = qtyVal * costPerUnit;
 
             return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               title: Row(
                 children: [
@@ -1284,7 +1438,7 @@ class ProductsScreen extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     isEng ? 'Add Raw Material Ingredient' : 'إضافة مادة أولية / مكون للوجبة',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87),
                   ),
                 ],
               ),
@@ -1296,6 +1450,8 @@ class ProductsScreen extends StatelessWidget {
                   children: [
                     DropdownButtonFormField<RawMaterialModel>(
                       initialValue: selectedMaterial,
+                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         labelText: isEng ? 'Select Raw Material' : 'اختر المادة الأولية',
                         prefixIcon: const Icon(Icons.inventory_2_outlined),
@@ -1304,7 +1460,7 @@ class ProductsScreen extends StatelessWidget {
                       items: rawMaterials.map((rm) {
                         return DropdownMenuItem<RawMaterialModel>(
                           value: rm,
-                          child: Text('${rm.name} (${rm.unit}) - كلفة الوحدة: ${rm.costPerUnit} $currencySym'),
+                          child: Text('${rm.name} (${rm.unit}) - كلفة الوحدة: ${rm.costPerUnit} $currencySym', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -1317,6 +1473,7 @@ class ProductsScreen extends StatelessWidget {
                     TextField(
                       controller: qtyController,
                       keyboardType: TextInputType.number,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         labelText: isEng
                             ? 'Required Quantity (${selectedMaterial?.unit ?? "Unit"}) *'
@@ -1330,20 +1487,20 @@ class ProductsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
+                        color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.orange.shade200),
+                        border: Border.all(color: isDark ? const Color(0xFF9A3412) : Colors.orange.shade200),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             isEng ? 'Calculated Ingredient Cost:' : 'الكلفة المحسوبة للمكون:',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                           ),
                           Text(
                             '${calculatedCost.toStringAsFixed(0)} $currencySym',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? const Color(0xFFFBBF24) : Colors.orange),
                           ),
                         ],
                       ),
@@ -1406,22 +1563,24 @@ class ProductsScreen extends StatelessWidget {
   }
 
   Future<void> _showPrintBarcodeQuantityDialog(BuildContext context, ProductModel product) async {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final qtyController = TextEditingController(text: '1');
     final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+    final qtyController = TextEditingController(text: '1');
 
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Row(
           children: [
-            const Icon(Icons.qr_code_scanner, color: Colors.purple, size: 28),
+            Icon(Icons.qr_code_scanner, color: isDark ? const Color(0xFFC084FC) : Colors.purple, size: 28),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 isEng ? 'Print Barcode: ${product.name}' : 'طباعة باركود: ${product.name}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87),
               ),
             ),
           ],
@@ -1432,11 +1591,11 @@ class ProductsScreen extends StatelessWidget {
           children: [
             Text(
               isEng ? 'Barcode: ${product.barcode ?? "Auto-generated"}' : 'الباركود: ${product.barcode ?? "توليد تلقائي"}',
-              style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold),
             ),
             Text(
               isEng ? 'Price: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}' : 'السعر: ${product.price.toStringAsFixed(0)} ${settings.currencySymbol}',
-              style: TextStyle(fontSize: 13, color: Colors.green.shade800),
+              style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF34D399) : Colors.green.shade800),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -1444,10 +1603,10 @@ class ProductsScreen extends StatelessWidget {
               keyboardType: TextInputType.number,
               autofocus: true,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.purple),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFC084FC) : Colors.purple),
               decoration: InputDecoration(
                 labelText: isEng ? 'Required Barcode Labels Count (Qty) *' : 'عدد ملصقات الباركود المطلوبة (الكمية) *',
-                prefixIcon: const Icon(Icons.copy, color: Colors.purple),
+                prefixIcon: Icon(Icons.copy, color: isDark ? const Color(0xFFC084FC) : Colors.purple),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 isDense: true,
               ),

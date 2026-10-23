@@ -30,6 +30,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final categoriesProvider = context.watch<CategoriesProvider>();
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final isDark = context.watch<SettingsProvider>().isDarkMode;
 
     String formatUnit(String rawUnit) {
       if (!isEng) return rawUnit;
@@ -126,10 +127,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showQuickSupplyDialog(context, productsProvider.allProducts),
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add_business_rounded),
+        icon: const Icon(Icons.add_business_rounded, color: Colors.white),
         label: Text(
           isEng ? 'Supply Stock Shipment 🏪' : 'توريد شحنة / زيادة مخزون 🏪',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
       body: Padding(
@@ -138,14 +139,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Inventory Summary Cards Row
-            _buildInventorySummaryCards(context, productsProvider),
+            _buildInventorySummaryCards(context, productsProvider, isDark),
 
             const SizedBox(height: 16),
 
             // 2. Search & Filter Bar
             Card(
+              color: isDark ? const Color(0xFF1F2937) : Colors.white,
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: isDark ? const Color(0xFF374151) : Colors.transparent,
+                ),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Wrap(
@@ -158,14 +165,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 300),
                       child: TextField(
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           hintText: isEng ? 'Search product or barcode...' : 'بحث باسم المادة أو الباركود...',
-                          prefixIcon: const Icon(Icons.search),
+                          hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                          prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                          ),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                         ),
                         onChanged: (val) {
                           setState(() {
@@ -181,26 +197,46 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          border: Border.all(color: Colors.grey.shade400),
+                          color: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
+                          border: Border.all(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<int?>(
                             value: _selectedCatId,
-                            hint: Text(isEng ? 'All Categories' : 'جميع التصنيفات', style: const TextStyle(fontSize: 13)),
+                            dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            hint: Text(
+                              isEng ? 'All Categories' : 'جميع التصنيفات',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.grey.shade300 : Colors.black87,
+                              ),
+                            ),
                             isDense: true,
                             isExpanded: true,
                             items: [
                               DropdownMenuItem<int?>(
                                 value: null,
-                                child: Text(isEng ? 'All Categories' : 'جميع التصنيفات', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  isEng ? 'All Categories' : 'جميع التصنيفات',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
                               ),
                               ...categoriesProvider.categories.map((cat) {
                                 final cName = (cat.name == 'عام' && isEng) ? 'General' : cat.name;
                                 return DropdownMenuItem<int?>(
                                   value: cat.id,
-                                  child: Text(cName, style: const TextStyle(fontSize: 13)),
+                                  child: Text(
+                                    cName,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
                                 );
                               }),
                             ],
@@ -222,21 +258,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           isEng ? 'All (${productsProvider.allProducts.length})' : 'الكل (${productsProvider.allProducts.length})',
                           StockFilterType.all,
                           Colors.blue,
+                          isDark,
                         ),
                         _buildFilterChip(
                           isEng ? 'Good Stock' : 'متوفر جيدا',
                           StockFilterType.normal,
                           Colors.green,
+                          isDark,
                         ),
                         _buildFilterChip(
                           isEng ? 'Low Stock (${productsProvider.lowStockProductsCount})' : 'كمية منخفضة (${productsProvider.lowStockProductsCount})',
                           StockFilterType.low,
                           Colors.orange,
+                          isDark,
                         ),
                         _buildFilterChip(
                           isEng ? 'Out of Stock (${productsProvider.outOfStockProductsCount})' : 'نافد من المخزن (${productsProvider.outOfStockProductsCount})',
                           StockFilterType.outOfStock,
                           Colors.red,
+                          isDark,
                         ),
                       ],
                     ),
@@ -254,18 +294,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inventory_sharp, size: 64, color: Colors.grey.shade400),
+                          Icon(Icons.inventory_sharp, size: 64, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
                           const SizedBox(height: 12),
                           Text(
                             isEng ? 'No inventory products matching filter criteria' : 'لا توجد مواد في المخزن مطابقة لشروط البحث والتصفية',
-                            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                            style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                           ),
                         ],
                       ),
                     )
                   : Card(
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
                       elevation: 3,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+                      ),
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(8),
                         child: SingleChildScrollView(
@@ -273,18 +317,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(minWidth: 1050),
                             child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
+                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF242F3E) : Colors.orange.shade50),
                               columns: [
-                                const DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Item Name / Barcode' : 'اسم المادة / الباركود', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Category' : 'التصنيف', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Unit' : 'الوحدة', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Cost Price' : 'سعر الكلفة', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Sale Price' : 'سعر البيع', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Available Qty' : 'الكمية المتوفرة', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Alert Limit' : 'حد التنبيه', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Stock Status' : 'حالة المخزون', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text(isEng ? 'Actions & Stock Supply' : 'إجراءات التوريد والتعديل', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Item Name / Barcode' : 'اسم المادة / الباركود', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Category' : 'التصنيف', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Unit' : 'الوحدة', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Cost Price' : 'سعر الكلفة', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Sale Price' : 'سعر البيع', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Available Qty' : 'الكمية المتوفرة', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Alert Limit' : 'حد التنبيه', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Stock Status' : 'حالة المخزون', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                                DataColumn(label: Text(isEng ? 'Actions & Stock Supply' : 'إجراءات التوريد والتعديل', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
                               ],
                               rows: filteredProducts.map((product) {
                                 final rawCat = categoriesProvider.categories
@@ -297,33 +341,49 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
                                 return DataRow(
                                   cells: [
-                                    DataCell(Text('#${product.id}')),
+                                    DataCell(Text('#${product.id}', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87))),
                                     DataCell(
                                       Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          Text(product.name, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                                           if (product.barcode != null && product.barcode!.isNotEmpty)
                                             Text(
                                               isEng ? 'Barcode: ${product.barcode}' : 'باركود: ${product.barcode}',
-                                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                              style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                             ),
                                         ],
                                       ),
                                     ),
                                     DataCell(Chip(
-                                      label: Text(catName, style: const TextStyle(fontSize: 12)),
-                                      backgroundColor: Colors.blue.shade50,
+                                      label: Text(
+                                        catName,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                                        ),
+                                      ),
+                                      backgroundColor: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.5) : Colors.blue.shade50,
+                                      side: BorderSide(color: isDark ? Colors.blue.shade700 : Colors.blue.shade200),
                                     )),
-                                    DataCell(Text(formatUnit(product.unit))),
-                                    DataCell(Text('${product.buyPrice.toStringAsFixed(0)} $currencySym')),
-                                    DataCell(Text('${product.price.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    DataCell(Text(formatUnit(product.unit), style: TextStyle(color: isDark ? Colors.white : Colors.black87))),
+                                    DataCell(Text('${product.buyPrice.toStringAsFixed(0)} $currencySym', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87))),
+                                    DataCell(Text(
+                                      '${product.price.toStringAsFixed(0)} $currencySym',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? const Color(0xFF34D399) : Colors.black87,
+                                      ),
+                                    )),
                                     DataCell(
-                                      _buildStockQuantityBadge(product, isEng, formatUnit),
+                                      _buildStockQuantityBadge(product, isEng, formatUnit, isDark),
                                     ),
-                                    DataCell(Text('${product.minStock.toStringAsFixed(0)} ${formatUnit(product.unit)}')),
-                                    DataCell(_buildStockStatusChip(product, isEng)),
+                                    DataCell(Text(
+                                      '${product.minStock.toStringAsFixed(0)} ${formatUnit(product.unit)}',
+                                      style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87),
+                                    )),
+                                    DataCell(_buildStockStatusChip(product, isEng, isDark)),
                                     DataCell(
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -360,20 +420,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, StockFilterType type, Color activeColor) {
+  Widget _buildFilterChip(String label, StockFilterType type, Color activeColor, bool isDark) {
     final isSelected = _selectedStockFilter == type;
     return ChoiceChip(
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : Colors.black87,
+          color: isSelected ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           fontSize: 12,
         ),
       ),
       selected: isSelected,
       selectedColor: activeColor,
-      backgroundColor: Colors.grey.shade200,
+      backgroundColor: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+      side: BorderSide(
+        color: isSelected ? activeColor : (isDark ? const Color(0xFF475569) : Colors.transparent),
+      ),
       onSelected: (selected) {
         if (selected) {
           setState(() {
@@ -384,7 +447,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildInventorySummaryCards(BuildContext context, ProductsProvider provider) {
+  Widget _buildInventorySummaryCards(BuildContext context, ProductsProvider provider, bool isDark) {
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
 
@@ -400,16 +463,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
               value: isEng ? '${provider.totalProductsCount} Items' : '${provider.totalProductsCount} أصناف',
               subtitle: isEng ? 'Registered items in system' : 'المواد المسجلة في النظام',
               icon: Icons.inventory_2_outlined,
-              color: Colors.blue.shade700,
+              color: isDark ? const Color(0xFF60A5FA) : Colors.blue.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
+              isDark: isDark,
             ),
             _buildStatCard(
               title: isEng ? 'Total Available Stock Qty' : 'إجمالي الكميات المتوفرة',
               value: provider.totalStockUnits.toStringAsFixed(0),
               subtitle: isEng ? 'Total units on shelves' : 'مجموع الوحدات في الرفوف',
               icon: Icons.format_list_numbered,
-              color: Colors.purple.shade700,
+              color: isDark ? const Color(0xFFA78BFA) : Colors.purple.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
+              isDark: isDark,
             ),
             _buildStatCard(
               title: isEng ? 'Low / Out of Stock' : 'أصناف خفيضة / نافدة',
@@ -418,8 +483,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   : '${provider.lowStockProductsCount + provider.outOfStockProductsCount} مادة',
               subtitle: isEng ? 'Requires reorder & tracking' : 'تتطلب توريد ومتابعة',
               icon: Icons.warning_amber_rounded,
-              color: (provider.lowStockProductsCount + provider.outOfStockProductsCount) > 0 ? Colors.red.shade700 : Colors.green.shade700,
+              color: (provider.lowStockProductsCount + provider.outOfStockProductsCount) > 0
+                  ? (isDark ? const Color(0xFFF87171) : Colors.red.shade700)
+                  : (isDark ? const Color(0xFF34D399) : Colors.green.shade700),
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
+              isDark: isDark,
             ),
             _buildStatCard(
               title: isEng ? 'Inventory Value (Cost & Retail)' : 'قيمة المخزون (بالتكلفة والبيع)',
@@ -428,8 +496,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ? 'Expected Sales: ${provider.totalRetailValue.toStringAsFixed(0)} $currencySym'
                   : 'البيع المتوقع: ${provider.totalRetailValue.toStringAsFixed(0)} $currencySym',
               icon: Icons.account_balance_wallet_outlined,
-              color: Colors.teal.shade700,
+              color: isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade700,
               width: isWide ? (constraints.maxWidth - 36) / 4 : (constraints.maxWidth - 12) / 2,
+              isDark: isDark,
             ),
           ],
         );
@@ -444,12 +513,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
     required IconData icon,
     required Color color,
     required double width,
+    required bool isDark,
   }) {
     return SizedBox(
       width: width,
       child: Card(
+        color: isDark ? const Color(0xFF1F2937) : Colors.white,
         elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(14.0),
           child: Row(
@@ -457,7 +531,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: isDark ? 0.2 : 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 28),
@@ -467,11 +541,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -482,27 +571,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildStockQuantityBadge(ProductModel product, bool isEng, String Function(String) formatUnit) {
+  Widget _buildStockQuantityBadge(ProductModel product, bool isEng, String Function(String) formatUnit, bool isDark) {
     if (!product.trackStock) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-        child: Text(isEng ? 'Untracked' : 'غير متتبع', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          isEng ? 'Untracked' : 'غير متتبع',
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? Colors.grey.shade300 : Colors.black54,
+          ),
+        ),
       );
     }
 
-    Color bgColor = Colors.green.shade50;
-    Color textColor = Colors.green.shade900;
-    Color borderColor = Colors.green.shade300;
+    Color bgColor = isDark ? Colors.green.shade900.withValues(alpha: 0.4) : Colors.green.shade50;
+    Color textColor = isDark ? Colors.green.shade300 : Colors.green.shade900;
+    Color borderColor = isDark ? Colors.green.shade700 : Colors.green.shade300;
 
     if (product.stockQuantity <= 0) {
-      bgColor = Colors.red.shade50;
-      textColor = Colors.red.shade900;
-      borderColor = Colors.red.shade300;
+      bgColor = isDark ? Colors.red.shade900.withValues(alpha: 0.4) : Colors.red.shade50;
+      textColor = isDark ? Colors.red.shade300 : Colors.red.shade900;
+      borderColor = isDark ? Colors.red.shade700 : Colors.red.shade300;
     } else if (product.stockQuantity <= product.minStock) {
-      bgColor = Colors.orange.shade50;
-      textColor = Colors.orange.shade900;
-      borderColor = Colors.orange.shade300;
+      bgColor = isDark ? Colors.orange.shade900.withValues(alpha: 0.4) : Colors.orange.shade50;
+      textColor = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
+      borderColor = isDark ? Colors.orange.shade700 : Colors.orange.shade300;
     }
 
     return Container(
@@ -519,34 +617,39 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildStockStatusChip(ProductModel product, bool isEng) {
+  Widget _buildStockStatusChip(ProductModel product, bool isEng, bool isDark) {
     if (!product.trackStock) {
-      return Chip(label: Text(isEng ? 'Open' : 'مفتوح', style: const TextStyle(fontSize: 11)), backgroundColor: Colors.grey);
+      return Chip(
+        label: Text(isEng ? 'Open' : 'مفتوح', style: const TextStyle(fontSize: 11, color: Colors.white)),
+        backgroundColor: isDark ? const Color(0xFF4B5563) : Colors.grey,
+      );
     }
 
     if (product.stockQuantity <= 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: isDark ? Colors.red.shade800 : Colors.red, borderRadius: BorderRadius.circular(6)),
         child: Text(isEng ? 'Out of Stock' : 'نافد من المخزن', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     } else if (product.stockQuantity <= product.minStock) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: Colors.orange.shade800, borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: isDark ? Colors.orange.shade900 : Colors.orange.shade800, borderRadius: BorderRadius.circular(6)),
         child: Text(isEng ? 'Low Stock' : 'كمية خفيضة جداً', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     } else {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: Colors.green.shade700, borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: isDark ? Colors.green.shade800 : Colors.green.shade700, borderRadius: BorderRadius.circular(6)),
         child: Text(isEng ? 'Good Stock' : 'مخزون جيد', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     }
   }
 
   void _showAddStockDialog(BuildContext context, ProductModel product) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     final qtyController = TextEditingController(text: '10');
     final minStockController = TextEditingController(text: product.minStock.toStringAsFixed(0));
     bool isDirectSetMode = false;
@@ -585,12 +688,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
             final newCalculatedQty = isDirectSetMode ? enteredVal : (currentQty + enteredVal);
 
             return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.green.shade100,
-                    child: Icon(Icons.add_shopping_cart, color: Colors.green.shade800),
+                    backgroundColor: isDark ? Colors.green.shade900.withValues(alpha: 0.5) : Colors.green.shade100,
+                    child: Icon(Icons.add_shopping_cart, color: isDark ? Colors.green.shade300 : Colors.green.shade800),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -599,7 +703,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       children: [
                         Text(
                           isEng ? 'Adjust & Add Product Stock' : 'تعديل و توريد مخزون المادة',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
                         Text(product.name, style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.bold)),
                       ],
@@ -618,20 +726,27 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.shade200),
+                          border: Border.all(color: isDark ? Colors.blue.shade700 : Colors.blue.shade200),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               isEng ? 'Current Inventory Quantity:' : 'الكمية الحالية في المخزن:',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.grey.shade300 : Colors.black87,
+                              ),
                             ),
                             Text(
                               '${currentQty.toStringAsFixed(0)} ${formatUnit(product.unit)}',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.blue.shade300 : Colors.blue.shade900,
+                              ),
                             ),
                           ],
                         ),
@@ -670,7 +785,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       if (!isDirectSetMode) ...[
                         Text(
                           isEng ? 'Quick Add Quantity:' : 'إضافة سريعة بالكمية:',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -680,6 +799,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             return OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                foregroundColor: isDark ? Colors.white : null,
+                                side: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                               ),
                               onPressed: () {
                                 setDialogState(() {
@@ -698,13 +819,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       TextField(
                         controller: qtyController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           labelText: isDirectSetMode
                               ? (isEng ? 'New Inventory Quantity *' : 'الكمية الجديدة للمخزون *')
                               : (isEng ? 'Shipment Added Quantity *' : 'الكمية المضافة للشحنة *'),
-                          prefixIcon: Icon(isDirectSetMode ? Icons.edit_note : Icons.add_circle_outline),
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                          prefixIcon: Icon(isDirectSetMode ? Icons.edit_note : Icons.add_circle_outline, color: isDark ? Colors.grey.shade400 : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           suffixText: formatUnit(product.unit),
+                          suffixStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                         ),
                         onChanged: (_) => setDialogState(() {}),
                       ),
@@ -715,11 +839,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       TextField(
                         controller: minStockController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           labelText: isEng ? 'Low Stock Warning Limit' : 'حد التنبيه الأدنى للمخزون',
-                          prefixIcon: const Icon(Icons.warning_amber_outlined),
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                          prefixIcon: Icon(Icons.warning_amber_outlined, color: isDark ? Colors.grey.shade400 : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           suffixText: formatUnit(product.unit),
+                          suffixStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                         ),
                       ),
 
@@ -729,22 +856,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: newCalculatedQty > 0 ? Colors.green.shade50 : Colors.red.shade50,
+                          color: newCalculatedQty > 0
+                              ? (isDark ? Colors.green.shade900.withValues(alpha: 0.3) : Colors.green.shade50)
+                              : (isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade50),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: newCalculatedQty > 0
+                                ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
+                                : (isDark ? Colors.red.shade700 : Colors.red.shade200),
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               isEng ? 'New Expected Quantity:' : 'الكمية الجديدة المتوقعة:',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.grey.shade300 : Colors.black87,
+                              ),
                             ),
                             Text(
                               '${newCalculatedQty.toStringAsFixed(0)} ${formatUnit(product.unit)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: newCalculatedQty > 0 ? Colors.green.shade900 : Colors.red.shade900,
+                                color: newCalculatedQty > 0
+                                    ? (isDark ? Colors.green.shade300 : Colors.green.shade900)
+                                    : (isDark ? Colors.red.shade300 : Colors.red.shade900),
                               ),
                             ),
                           ],
@@ -757,6 +896,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               actions: [
                 OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isDark ? Colors.grey.shade300 : null,
+                  ),
                   child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(
@@ -808,7 +950,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _showQuickSupplyDialog(BuildContext context, List<ProductModel> products) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     if (products.isEmpty) {
       TopNotification.showWarning(
         context,
@@ -850,6 +994,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(
                 children: [
@@ -857,7 +1002,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   const SizedBox(width: 10),
                   Text(
                     isEng ? 'Supply New Stock Shipment' : 'توريد شحنة كميات جديدة للمخزن',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
                 ],
               ),
@@ -869,8 +1017,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     DropdownButtonFormField<ProductModel>(
                       initialValue: selectedProduct,
                       isExpanded: true,
+                      dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         labelText: isEng ? 'Select Product to Supply' : 'اختر المادة / الصنف المطلوب توريده',
+                        labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       items: products.map((p) {
@@ -881,6 +1032,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 ? '${p.name} (Current Stock: ${p.stockQuantity.toStringAsFixed(0)} ${formatUnit(p.unit)})'
                                 : '${p.name} (المخزون الحالي: ${p.stockQuantity.toStringAsFixed(0)} ${p.unit})',
                             overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           ),
                         );
                       }).toList(),
@@ -898,11 +1050,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     TextField(
                       controller: qtyController,
                       keyboardType: TextInputType.number,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         labelText: isEng ? 'Supplied Shipment Qty *' : 'كمية الشحنة الموردة *',
-                        prefixIcon: const Icon(Icons.add_circle_outline),
+                        labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                        prefixIcon: Icon(Icons.add_circle_outline, color: isDark ? Colors.grey.shade400 : null),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         suffixText: formatUnit(selectedProduct.unit),
+                        suffixStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                       ),
                     ),
                   ],
@@ -911,6 +1066,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               actions: [
                 OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isDark ? Colors.grey.shade300 : null,
+                  ),
                   child: Text(isEng ? 'Cancel' : 'إلغاء'),
                 ),
                 ElevatedButton.icon(

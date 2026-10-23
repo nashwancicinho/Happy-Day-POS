@@ -23,7 +23,7 @@ class HomeOperationScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -51,7 +51,10 @@ class HomeOperationScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isEng ? "Select operation mode to start taking orders or view tables" : "اختر نوع العملية للبدء بإدخال الطلبات أو متابعة الصالة والتقرير اليومي",
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade700,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),

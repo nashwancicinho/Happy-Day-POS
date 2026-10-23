@@ -64,10 +64,12 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     final purchasesProvider = context.watch<PurchasesProvider>();
     final productsProvider = context.watch<ProductsProvider>();
-    final currencySymbol = context.watch<SettingsProvider>().currencySymbol;
+    final currencySymbol = settings.currencySymbol;
     final suppliers = purchasesProvider.suppliers;
     final products = productsProvider.products;
 
@@ -76,11 +78,16 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     final remainingAmount = _calculatedRemainingAmount;
 
     return Dialog(
+      backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         width: 850,
         height: 720,
         padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Form(
           key: _formKey,
           child: Column(
@@ -92,16 +99,20 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                   const SizedBox(width: 10),
                   Text(
                     isEng ? 'Record New Purchase Invoice 📦' : 'تسجيل فاتورة مشتريات جديدة 📦',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: isDark ? Colors.white70 : Colors.black54),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(),
+              Divider(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
 
               Expanded(
                 child: SingleChildScrollView(
@@ -120,16 +131,22 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 Expanded(
                                   child: DropdownButtonFormField<SupplierModel>(
                                     initialValue: suppliers.where((s) => s.id == _selectedSupplier?.id).firstOrNull,
+                                    dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                     decoration: InputDecoration(
                                       labelText: isEng ? 'Select Supplier *' : 'اختر المورد *',
-                                      prefixIcon: const Icon(Icons.business),
+                                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                                      prefixIcon: Icon(Icons.business, color: isDark ? Colors.grey.shade400 : null),
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                       isDense: true,
                                     ),
                                     items: suppliers.map((s) {
                                       return DropdownMenuItem<SupplierModel>(
                                         value: s,
-                                        child: Text('${s.name} ${s.phone != null && s.phone!.isNotEmpty ? "(${s.phone})" : ""}'),
+                                        child: Text(
+                                          '${s.name} ${s.phone != null && s.phone!.isNotEmpty ? "(${s.phone})" : ""}',
+                                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                                        ),
                                       );
                                     }).toList(),
                                     validator: (val) => val == null ? (isEng ? 'Please select supplier' : 'يرجى اختيار المورد') : null,
@@ -159,9 +176,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                             flex: 2,
                             child: TextFormField(
                               controller: _invoiceNumberController,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Receipt / Invoice No *' : 'رقم الوصل / الفاتورة *',
-                                prefixIcon: const Icon(Icons.receipt),
+                                labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                                prefixIcon: Icon(Icons.receipt, color: isDark ? Colors.grey.shade400 : null),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 isDense: true,
                               ),
@@ -178,7 +197,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                         children: [
                           Text(
                             isEng ? 'Purchased Items & Details:' : 'تفاصيل المواد والمشتريات:',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
                           ),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
@@ -200,9 +223,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                       // Dynamic Purchase Items Table
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey.shade50,
+                          color: isDark ? const Color(0xFF111827) : Colors.grey.shade50,
                         ),
                         padding: const EdgeInsets.all(10),
                         child: Column(
@@ -210,17 +233,60 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                             // Table Header Row
                             Row(
                               children: [
-                                Expanded(flex: 4, child: Text(isEng ? 'Item / Product Name' : 'اسم المادة / المنتج', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                Expanded(
+                                  flex: 4,
+                                  child: Text(
+                                    isEng ? 'Item / Product Name' : 'اسم المادة / المنتج',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: isDark ? Colors.grey.shade300 : Colors.black87,
+                                    ),
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(flex: 2, child: Text(isEng ? 'Buy Price ($currencySymbol)' : 'سعر الشراء ($currencySymbol)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    isEng ? 'Buy Price ($currencySymbol)' : 'سعر الشراء ($currencySymbol)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: isDark ? Colors.grey.shade300 : Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(flex: 2, child: Text(isEng ? 'Purchased Qty' : 'الكمية المشتراة', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    isEng ? 'Purchased Qty' : 'الكمية المشتراة',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: isDark ? Colors.grey.shade300 : Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(flex: 2, child: Text(isEng ? 'Subtotal' : 'المجموع', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    isEng ? 'Subtotal' : 'المجموع',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: isDark ? Colors.grey.shade300 : Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                                 const SizedBox(width: 40), // Delete button space
                               ],
                             ),
-                            const Divider(height: 12),
+                            Divider(height: 12, color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
 
                             // Rows list
                             for (int i = 0; i < _items.length; i++)
@@ -237,24 +303,38 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         children: [
                                           DropdownButtonFormField<ProductModel?>(
                                             initialValue: _items[i].selectedProduct,
+                                            dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                                            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                             decoration: InputDecoration(
                                               isDense: true,
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                               hintText: isEng ? 'Select or custom item' : 'اختر مادة أو اكتب اسمها',
+                                              hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                             ),
                                             items: [
                                               DropdownMenuItem<ProductModel?>(
                                                 value: null,
                                                 child: Text(
                                                   isEng ? '✏️ New Custom Item' : '✏️ مادة مخصصة جديدة',
-                                                  style: TextStyle(color: Colors.teal.shade800, fontSize: 12, fontWeight: FontWeight.bold),
+                                                  style: TextStyle(
+                                                    color: isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade800,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ),
                                               ...products.map((p) {
                                                 return DropdownMenuItem<ProductModel?>(
                                                   value: p,
-                                                  child: Text(p.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                                  child: Text(
+                                                    p.name,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isDark ? Colors.white : Colors.black87,
+                                                    ),
+                                                  ),
                                                 );
                                               }),
                                             ],
@@ -276,11 +356,13 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                             const SizedBox(height: 6),
                                             TextFormField(
                                               controller: _items[i].nameController,
+                                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                               decoration: InputDecoration(
                                                 isDense: true,
                                                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                                 hintText: isEng ? 'Type custom item name *' : 'اكتب اسم المادة هنا *',
+                                                hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                                 prefixIcon: const Icon(Icons.edit_note, size: 18, color: Colors.teal),
                                               ),
                                               onChanged: (_) => setState(() {}),
@@ -298,11 +380,13 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         controller: _items[i].priceController,
                                         keyboardType: TextInputType.number,
                                         textAlign: TextAlign.center,
+                                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                         decoration: InputDecoration(
                                           isDense: true,
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                           hintText: isEng ? 'Price' : 'السعر',
+                                          hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                         ),
                                         onChanged: (_) => setState(() {}),
                                       ),
@@ -316,11 +400,13 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         controller: _items[i].qtyController,
                                         keyboardType: TextInputType.number,
                                         textAlign: TextAlign.center,
+                                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                         decoration: InputDecoration(
                                           isDense: true,
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                           hintText: isEng ? 'Qty' : 'الكمية',
+                                          hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                         ),
                                         onChanged: (_) => setState(() {}),
                                       ),
@@ -332,7 +418,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       flex: 2,
                                       child: Text(
                                         '${_items[i].subtotal.toStringAsFixed(0)} $currencySymbol',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.indigo),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: isDark ? const Color(0xFF818CF8) : Colors.indigo,
+                                        ),
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
@@ -363,51 +453,86 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(
                           isEng ? 'Update stock quantity & buy price in inventory automatically 📦' : 'تحديث كميات المواد وسعر الشراء بالمخزن تلقائياً 📦',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
-                        subtitle: Text(isEng ? 'When enabled, purchased quantities will be immediately added to system stock' : 'عند التفعيل سيتم إضافة الكمية المشتراة فوراً إلى مخزون المنتج بالسيستم'),
+                        subtitle: Text(
+                          isEng ? 'When enabled, purchased quantities will be immediately added to system stock' : 'عند التفعيل سيتم إضافة الكمية المشتراة فوراً إلى مخزون المنتج بالسيستم',
+                          style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                        ),
                         onChanged: (val) {
                           if (val != null) setState(() => _updateInventory = val);
                         },
                       ),
-                      const Divider(),
+                      Divider(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
 
                       // Payment Status & Calculations Section
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.blueGrey.shade50,
+                          color: isDark ? const Color(0xFF111827) : Colors.blueGrey.shade50,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.blueGrey.shade200),
+                          border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.blueGrey.shade200),
                         ),
                         child: Column(
                           children: [
                             Row(
                               children: [
-                                Text(isEng ? 'Invoice Payment Status:' : 'حالة دفع الفاتورة:', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text(
+                                  isEng ? 'Invoice Payment Status:' : 'حالة دفع الفاتورة:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
                                 const SizedBox(width: 14),
                                 ChoiceChip(
-                                  label: Text(isEng ? 'Fully Paid 🟢' : 'مدفوعة بالكامل 🟢'),
+                                  label: Text(
+                                    isEng ? 'Fully Paid 🟢' : 'مدفوعة بالكامل 🟢',
+                                    style: TextStyle(
+                                      color: _paymentStatus == 'PAID' ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   selected: _paymentStatus == 'PAID',
-                                  selectedColor: Colors.green.shade100,
+                                  selectedColor: isDark ? Colors.green.shade800 : Colors.green.shade100,
+                                  backgroundColor: isDark ? const Color(0xFF374151) : null,
                                   onSelected: (val) {
                                     if (val) setState(() => _paymentStatus = 'PAID');
                                   },
                                 ),
                                 const SizedBox(width: 8),
                                 ChoiceChip(
-                                  label: Text(isEng ? 'Partially Paid 🟡' : 'مدفوعة جزئياً 🟡'),
+                                  label: Text(
+                                    isEng ? 'Partially Paid 🟡' : 'مدفوعة جزئياً 🟡',
+                                    style: TextStyle(
+                                      color: _paymentStatus == 'PARTIAL' ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   selected: _paymentStatus == 'PARTIAL',
-                                  selectedColor: Colors.orange.shade100,
+                                  selectedColor: isDark ? Colors.orange.shade800 : Colors.orange.shade100,
+                                  backgroundColor: isDark ? const Color(0xFF374151) : null,
                                   onSelected: (val) {
                                     if (val) setState(() => _paymentStatus = 'PARTIAL');
                                   },
                                 ),
                                 const SizedBox(width: 8),
                                 ChoiceChip(
-                                  label: Text(isEng ? 'Unpaid / Credit 🔴' : 'غير مدفوعة (آجل) 🔴'),
+                                  label: Text(
+                                    isEng ? 'Unpaid / Credit 🔴' : 'غير مدفوعة (آجل) 🔴',
+                                    style: TextStyle(
+                                      color: _paymentStatus == 'UNPAID' ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   selected: _paymentStatus == 'UNPAID',
-                                  selectedColor: Colors.red.shade100,
+                                  selectedColor: isDark ? Colors.red.shade800 : Colors.red.shade100,
+                                  backgroundColor: isDark ? const Color(0xFF374151) : null,
                                   onSelected: (val) {
                                     if (val) setState(() => _paymentStatus = 'UNPAID');
                                   },
@@ -420,8 +545,10 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               TextFormField(
                                 controller: _paidAmountController,
                                 keyboardType: TextInputType.number,
+                                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                                 decoration: InputDecoration(
                                   labelText: isEng ? 'Currently Paid Amount ($currencySymbol) *' : 'المبلغ المدفوع حلياً ($currencySymbol) *',
+                                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                                   prefixIcon: Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 10),
                                     child: Center(
@@ -429,7 +556,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       heightFactor: 1.0,
                                       child: Text(
                                         currencySymbol,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.orange),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: isDark ? Colors.orange.shade300 : Colors.orange,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -445,9 +576,24 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildSummaryBox(isEng ? 'Total Invoice' : 'إجمالي الفاتورة', '${totalAmount.toStringAsFixed(0)} $currencySymbol', Colors.indigo),
-                                _buildSummaryBox(isEng ? 'Paid Amount' : 'المبلغ المدفوع', '${paidAmount.toStringAsFixed(0)} $currencySymbol', Colors.green.shade800),
-                                _buildSummaryBox(isEng ? 'Supplier Remaining Debt' : 'الدين المتبقي للمورد', '${remainingAmount.toStringAsFixed(0)} $currencySymbol', Colors.red.shade800),
+                                _buildSummaryBox(
+                                  isEng ? 'Total Invoice' : 'إجمالي الفاتورة',
+                                  '${totalAmount.toStringAsFixed(0)} $currencySymbol',
+                                  isDark ? const Color(0xFF818CF8) : Colors.indigo,
+                                  isDark,
+                                ),
+                                _buildSummaryBox(
+                                  isEng ? 'Paid Amount' : 'المبلغ المدفوع',
+                                  '${paidAmount.toStringAsFixed(0)} $currencySymbol',
+                                  isDark ? const Color(0xFF34D399) : Colors.green.shade800,
+                                  isDark,
+                                ),
+                                _buildSummaryBox(
+                                  isEng ? 'Supplier Remaining Debt' : 'الدين المتبقي للمورد',
+                                  '${remainingAmount.toStringAsFixed(0)} $currencySymbol',
+                                  isDark ? const Color(0xFFF87171) : Colors.red.shade800,
+                                  isDark,
+                                ),
                               ],
                             ),
                           ],
@@ -461,15 +607,30 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               initialValue: _paymentMethod,
+                              dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Payment Method' : 'طريقة الدفع',
-                                prefixIcon: const Icon(Icons.payment),
+                                labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                                prefixIcon: Icon(Icons.payment, color: isDark ? Colors.grey.shade400 : null),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                                 isDense: true,
                               ),
                               items: [
-                                DropdownMenuItem(value: 'CASH', child: Text(isEng ? 'Cash (Drawer Treasury)' : 'نقداً (من الخزينة)')),
-                                DropdownMenuItem(value: 'BANK', child: Text(isEng ? 'Bank Transfer' : 'تحويل بانكي')),
+                                DropdownMenuItem(
+                                  value: 'CASH',
+                                  child: Text(
+                                    isEng ? 'Cash (Drawer Treasury)' : 'نقداً (من الخزينة)',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'BANK',
+                                  child: Text(
+                                    isEng ? 'Bank Transfer' : 'تحويل بانكي',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                                  ),
+                                ),
                               ],
                               onChanged: (val) {
                                 if (val != null) setState(() => _paymentMethod = val);
@@ -480,9 +641,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _notesController,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               decoration: InputDecoration(
                                 labelText: isEng ? 'Invoice Notes' : 'ملاحظات الفاتورة',
-                                prefixIcon: const Icon(Icons.note_alt_outlined),
+                                labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                                prefixIcon: Icon(Icons.note_alt_outlined, color: isDark ? Colors.grey.shade400 : null),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                                 isDense: true,
                               ),
@@ -502,6 +665,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                 children: [
                   OutlinedButton(
                     onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.grey.shade300 : null,
+                    ),
                     child: Text(isEng ? 'Cancel' : 'إلغاء'),
                   ),
                   const SizedBox(width: 12),
@@ -590,17 +756,23 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     );
   }
 
-  Widget _buildSummaryBox(String label, String value, Color color) {
+  Widget _buildSummaryBox(String label, String value, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1F2937) : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withValues(alpha: isDark ? 0.6 : 0.5)),
       ),
       child: Column(
         children: [
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
         ],

@@ -209,6 +209,8 @@ class _CashierPermissionsCardState extends State<CashierPermissionsCard> {
       },
     ];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -237,7 +239,7 @@ class _CashierPermissionsCardState extends State<CashierPermissionsCard> {
                         isEng
                             ? 'Select a specific cashier account or edit default template rights'
                             : 'اختر اسم الكاشير وحدد صلاحياته الخاصة أو قم بتعديل النموذج العام للكاشيرية',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                       ),
                     ],
                   ),
@@ -463,7 +465,7 @@ class _CashierPermissionsCardState extends State<CashierPermissionsCard> {
                   ),
                   subtitle: Text(
                     perm['subtitle'] as String,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                   ),
                   value: isEnabled,
                   activeTrackColor: AppColors.primary,
@@ -522,7 +524,7 @@ class _CashierPermissionsCardState extends State<CashierPermissionsCard> {
                   ),
                   subtitle: Text(
                     perm['subtitle'] as String,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                   ),
                   value: isEnabled,
                   activeTrackColor: AppColors.primary,

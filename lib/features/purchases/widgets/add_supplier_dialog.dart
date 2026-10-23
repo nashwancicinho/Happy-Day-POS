@@ -46,10 +46,13 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     final isEditing = widget.supplierToEdit != null;
 
     return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Row(
         children: [
@@ -59,7 +62,11 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
             isEditing
                 ? (isEng ? 'Edit Supplier Info' : 'تعديل بيانات المورد')
                 : (isEng ? 'Add New Supplier 🚚' : 'إضافة مورد جديد 🚚'),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ],
       ),
@@ -73,9 +80,11 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: isEng ? 'Supplier / Company Name *' : 'اسم المورد / الشركة *',
-                    prefixIcon: const Icon(Icons.business_center),
+                    labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                    prefixIcon: Icon(Icons.business_center, color: isDark ? Colors.grey.shade400 : null),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   validator: (val) => val == null || val.trim().isEmpty
@@ -86,18 +95,22 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: isEng ? 'Phone Number' : 'رقم الهاتف',
-                    prefixIcon: const Icon(Icons.phone),
+                    labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                    prefixIcon: Icon(Icons.phone, color: isDark ? Colors.grey.shade400 : null),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _addressController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: isEng ? 'Address / Location' : 'العنوان / الموقع',
-                    prefixIcon: const Icon(Icons.location_on),
+                    labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                    prefixIcon: Icon(Icons.location_on, color: isDark ? Colors.grey.shade400 : null),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -106,11 +119,14 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                   TextFormField(
                     controller: _initialDebtController,
                     keyboardType: TextInputType.number,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       labelText: isEng ? 'Initial Previous Debt (If any)' : 'الدين السابق المتبقي للمورد (إن وجد)',
-                      prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.orange),
+                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                      prefixIcon: Icon(Icons.account_balance_wallet, color: isDark ? Colors.orange.shade300 : Colors.orange),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       helperText: isEng ? 'Enter amount if you owe previous debt before using system' : 'أدخل المبلغ إذا كان لديك دين سابق للمورد قبل استخدام النظام',
+                      helperStyle: TextStyle(color: isDark ? Colors.grey.shade400 : null),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -118,9 +134,11 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
                 TextFormField(
                   controller: _notesController,
                   maxLines: 2,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: isEng ? 'Additional Notes' : 'ملاحظات إضافية',
-                    prefixIcon: const Icon(Icons.note_alt),
+                    labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                    prefixIcon: Icon(Icons.note_alt, color: isDark ? Colors.grey.shade400 : null),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -132,7 +150,10 @@ class _AddSupplierDialogState extends State<AddSupplierDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(isEng ? 'Cancel' : 'إلغاء'),
+          child: Text(
+            isEng ? 'Cancel' : 'إلغاء',
+            style: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+          ),
         ),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(

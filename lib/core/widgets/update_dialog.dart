@@ -182,7 +182,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     if (info.releaseName != null && info.releaseName!.isNotEmpty) ...[
                       Text(
                         info.releaseName!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.text,
@@ -191,12 +191,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
                       const SizedBox(height: 10),
                     ],
 
-                    const Text(
+                    Text(
                       'ملاحظات الإصدار والتغييرات:',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: AppColors.text,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -205,7 +205,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8F9FA),
+                        color: AppColors.isDark ? const Color(0xFF1E293B) : const Color(0xFFF8F9FA),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppColors.border),
                       ),
@@ -213,10 +213,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
                         info.releaseNotes.isNotEmpty
                             ? info.releaseNotes
                             : 'يتضمن هذا التحديث تحسينات في الأداء وإصلاحات عامة.',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           height: 1.5,
-                          color: Color(0xFF424242),
+                          color: AppColors.isDark ? const Color(0xFFE2E8F0) : const Color(0xFF424242),
                         ),
                       ),
                     ),

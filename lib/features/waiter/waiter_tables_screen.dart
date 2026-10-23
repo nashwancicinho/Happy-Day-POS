@@ -69,6 +69,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
   Widget build(BuildContext context) {
     final availableCount = _tables.where((t) => (t['status'] ?? 0) == 0).length;
     final busyCount = _tables.where((t) => (t['status'] ?? 0) == 1).length;
+    final reservedCount = _tables.where((t) => (t['status'] ?? 0) == 2).length;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111827),
@@ -128,8 +129,10 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildCounterChip('إجمالي الطاولات', '${_tables.length}', Colors.blueAccent),
-                _buildCounterChip('طاولات متاحة', '$availableCount', const Color(0xFF10B981)),
-                _buildCounterChip('مشغولة (بها طلب)', '$busyCount', Colors.orangeAccent),
+                _buildCounterChip('متاحة', '$availableCount', const Color(0xFF10B981)),
+                _buildCounterChip('مشغولة', '$busyCount', Colors.orangeAccent),
+                if (reservedCount > 0)
+                  _buildCounterChip('محجوزة', '$reservedCount', Colors.amberAccent),
               ],
             ),
           ),
@@ -170,6 +173,10 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                             final name = table['name'] as String? ?? 'طاولة $id';
                             final status = table['status'] as int? ?? 0;
                             final isBusy = status == 1;
+                            final isReserved = status == 2;
+                            final statusColor = isBusy
+                                ? Colors.redAccent
+                                : (isReserved ? Colors.amberAccent : const Color(0xFF10B981));
 
                             return Card(
                               elevation: 3,
@@ -177,7 +184,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 side: BorderSide(
-                                  color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981).withValues(alpha: 0.5),
+                                  color: statusColor.withValues(alpha: isBusy ? 1.0 : 0.6),
                                   width: 1.5,
                                 ),
                               ),
@@ -208,20 +215,20 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Icon(
-                                            Icons.table_restaurant,
-                                            color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981),
+                                            isReserved ? Icons.bookmark_rounded : Icons.table_restaurant,
+                                            color: statusColor,
                                             size: 22,
                                           ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                             decoration: BoxDecoration(
-                                              color: (isBusy ? Colors.orangeAccent : const Color(0xFF10B981)).withValues(alpha: 0.2),
+                                              color: statusColor.withValues(alpha: 0.2),
                                               borderRadius: BorderRadius.circular(6),
                                             ),
                                             child: Text(
-                                              isBusy ? 'طلب مفتوح' : 'متاحة',
+                                              isBusy ? 'مشغولة' : (isReserved ? 'محجوزة 📅' : 'متاحة'),
                                               style: TextStyle(
-                                                color: isBusy ? Colors.orangeAccent : const Color(0xFF10B981),
+                                                color: statusColor,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),

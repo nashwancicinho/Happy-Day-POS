@@ -79,7 +79,9 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
 
     final bodyContent = _isLoading
         ? Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -90,16 +92,16 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                 constraints: const BoxConstraints(maxWidth: 540),
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.1),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
                   ],
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -109,8 +111,10 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: _licenseInfo!.isActivated
-                            ? Colors.green.shade50
-                            : (_licenseInfo!.isExpired ? Colors.red.shade50 : Colors.amber.shade50),
+                            ? (isDark ? Colors.green.shade900.withValues(alpha: 0.35) : Colors.green.shade50)
+                            : (_licenseInfo!.isExpired
+                                ? (isDark ? Colors.red.shade900.withValues(alpha: 0.35) : Colors.red.shade50)
+                                : (isDark ? Colors.amber.shade900.withValues(alpha: 0.35) : Colors.amber.shade50)),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -119,8 +123,8 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                             : (_licenseInfo!.isExpired ? Icons.lock_clock_rounded : Icons.hourglass_top_rounded),
                         size: 48,
                         color: _licenseInfo!.isActivated
-                            ? Colors.green
-                            : (_licenseInfo!.isExpired ? Colors.red : Colors.amber.shade800),
+                            ? (isDark ? const Color(0xFF34D399) : Colors.green)
+                            : (_licenseInfo!.isExpired ? (isDark ? const Color(0xFFF87171) : Colors.red) : (isDark ? const Color(0xFFFBBF24) : Colors.amber.shade800)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -135,8 +139,8 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: _licenseInfo!.isActivated
-                            ? Colors.green.shade800
-                            : (_licenseInfo!.isExpired ? Colors.red.shade800 : Colors.amber.shade900),
+                            ? (isDark ? const Color(0xFF34D399) : Colors.green.shade800)
+                            : (_licenseInfo!.isExpired ? (isDark ? const Color(0xFFF87171) : Colors.red.shade800) : (isDark ? const Color(0xFFFBBF24) : Colors.amber.shade900)),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -154,7 +158,7 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                                   ? 'Free trial active: ${_licenseInfo!.daysRemaining} days remaining out of 30 days.'
                                   : 'الفترة التجريبية المجانية شغالة: متبقي ${_licenseInfo!.daysRemaining} يوماً من أصل 30 يوماً.')),
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.4),
+                      style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, height: 1.4),
                     ),
 
                     const SizedBox(height: 20),
@@ -163,9 +167,9 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                       ),
                       child: Column(
                         children: [
@@ -174,10 +178,14 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                             children: [
                               Text(
                                 isEng ? 'Machine ID Code:' : 'رقم معرّف هذا الجهاز (Machine ID):',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                               ),
                               OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4)),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  foregroundColor: isDark ? const Color(0xFFFBBF24) : AppColors.primary,
+                                  side: BorderSide(color: isDark ? const Color(0xFF4B5563) : Colors.grey.shade300),
+                                ),
                                 onPressed: () {
                                   Clipboard.setData(ClipboardData(text: _licenseInfo!.machineId));
                                   TopNotification.showSuccess(context, 'تم نسخ رقم الجهاز للحافظة! 📋');
@@ -190,7 +198,12 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                           const SizedBox(height: 6),
                           SelectableText(
                             _licenseInfo!.machineId,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: 1.5),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFFBBF24) : AppColors.primary,
+                              letterSpacing: 1.5,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -198,7 +211,7 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                                 ? 'Send this Machine ID code via WhatsApp to get your custom activation key.'
                                 : 'أرسل رقم الجهاز أعلاه للمالك عبر الواتساب للحصول على كود التفعيل المخصص لهذا الجهاز فقط.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                            style: TextStyle(fontSize: 11.5, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                           ),
                         ],
                       ),
@@ -209,14 +222,32 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
                     // Activation Form Section
                     TextField(
                       controller: _keyController,
-                      style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        fontSize: 16,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         labelText: isEng ? 'Annual Subscription Key' : 'كود التفعيل السنوي المخصص (Activation Key)',
+                        labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                         hintText: 'HD-XXXX-YYYY-ZZZZ',
-                        prefixIcon: Icon(Icons.key, color: AppColors.primary),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                        prefixIcon: Icon(Icons.key, color: isDark ? const Color(0xFFFBBF24) : AppColors.primary),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: isDark ? const Color(0xFF4B5563) : Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: isDark ? const Color(0xFF4B5563) : Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        ),
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: isDark ? const Color(0xFF111827) : Colors.grey.shade50,
                       ),
                     ),
 
@@ -257,7 +288,7 @@ class _LicenseActivationScreenState extends State<LicenseActivationScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
       appBar: AppBar(
         title: Text(isEng ? 'Software License & Subscription' : 'تفعيل اشتراك البرنامج والترخيص'),
         centerTitle: true,

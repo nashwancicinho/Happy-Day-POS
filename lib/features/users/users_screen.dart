@@ -52,6 +52,7 @@ class UsersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final isEng = context.watch<SettingsProvider>().isEnglish;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final users = authProvider.users;
 
     String formatRole(String role) {
@@ -113,17 +114,23 @@ class UsersScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: authProvider.isManager ? Colors.green.shade50 : Colors.orange.shade50,
+                color: isDark
+                    ? (authProvider.isManager ? const Color(0xFF143324) : const Color(0xFF332014))
+                    : (authProvider.isManager ? Colors.green.shade50 : Colors.orange.shade50),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: authProvider.isManager ? Colors.green.shade200 : Colors.orange.shade200,
+                  color: isDark
+                      ? (authProvider.isManager ? Colors.green.shade800 : Colors.orange.shade800)
+                      : (authProvider.isManager ? Colors.green.shade200 : Colors.orange.shade200),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     authProvider.isManager ? Icons.verified_user : Icons.lock,
-                    color: authProvider.isManager ? Colors.green.shade800 : Colors.orange.shade800,
+                    color: isDark
+                        ? (authProvider.isManager ? Colors.green.shade300 : Colors.orange.shade300)
+                        : (authProvider.isManager ? Colors.green.shade800 : Colors.orange.shade800),
                     size: 28,
                   ),
                   const SizedBox(width: 12),
@@ -138,7 +145,9 @@ class UsersScreen extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: authProvider.isManager ? Colors.green.shade900 : Colors.orange.shade900,
+                            color: isDark
+                                ? (authProvider.isManager ? Colors.green.shade200 : Colors.orange.shade200)
+                                : (authProvider.isManager ? Colors.green.shade900 : Colors.orange.shade900),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -148,7 +157,9 @@ class UsersScreen extends StatelessWidget {
                               : (isEng ? 'Note: Adding or deleting users is restricted to Manager privileges.' : 'ملاحظة: إضافة اسم جديد أو مسح اسم مستخدم محصورة لصلاحيات المدير فقط.'),
                           style: TextStyle(
                             fontSize: 13,
-                            color: authProvider.isManager ? Colors.green.shade800 : Colors.orange.shade800,
+                            color: isDark
+                                ? (authProvider.isManager ? Colors.green.shade300 : Colors.orange.shade300)
+                                : (authProvider.isManager ? Colors.green.shade800 : Colors.orange.shade800),
                           ),
                         ),
                       ],
@@ -201,10 +212,14 @@ class UsersScreen extends StatelessWidget {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                             leading: CircleAvatar(
                               radius: 24,
-                              backgroundColor: user.isManager ? Colors.purple.shade100 : Colors.blue.shade100,
+                              backgroundColor: isDark
+                                  ? (user.isManager ? Colors.purple.shade900.withValues(alpha: 0.35) : Colors.blue.shade900.withValues(alpha: 0.35))
+                                  : (user.isManager ? Colors.purple.shade100 : Colors.blue.shade100),
                               child: Icon(
                                 user.isManager ? Icons.admin_panel_settings : Icons.person,
-                                color: user.isManager ? Colors.purple.shade900 : Colors.blue.shade900,
+                                color: isDark
+                                    ? (user.isManager ? Colors.purple.shade200 : Colors.blue.shade200)
+                                    : (user.isManager ? Colors.purple.shade900 : Colors.blue.shade900),
                               ),
                             ),
                             title: Row(
@@ -218,12 +233,12 @@ class UsersScreen extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.shade100,
+                                      color: isDark ? const Color(0xFF143324) : Colors.green.shade100,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       isEng ? 'Current Account' : 'حسابك الحالي',
-                                      style: TextStyle(fontSize: 11, color: Colors.green.shade900, fontWeight: FontWeight.bold),
+                                      style: TextStyle(fontSize: 11, color: isDark ? Colors.green.shade300 : Colors.green.shade900, fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 ],
@@ -242,10 +257,14 @@ class UsersScreen extends StatelessWidget {
                               children: [
                                 Chip(
                                   label: Text(formatRole(user.role)),
-                                  backgroundColor: user.isManager ? Colors.purple.shade50 : Colors.blue.shade50,
+                                  backgroundColor: isDark
+                                      ? (user.isManager ? Colors.purple.shade900.withValues(alpha: 0.3) : Colors.blue.shade900.withValues(alpha: 0.3))
+                                      : (user.isManager ? Colors.purple.shade50 : Colors.blue.shade50),
                                   labelStyle: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: user.isManager ? Colors.purple.shade900 : Colors.blue.shade900,
+                                    color: isDark
+                                        ? (user.isManager ? Colors.purple.shade200 : Colors.blue.shade200)
+                                        : (user.isManager ? Colors.purple.shade900 : Colors.blue.shade900),
                                   ),
                                 ),
                                 if (authProvider.isManager && user.role == 'كاشير') ...[

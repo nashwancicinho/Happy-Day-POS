@@ -642,44 +642,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final bool? confirm = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-              SizedBox(width: 10),
-              Text('تأكيد استعادة النسخة الاحتياطية'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'تنبيه مهم: استعادة النسخة الاحتياطية ستؤدي إلى استبدال قاعدة البيانات الحالية بالبيانات الموجودة في الملف المختار.',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-              ),
-              const SizedBox(height: 12),
-              Text('الملف المختار: ${file.path}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
-              const SizedBox(height: 12),
-              const Text('هل أنت أخيرًا متأكد من استكمال عملية الاستعادة؟'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+        builder: (ctx) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                SizedBox(width: 10),
+                Text('تأكيد استعادة النسخة الاحتياطية'),
+              ],
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade800,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('نعم، استعادة الآن'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'تنبيه مهم: استعادة النسخة الاحتياطية ستؤدي إلى استبدال قاعدة البيانات الحالية بالبيانات الموجودة في الملف المختار.',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                const SizedBox(height: 12),
+                Text('الملف المختار: ${file.path}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87)),
+                const SizedBox(height: 12),
+                const Text('هل أنت أخيرًا متأكد من استكمال عملية الاستعادة؟'),
+              ],
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('نعم، استعادة الآن'),
+              ),
+            ],
+          );
+        },
       );
 
       if (confirm != true) return;
@@ -724,10 +727,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildBackupRestoreSection(BuildContext context, SettingsProvider settingsProvider) {
     final isEng = settingsProvider.isEnglish;
+    final isDark = settingsProvider.isDarkMode;
 
     return Card(
+      color: isDark ? const Color(0xFF1F2937) : Colors.white,
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -736,62 +744,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.teal.shade700,
+                  backgroundColor: isDark ? Colors.teal.shade900 : Colors.teal.shade700,
                   child: const Icon(Icons.sd_storage_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   isEng ? 'Database Backup & Restore 💾' : 'النسخ الاحتياطي واستعادة البيانات 💾',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
               ],
             ),
-            const Divider(height: 28),
+            Divider(height: 28, color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
             Text(
               isEng
                   ? 'Create database backups of all products, sales, and accounts in a safe location, or restore previous backups:'
                   : 'قم بإنشاء نسخة احتياطية لقاعدة البيانات لحفظ جميع المنتجات والمبيعات والحسابات في مكان آمن، أو استرجع نسخة سابقة عند الحاجة:',
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.grey.shade300 : Colors.black87,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.teal.shade50,
+                color: isDark ? const Color(0xFF132A2F) : Colors.teal.shade50,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.teal.shade200),
+                border: Border.all(color: isDark ? Colors.teal.shade700 : Colors.teal.shade200),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.autorenew_rounded, color: Colors.teal),
+                      Icon(Icons.autorenew_rounded, color: isDark ? const Color(0xFF2DD4BF) : Colors.teal),
                       const SizedBox(width: 8),
                       Text(
                         isEng ? 'Automatic Backup Schedule:' : 'جدولة النسخ الاحتياطي الأوتوماتيكي:',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     isExpanded: true,
+                    dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     initialValue: ['DAILY', 'WEEKLY', 'MONTHLY', 'OFF'].contains(settingsProvider.autoBackupFrequency)
                         ? settingsProvider.autoBackupFrequency
                         : 'DAILY',
                     decoration: InputDecoration(
                       labelText: isEng ? 'Auto-Backup Frequency' : 'مدة / تكرار خزن النسخ الاحتياطية تلقائياً',
-                      prefixIcon: const Icon(Icons.timer_outlined, color: Colors.teal),
+                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                      prefixIcon: Icon(Icons.timer_outlined, color: isDark ? const Color(0xFF2DD4BF) : Colors.teal),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? const Color(0xFF1F2937) : Colors.white,
                     ),
                     items: [
                       DropdownMenuItem(
                         value: 'DAILY',
                         child: Text(
                           isEng ? '📅 Daily Automatically (On Shift / EOD Closing)' : '📅 يومياً أوتوماتيكياً (عند إغلاق اليوم / الشفت)',
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -799,6 +822,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: 'WEEKLY',
                         child: Text(
                           isEng ? '🗓️ Weekly Automatically (Every Week)' : '🗓️ أسبوعياً أوتوماتيكياً (كل أسبوع)',
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -806,6 +830,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: 'MONTHLY',
                         child: Text(
                           isEng ? '📆 Monthly Automatically (Every Month)' : '📆 شهرياً أوتوماتيكياً (كل شهر)',
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -813,6 +838,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: 'OFF',
                         child: Text(
                           isEng ? '🚫 Manual Only (Disable Auto-Backup)' : '🚫 يدوي فقط (تعطيل النسخ الأوتوماتيكي)',
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -822,7 +848,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         settingsProvider.updateSetting('auto_backup_frequency', val);
                         TopNotification.showSuccess(
                           context,
-                          isEng ? 'Auto backup frequency saved successfully!' : 'تم حفظ مدة النسخ الاحتياطي التلقائي نجاح!',
+                          isEng ? 'Auto backup frequency saved successfully!' : 'تم حفظ مدة النسخ الاحتياطي التلقائي بنجاح!',
                         );
                       }
                     },
@@ -832,7 +858,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     settingsProvider.autoBackupFrequency == 'OFF'
                         ? (isEng ? 'Auto-backup is currently disabled. You can create manual backups anytime.' : 'النسخ الأوتوماتيكي معطل حالياً. يمكنك إنشاء نسخة احتياطية يدوياً في أي وقت.')
                         : (isEng ? 'Backup files will be saved automatically to target folder on EOD day closing.' : 'سيتم حفظ ملف النسخة الاحتياطية أوتوماتيكياً بالمجلد المختار عند إغلاق اليوم.'),
-                    style: TextStyle(fontSize: 12, color: Colors.teal.shade900, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.teal.shade200 : Colors.teal.shade900,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -843,12 +873,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Expanded(
                   child: TextField(
                     controller: _backupFolderController,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       labelText: isEng ? 'Default Backup Folder Path' : 'مجلد حفظ النسخ الاحتياطية (Default Backup Folder)',
+                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                       hintText: '/Users/.../Backups or C:\\Backups',
-                      prefixIcon: const Icon(Icons.folder_special, color: Colors.teal),
+                      hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : null),
+                      prefixIcon: Icon(Icons.folder_special, color: isDark ? const Color(0xFF2DD4BF) : Colors.teal),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                       helperText: isEng ? 'Choose custom storage directory on your PC for automatic database backups' : 'يمكنك اختيار مجلد حفظ مخصص على جهازك ليتم حفظ النسخ فيه تلقائياً',
+                      helperStyle: TextStyle(color: isDark ? Colors.grey.shade400 : null),
                     ),
                   ),
                 ),
@@ -858,9 +892,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _pickBackupFolder,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade50,
-                      foregroundColor: Colors.teal.shade800,
-                      side: BorderSide(color: Colors.teal.shade300),
+                      backgroundColor: isDark ? const Color(0xFF132A2F) : Colors.teal.shade50,
+                      foregroundColor: isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade800,
+                      side: BorderSide(color: isDark ? Colors.teal.shade700 : Colors.teal.shade300),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
@@ -917,6 +951,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildThemeColorSection(BuildContext context, SettingsProvider settingsProvider) {
     final currentHex = settingsProvider.themeColorHex.toUpperCase();
     final isEng = settingsProvider.isEnglish;
+    final isDark = settingsProvider.isDarkMode;
 
     return Card(
       elevation: 4,
@@ -942,7 +977,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 28),
             Text(
               isEng ? 'Select your preferred primary theme color to apply instantly across all app screens:' : 'اختر اللون الرئيسي المفضل لديك ليتم تطبيقه فورياً على كافة واجهات وشاشات وأزرار البرنامج:',
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -968,10 +1003,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? color.withValues(alpha: 0.12) : Colors.grey.shade50,
+                        color: isSelected
+                            ? color.withValues(alpha: isDark ? 0.25 : 0.12)
+                            : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade50),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? color : Colors.grey.shade300,
+                          color: isSelected ? color : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                           width: isSelected ? 2.5 : 1,
                         ),
                       ),
@@ -988,7 +1025,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             isEng ? (theme['nameEn'] ?? theme['name']) as String : theme['name'] as String,
                             style: TextStyle(
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? color : Colors.black87,
+                              color: isSelected ? color : (isDark ? Colors.white : Colors.black87),
                               fontSize: 14,
                             ),
                           ),
@@ -1004,10 +1041,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade50,
+                      color: isDark ? const Color(0xFF242F3E) : Colors.blueGrey.shade50,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.blueGrey.shade300,
+                        color: isDark ? const Color(0xFF475569) : Colors.blueGrey.shade300,
                         width: 1.5,
                       ),
                     ),
@@ -1024,7 +1061,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           isEng ? 'Custom Hex Color 🎨' : 'لون مخصص (كود Hex) 🎨',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.blueGrey.shade900,
+                            color: isDark ? Colors.white : Colors.blueGrey.shade900,
                             fontSize: 14,
                           ),
                         ),
@@ -1074,7 +1111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     isEng
                         ? 'Enter Hex color code (e.g. #FF5722 or #123456):'
                         : 'أدخل كود اللون بنظام Hex (مثال: #FF5722 أو #123456):',
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    style: TextStyle(fontSize: 13, color: settingsProvider.isDarkMode ? Colors.white70 : Colors.black87),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -1161,6 +1198,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildLanguageSection(BuildContext context, SettingsProvider settingsProvider) {
     final currentLang = settingsProvider.appLanguage;
     final isEng = settingsProvider.isEnglish;
+    final isDark = settingsProvider.isDarkMode;
 
     return Card(
       elevation: 4,
@@ -1186,7 +1224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 28),
             Text(
               isEng ? 'Choose interface display language for instant application across screens:' : 'اختر لغة العرض والواجهة المناسبة لك ليتم تطبيقه فورياً على كافة الواجهات والعمليات:',
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
             ),
             const SizedBox(height: 16),
             Row(
@@ -1203,10 +1241,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
-                        color: currentLang == 'ar' ? Colors.blue.shade50 : Colors.grey.shade50,
+                        color: currentLang == 'ar'
+                            ? (isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.shade50)
+                            : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade50),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: currentLang == 'ar' ? Colors.blue.shade700 : Colors.grey.shade300,
+                          color: currentLang == 'ar' ? Colors.blue.shade700 : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                           width: currentLang == 'ar' ? 2.5 : 1,
                         ),
                       ),
@@ -1214,13 +1254,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           const Text('🇸🇦', style: TextStyle(fontSize: 24)),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('العربية (Arabic)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                SizedBox(height: 2),
-                                Text('الواجهة باللغة العربية (RTL)', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                const Text('العربية (Arabic)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                const SizedBox(height: 2),
+                                Text('الواجهة باللغة العربية (RTL)', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.black54)),
                               ],
                             ),
                           ),
@@ -1243,10 +1283,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
-                        color: currentLang == 'en' ? Colors.blue.shade50 : Colors.grey.shade50,
+                        color: currentLang == 'en'
+                            ? (isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.shade50)
+                            : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade50),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: currentLang == 'en' ? Colors.blue.shade700 : Colors.grey.shade300,
+                          color: currentLang == 'en' ? Colors.blue.shade700 : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                           width: currentLang == 'en' ? 2.5 : 1,
                         ),
                       ),
@@ -1254,13 +1296,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           const Text('🇺🇸', style: TextStyle(fontSize: 24)),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('English (الإنجليزية)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                SizedBox(height: 2),
-                                Text('English interface (LTR)', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                const Text('English (الإنجليزية)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                const SizedBox(height: 2),
+                                Text('English interface (LTR)', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.black54)),
                               ],
                             ),
                           ),
@@ -1298,9 +1340,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'color': Colors.teal,
       },
       {
-        'title': isEng ? 'Theme & Language' : 'المظهر واللغة',
-        'subtitle': isEng ? 'App language & theme color' : 'لغة الواجهة وألوان التطبيق',
-        'icon': Icons.palette_rounded,
+        'title': isEng ? 'General Settings' : 'الإعدادات العامة',
+        'subtitle': isEng ? 'Night mode, table price & theme' : 'الوضع الليلي، أسعار الطاولات، والمظهر',
+        'icon': Icons.tune_rounded,
         'color': Colors.purple,
       },
       {
@@ -1322,6 +1364,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'color': Colors.indigo,
       },
     ];
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -1352,7 +1396,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             width: 290,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1F2937) : Colors.white,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -1365,17 +1409,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.grey.shade50,
+                  color: isDark ? const Color(0xFF111827) : Colors.grey.shade50,
                   child: Row(
                     children: [
-                      Icon(Icons.tune_rounded, color: Colors.grey.shade700, size: 20),
+                      Icon(Icons.tune_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         isEng ? 'SETTINGS SECTIONS' : 'أقسام الإعدادات',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700,
+                          color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -1407,7 +1451,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: isSelected ? tabColor.withValues(alpha: 0.12) : Colors.transparent,
+                                color: isSelected ? tabColor.withValues(alpha: isDark ? 0.25 : 0.12) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isSelected ? tabColor : Colors.transparent,
@@ -1419,7 +1463,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? tabColor : tabColor.withValues(alpha: 0.1),
+                                      color: isSelected ? tabColor : tabColor.withValues(alpha: isDark ? 0.2 : 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
@@ -1438,7 +1482,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           style: TextStyle(
                                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                                             fontSize: 14,
-                                            color: isSelected ? Colors.black87 : Colors.grey.shade800,
+                                            color: isSelected
+                                                ? (isDark ? Colors.white : Colors.black87)
+                                                : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                                           ),
                                         ),
                                         const SizedBox(height: 2),
@@ -1446,7 +1492,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           tab['subtitle'] as String,
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: isSelected ? tabColor.withValues(alpha: 0.9) : Colors.grey.shade600,
+                                            color: isSelected
+                                                ? tabColor.withValues(alpha: 0.9)
+                                                : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -1473,7 +1521,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Main Tab Content Area
           Expanded(
             child: Container(
-              color: Colors.grey.shade50.withValues(alpha: 0.5),
+              color: isDark ? const Color(0xFF111827) : Colors.grey.shade50.withValues(alpha: 0.5),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Center(
@@ -1496,7 +1544,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
@@ -1509,11 +1557,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Row(
             children: [
               if (_selectedTab != 5) ...[
-                Icon(Icons.info_outline_rounded, color: Colors.grey.shade600, size: 20),
+                Icon(Icons.info_outline_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   isEng ? 'Click Save button to apply all changes across system' : 'تأكد من النقرفوق زر الحفظ أدناه لتطبيق كافة التعديلات فورياً',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                 ),
                 const Spacer(),
                 ElevatedButton.icon(
@@ -1532,11 +1580,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ] else ...[
-                Icon(Icons.verified_rounded, color: Colors.indigo, size: 20),
+                Icon(Icons.verified_rounded, color: isDark ? const Color(0xFF818CF8) : Colors.indigo, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   isEng ? 'CashBox POS - System Info, License & Support' : 'كاش بوكس - معلومات النظام والتراخيص وطلب الصيانة',
-                  style: TextStyle(fontSize: 13, color: Colors.indigo.shade800, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFA5B4FC) : Colors.indigo.shade800, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 ElevatedButton.icon(
@@ -1583,7 +1631,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 1:
         return _buildPrintersTab(context, settings, isEng);
       case 2:
-        return _buildThemeAndLanguageTab(context, settings, isEng);
+        return _buildGeneralSettingsTab(context, settings, isEng);
       case 3:
         return _buildBackupAndUpdatesTab(context, settings, isEng);
       case 4:
@@ -1597,13 +1645,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // TAB 0: Store & Receipt Info
   Widget _buildStoreAndReceiptTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    final isDark = settings.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Store Info & Logo Card
         Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -1818,7 +1871,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 Text(
                   isEng ? 'Choose official store currency to apply across all invoices, prices, and reports:' : 'اختر العملة الرسمية للمتجر لتطبيقها فورياً على كافة الفواتير والأسعار والتقارير:',
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -1835,10 +1888,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: _selectedCurrency == 'د.ع' ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade50,
+                            color: _selectedCurrency == 'د.ع'
+                                ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12)
+                                : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade50),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.grey.shade300,
+                              color: _selectedCurrency == 'د.ع' ? AppColors.primary : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                               width: _selectedCurrency == 'د.ع' ? 2.5 : 1,
                             ),
                           ),
@@ -1849,7 +1904,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 isEng ? '🇮🇶 Iraqi Dinar (IQD)' : '🇮🇶 دينار عراقي (د.ع)',
                                 style: TextStyle(
                                   fontWeight: _selectedCurrency == 'د.ع' ? FontWeight.bold : FontWeight.normal,
-                                  color: _selectedCurrency == 'د.ع' ? AppColors.primary : Colors.black87,
+                                  color: _selectedCurrency == 'د.ع' ? AppColors.primary : (isDark ? Colors.white : Colors.black87),
                                   fontSize: 15,
                                 ),
                               ),
@@ -1875,10 +1930,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: _selectedCurrency == '\$' ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.shade50,
+                            color: _selectedCurrency == '\$'
+                                ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12)
+                                : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade50),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: _selectedCurrency == '\$' ? AppColors.primary : Colors.grey.shade300,
+                              color: _selectedCurrency == '\$' ? AppColors.primary : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                               width: _selectedCurrency == '\$' ? 2.5 : 1,
                             ),
                           ),
@@ -1889,7 +1946,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 isEng ? '🇺🇸 US Dollar (\$)' : '🇺🇸 دولار أمريكي (\$)',
                                 style: TextStyle(
                                   fontWeight: _selectedCurrency == '\$' ? FontWeight.bold : FontWeight.normal,
-                                  color: _selectedCurrency == '\$' ? AppColors.primary : Colors.black87,
+                                  color: _selectedCurrency == '\$' ? AppColors.primary : (isDark ? Colors.white : Colors.black87),
                                   fontSize: 15,
                                 ),
                               ),
@@ -1914,7 +1971,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Receipt Messages Card
         Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -1964,12 +2025,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // TAB 1: Printers Configuration
   Widget _buildPrintersTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    final isDark = settings.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -2174,19 +2240,176 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // TAB 2: Appearance & Language
-  Widget _buildThemeAndLanguageTab(BuildContext context, SettingsProvider settings, bool isEng) {
+  // TAB 2: General Settings (الإعدادات العامة)
+  Widget _buildGeneralSettingsTab(BuildContext context, SettingsProvider settings, bool isEng) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLanguageSection(context, settings),
+        _buildDarkModeSection(context, settings),
         const SizedBox(height: 20),
-        _buildDisplaySizesSection(context, settings),
+        _buildTableDisplaySection(context, settings),
         const SizedBox(height: 20),
         _buildThemeColorSection(context, settings),
         const SizedBox(height: 20),
+        _buildDisplaySizesSection(context, settings),
+        const SizedBox(height: 20),
+        _buildLanguageSection(context, settings),
+        const SizedBox(height: 20),
         _buildTopNotificationSection(context, settings),
       ],
+    );
+  }
+
+  Widget _buildDarkModeSection(BuildContext context, SettingsProvider settings) {
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: isDark ? Colors.indigo.shade800 : Colors.indigo,
+                  child: Icon(isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEng ? 'Night Mode / Dark Theme 🌙' : 'الوضع الليلي (Dark Mode) 🌙',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isEng
+                            ? 'Switch app background and white surfaces to dark for eye comfort and power saving.'
+                            : 'تحويل كافة واجهات وشاشات وخلفيات البرنامج البيضاء إلى مظهر داكن أنيق ومريح للعين.',
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            SwitchListTile(
+              value: isDark,
+              activeTrackColor: settings.primaryColor,
+              secondary: Icon(
+                isDark ? Icons.bedtime_rounded : Icons.wb_sunny_outlined,
+                color: isDark ? settings.primaryColor : Colors.grey,
+                size: 28,
+              ),
+              title: Text(
+                isEng ? 'Enable Night Mode (Dark Theme)' : 'تفعيل الوضع الليلي للبرنامج',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              subtitle: Text(
+                isEng
+                    ? 'When enabled, white colors across the application turn into sleek dark/black.'
+                    : 'عند تفعيل الخيار، تتحول ألوان وخلفيات البرنامج البيضاء إلى الأسود الداكن المريح للعين.',
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+              ),
+              onChanged: (val) async {
+                await settings.setDarkMode(val);
+                if (context.mounted) {
+                  TopNotification.showSuccess(
+                    context,
+                    val
+                        ? (isEng ? '🌙 Night mode activated successfully' : '🌙 تم تفعيل الوضع الليلي بنجاح!')
+                        : (isEng ? '☀️ Day mode activated successfully' : '☀️ تم تفعيل الوضع النهاري بنجاح!'),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTableDisplaySection(BuildContext context, SettingsProvider settings) {
+    final isEng = settings.isEnglish;
+    final showPrice = settings.showPriceOnTable;
+    final isDark = settings.isDarkMode;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.teal.shade700,
+                  child: const Icon(Icons.table_restaurant_rounded, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEng ? 'Tables Display & Pricing 🏷️' : 'عرض الطاولات والأسعار 🏷️',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isEng
+                            ? 'Configure bill amount visibility inside table icons in restaurant layout.'
+                            : 'التحكم في إظهار أو إخفاء مبلغ الفاتورة الإجمالي داخل أيقونة الطاولة في الصالة.',
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            SwitchListTile(
+              value: showPrice,
+              activeTrackColor: settings.primaryColor,
+              secondary: Icon(
+                showPrice ? Icons.price_check_rounded : Icons.money_off_rounded,
+                color: showPrice ? settings.primaryColor : Colors.grey,
+                size: 28,
+              ),
+              title: Text(
+                isEng ? 'Show Price Inside Table Icon' : 'إظهار السعر داخل أيقونة الطاولة',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              subtitle: Text(
+                isEng
+                    ? 'Display the current order total amount inside the table icon. When disabled, the price is hidden.'
+                    : 'عند التفعيل يظهر مبلغ الحساب الإجمالي الحالي داخل أيقونة الطاولة المشغولة، وعند إطفاء الخيار لا يظهر السعر.',
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+              ),
+              onChanged: (val) async {
+                await settings.setShowPriceOnTable(val);
+                if (context.mounted) {
+                  TopNotification.showSuccess(
+                    context,
+                    val
+                        ? (isEng ? '🏷️ Table price display enabled' : '🏷️ تم تفعيل إظهار السعر داخل أيقونة الطاولة')
+                        : (isEng ? '🚫 Table price display hidden' : '🚫 تم إخفاء السعر من داخل أيقونة الطاولة'),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2194,6 +2417,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isEng = settings.isEnglish;
     final cashierItemSize = settings.cashierItemSize;
     final tablesCardSize = settings.tablesCardSize;
+    final isDark = settings.isDarkMode;
 
     return Card(
       elevation: 3,
@@ -2223,7 +2447,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         isEng
                             ? 'Adjust the size of item cards in cashier and tables to best fit your screen.'
                             : 'تخصيص قياس بطاقات المواد في شاشة الكاشير وبطاقات الطاولات لتناسب شاشتك بدقة.',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                       ),
                     ],
                   ),
@@ -2249,13 +2473,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
+                    color: isDark ? Colors.orange.withValues(alpha: 0.18) : Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade300),
+                    border: Border.all(color: isDark ? Colors.orange.shade700 : Colors.orange.shade300),
                   ),
                   child: Text(
                     '${cashierItemSize.toInt()} px',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade900, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.orange.shade300 : Colors.orange.shade900, fontSize: 13),
                   ),
                 ),
               ],
@@ -2319,13 +2543,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.teal.shade50,
+                    color: isDark ? Colors.teal.withValues(alpha: 0.18) : Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.teal.shade300),
+                    border: Border.all(color: isDark ? Colors.teal.shade700 : Colors.teal.shade300),
                   ),
                   child: Text(
                     '${tablesCardSize.toInt()} px',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal.shade900, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.teal.shade300 : Colors.teal.shade900, fontSize: 13),
                   ),
                 ),
               ],
@@ -2378,7 +2602,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: const Icon(Icons.restore_rounded, size: 18),
                 label: Text(isEng ? 'Reset to Default Sizes' : 'استعادة الأحجام الافتراضية'),
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey.shade700,
+                  foregroundColor: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
                 ),
                 onPressed: () {
                   settings.setCashierItemSize(98.0);
@@ -2397,20 +2621,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withValues(alpha: 0.18),
+      selectedColor: AppColors.primary.withValues(alpha: isDark ? 0.35 : 0.18),
+      backgroundColor: isDark ? const Color(0xFF242F3E) : null,
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.primary : Colors.black87,
+        color: isSelected ? (isDark ? Colors.white : AppColors.primary) : (isDark ? Colors.white.withValues(alpha: 0.85) : Colors.black87),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12.5,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.grey.shade300,
+          color: isSelected ? AppColors.primary : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
           width: isSelected ? 1.5 : 1.0,
         ),
       ),
@@ -2419,6 +2645,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildTopNotificationSection(BuildContext context, SettingsProvider settings) {
     final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -2452,7 +2679,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 isEng
                     ? 'Display temporary alert banners at the top of the screen during operations.'
                     : 'عرض شريط التنبيهات المؤقت في أعلى الشاشة عند تفعيل العمليات وحفظ البيانات.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
               ),
               onChanged: (val) {
                 settings.setShowTopNotifications(val);
@@ -2475,7 +2702,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 isEng
                     ? 'Play audio feedback on barcode scan, item addition, payment success, and delete.'
                     : 'تشغيل أصوات تفاعلية عند إضافة مادة أو مسح باركود، إتمام الدفع، وحذف المواد والتنبيهات.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
               ),
               onChanged: (val) {
                 settings.setSoundEnabled(val);
@@ -2489,6 +2716,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // TAB 3: Backup & Updates
   Widget _buildBackupAndUpdatesTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    final isDark = settings.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2497,7 +2725,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -2523,7 +2755,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             isEng
                                 ? 'Current Version: v$_currentAppVersion'
                                 : 'الإصدار الحالي المثبت: v$_currentAppVersion',
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                           ),
                         ],
                       ),
@@ -2535,7 +2767,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   isEng
                       ? 'Check for new updates online to install new features and improvements.'
                       : 'يمكنك الفحص عن التحديثات الجديدة عبر الإنترنت لتنزيل أحدث المميزات والإصلاحات تلقائياً.',
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -2573,15 +2805,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // TAB 4: Maintenance & Factory Reset
   Widget _buildMaintenanceTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    final isDark = settings.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Card(
           elevation: 3,
-          color: Colors.red.shade50,
+          color: isDark ? const Color(0xFF3F1D1D) : Colors.red.shade50,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Colors.red.shade200, width: 1.5),
+            side: BorderSide(color: isDark ? Colors.red.shade900 : Colors.red.shade200, width: 1.5),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -2604,7 +2837,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 28),
                 Text(
                   isEng ? 'Warning: Deletes all products, categories, invoices, and user records. Reverts to default fresh install.' : 'تنبيه: مسح كافة بيانات النظام والمنتجات والفواتير السابقة وإعادة التثبيت الافتراضي. تتطلب موافقة المدير بالرمز السري.',
-                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -2634,6 +2867,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // TAB 5: About Screen (Version, Subscription Remaining Time, Maintenance Phone)
   Widget _buildAboutTab(BuildContext context, SettingsProvider settings, bool isEng) {
+    final isDark = settings.isDarkMode;
     const maintenancePhone = '+9647507383367';
     final daysRemaining = _licenseInfo?.daysRemaining ?? 0;
     final isActivated = _licenseInfo?.isActivated ?? false;
@@ -2666,15 +2900,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // App Info & Version Card
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: isDark ? const Color(0xFF1E1B4B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: isDark ? const Color(0xFF3730A3) : Colors.transparent),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.indigo.shade900,
-                      Colors.indigo.shade700,
-                    ],
+                    colors: isDark
+                        ? [const Color(0xFF1E1B4B), const Color(0xFF312E81)]
+                        : [Colors.indigo.shade900, Colors.indigo.shade700],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -2806,7 +3043,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Subscription & Remaining Duration Card
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: isDark ? const Color(0xFF1F2937) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 child: Column(
@@ -2832,7 +3073,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             const SizedBox(width: 8),
                             Text(
                               isEng ? 'Subscription & License Status' : 'حالة ومدة الاشتراك بالبرنامج',
-                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
                             ),
                           ],
                         ),
@@ -2854,7 +3099,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                     if (_isLoadingLicense)
                       const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
                     else
@@ -2865,9 +3110,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           final remainingDaysBox = Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.07),
+                              color: isDark
+                                  ? statusColor.withValues(alpha: 0.15)
+                                  : statusColor.withValues(alpha: 0.07),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                              border: Border.all(
+                                color: isDark
+                                    ? statusColor.withValues(alpha: 0.35)
+                                    : statusColor.withValues(alpha: 0.25),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2877,7 +3128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey.shade800,
+                                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -2910,12 +3161,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     isEng
                                         ? 'Expiry Date: ${_licenseInfo!.expiryDate!.toString().split(' ').first}'
                                         : 'تاريخ انتهاء الاشتراك: ${_licenseInfo!.expiryDate!.toString().split(' ').first}',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                    style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                   )
                                 else
                                   Text(
                                     isEng ? 'Valid full activation' : 'تفعيل نشط وساري',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                    style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                   ),
                               ],
                             ),
@@ -2924,9 +3175,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           final machineIdBox = Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: isDark ? const Color(0xFF111827) : Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.grey.shade200),
+                              border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2936,7 +3187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey.shade800,
+                                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -2946,17 +3197,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: isDark ? const Color(0xFF1F2937) : Colors.white,
                                           borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.grey.shade300),
+                                          border: Border.all(color: isDark ? const Color(0xFF4B5563) : Colors.grey.shade300),
                                         ),
                                         child: SelectableText(
                                           _licenseInfo?.machineId ?? '...',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                             letterSpacing: 1.1,
-                                            color: Colors.black87,
+                                            color: isDark ? Colors.white : Colors.black87,
                                           ),
                                         ),
                                       ),
@@ -2964,7 +3215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     const SizedBox(width: 6),
                                     IconButton(
                                       tooltip: isEng ? 'Copy Machine ID' : 'نسخ معرّف الجهاز',
-                                      icon: const Icon(Icons.copy_rounded, size: 18),
+                                      icon: Icon(Icons.copy_rounded, size: 18, color: isDark ? Colors.grey.shade300 : Colors.black87),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                       onPressed: () {
@@ -2991,7 +3242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       _loadLicenseInfo();
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.indigo,
+                                      backgroundColor: isDark ? const Color(0xFF4338CA) : Colors.indigo,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -3036,7 +3287,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Maintenance & Technical Support Card
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: isDark ? const Color(0xFF1F2937) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 child: Column(
@@ -3047,24 +3302,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: Colors.teal.withValues(alpha: 0.12),
+                            color: Colors.teal.withValues(alpha: isDark ? 0.25 : 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.handyman_rounded, color: Colors.teal, size: 18),
+                          child: Icon(Icons.handyman_rounded, color: isDark ? const Color(0xFF2DD4BF) : Colors.teal, size: 18),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           isEng ? 'Maintenance & Technical Support' : 'طلب الصيانة والدعم الفني',
-                          style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
                       ],
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                     Text(
                       isEng
                           ? 'For technical support, software maintenance, system setup, or license renewals, contact us directly:'
                           : 'لطلب الصيانة الفنية الفورية، الاستفسارات، تحديثات النظام، أو تجديد التراخيص، يرجى التواصل معنا عبر الرقم المعتمد أدناه:',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.3),
+                      style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, height: 1.3),
                     ),
                     const SizedBox(height: 12),
 
@@ -3072,9 +3331,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.teal.shade50.withValues(alpha: 0.5),
+                        color: isDark ? const Color(0xFF132A2F) : Colors.teal.shade50.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.teal.shade200),
+                        border: Border.all(color: isDark ? Colors.teal.shade700 : Colors.teal.shade200),
                       ),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
@@ -3085,7 +3344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.teal,
+                                  color: isDark ? Colors.teal.shade800 : Colors.teal,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -3104,7 +3363,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       style: TextStyle(
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.teal.shade900,
+                                        color: isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade900,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -3112,10 +3371,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       textDirection: TextDirection.ltr,
                                       child: Text(
                                         maintenancePhone,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w900,
-                                          color: Colors.black87,
+                                          color: isDark ? Colors.white : Colors.black87,
                                           letterSpacing: 1.1,
                                         ),
                                       ),
@@ -3123,7 +3382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       isEng ? 'Available 24/7 for support & inquiries' : 'خدمة الصيانة متوفرة طوال أيام الأسبوع لخدمتكم',
-                                      style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                                      style: TextStyle(fontSize: 10.5, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                     ),
                                   ],
                                 ),
@@ -3141,13 +3400,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   TopNotification.showSuccess(context, 'تم نسخ رقم هاتف الصيانة ($maintenancePhone)');
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.teal.shade900,
+                                  backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                                  foregroundColor: isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade900,
                                   elevation: 1,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    side: BorderSide(color: Colors.teal.shade300),
+                                    side: BorderSide(color: isDark ? Colors.teal.shade700 : Colors.teal.shade300),
                                   ),
                                 ),
                                 icon: const Icon(Icons.copy_rounded, size: 16),
@@ -3174,7 +3433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ElevatedButton.icon(
                                 onPressed: () => _openPhoneCall(maintenancePhone),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal.shade700,
+                                  backgroundColor: isDark ? const Color(0xFF0F766E) : Colors.teal.shade700,
                                   foregroundColor: Colors.white,
                                   elevation: 1,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

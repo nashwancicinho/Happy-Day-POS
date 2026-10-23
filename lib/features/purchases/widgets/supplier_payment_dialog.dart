@@ -37,19 +37,26 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
-    final currencySymbol = context.watch<SettingsProvider>().currencySymbol;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+    final currencySymbol = settings.currencySymbol;
 
     return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Row(
         children: [
-          const Icon(Icons.payments_outlined, color: Colors.green, size: 28),
+          Icon(Icons.payments_outlined, color: isDark ? const Color(0xFF34D399) : Colors.green, size: 28),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               isEng ? 'Pay Debt to Supplier: ${widget.supplier.name}' : 'تسديد دين للمورد: ${widget.supplier.name}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
           ),
         ],
@@ -67,20 +74,28 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       isEng ? 'Current Debt Payable to Supplier:' : 'الدين المستحق حالياً للمورد:',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: isDark ? Colors.grey.shade300 : Colors.black87,
+                      ),
                     ),
                     Text(
                       '${widget.supplier.balance.toStringAsFixed(0)} $currencySymbol',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red.shade800),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: isDark ? const Color(0xFFF87171) : Colors.red.shade800,
+                      ),
                     ),
                   ],
                 ),
@@ -90,8 +105,10 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: isEng ? 'Paid Amount for Settlement ($currencySymbol) *' : 'المبلغ المدفوع للتسديد ($currencySymbol) *',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                   prefixIcon: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Center(
@@ -99,7 +116,11 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                       heightFactor: 1.0,
                       child: Text(
                         currencySymbol,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.green),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? const Color(0xFF34D399) : Colors.green,
+                        ),
                       ),
                     ),
                   ),
@@ -123,14 +144,29 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
 
               DropdownButtonFormField<String>(
                 initialValue: _paymentMethod,
+                dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: isEng ? 'Payment Method' : 'طريقة الدفع',
-                  prefixIcon: const Icon(Icons.payment),
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                  prefixIcon: Icon(Icons.payment, color: isDark ? Colors.grey.shade400 : null),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 items: [
-                  DropdownMenuItem(value: 'CASH', child: Text(isEng ? 'Cash (Drawer Treasury)' : 'نقداً (من خزينة الكاشير)')),
-                  DropdownMenuItem(value: 'BANK', child: Text(isEng ? 'Bank Transfer / Card' : 'تحويل بانكي / كارت')),
+                  DropdownMenuItem(
+                    value: 'CASH',
+                    child: Text(
+                      isEng ? 'Cash (Drawer Treasury)' : 'نقداً (من خزينة الكاشير)',
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'BANK',
+                    child: Text(
+                      isEng ? 'Bank Transfer / Card' : 'تحويل بانكي / كارت',
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _paymentMethod = val);
@@ -140,9 +176,11 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
 
               TextFormField(
                 controller: _notesController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: isEng ? 'Notes / Reference No' : 'ملاحظات / رقم الحوالة',
-                  prefixIcon: const Icon(Icons.note_alt_outlined),
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                  prefixIcon: Icon(Icons.note_alt_outlined, color: isDark ? Colors.grey.shade400 : null),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -153,7 +191,10 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(isEng ? 'Cancel' : 'إلغاء'),
+          child: Text(
+            isEng ? 'Cancel' : 'إلغاء',
+            style: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+          ),
         ),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(

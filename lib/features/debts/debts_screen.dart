@@ -84,6 +84,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
 
     final totalUnpaidDebt = creditOrders.fold(0.0, (sum, o) => sum + o.total);
     final totalDebtorsCount = groupedDebtors.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -167,7 +168,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                             _searchQuery.isNotEmpty
                                 ? (isEng ? 'No search results matching "$_searchQuery"' : 'لا توجد نتائج بحث لمطابقة "$_searchQuery"')
                                 : (isEng ? 'Great! No outstanding customer debts currently 🎉' : 'ممتاز! لا توجد أي ديون غير مسددة حالياً 🎉'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54),
                           ),
                         ],
                       ),
@@ -230,7 +231,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                                       : (isEng
                                                           ? 'Credit Invoices: ${debtor.orders.length}'
                                                           : 'عدد الفواتير الآجلة: ${debtor.orders.length} فاتورة'),
-                                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                                                 ),
                                               ],
                                             ),
@@ -241,20 +242,20 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.shade50,
+                                        color: isDark ? const Color(0xFF2E1A1A) : Colors.red.shade50,
                                         borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: Colors.red.shade300),
+                                        border: Border.all(color: isDark ? Colors.red.shade900 : Colors.red.shade300),
                                       ),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
                                           Text(
                                             isEng ? 'Total Due:' : 'إجمالي المطلوب:',
-                                            style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w600),
+                                            style: TextStyle(fontSize: 11, color: isDark ? Colors.red.shade300 : Colors.red, fontWeight: FontWeight.w600),
                                           ),
                                           Text(
                                             '${debtor.totalDebt.toStringAsFixed(0)} $currencySym',
-                                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade900, fontSize: 18),
+                                            style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.red.shade200 : Colors.red.shade900, fontSize: 18),
                                           ),
                                         ],
                                       ),
@@ -307,15 +308,16 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                       isEng
                                           ? 'View detailed invoices for this debt (${debtor.orders.length} Invoices)'
                                           : 'عرض الفواتير التفصيلية لهذه الذمة (${debtor.orders.length} فواتير)',
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.indigo.shade200 : Colors.indigo),
                                     ),
                                     children: debtor.orders.map((order) {
                                       return Container(
                                         margin: const EdgeInsets.only(top: 6),
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
+                                          color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
                                           borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                                         ),
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -329,7 +331,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                                 ),
                                                 Text(
                                                   isEng ? 'Type: ${order.orderType} | Staff: ${order.cashierName}' : 'نوع الطلب: ${order.orderType} | المنفذ: ${order.cashierName}',
-                                                  style: const TextStyle(fontSize: 11, color: Colors.black54),
+                                                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black54),
                                                 ),
                                               ],
                                             ),
@@ -337,12 +339,12 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                               children: [
                                                 Text(
                                                   '${order.total.toStringAsFixed(0)} $currencySym',
-                                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade900, fontSize: 14),
+                                                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.red.shade300 : Colors.red.shade900, fontSize: 14),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 OutlinedButton(
                                                   style: OutlinedButton.styleFrom(
-                                                    foregroundColor: Colors.green.shade800,
+                                                    foregroundColor: isDark ? Colors.green.shade300 : Colors.green.shade800,
                                                     side: BorderSide(color: Colors.green.shade600),
                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                     minimumSize: Size.zero,
@@ -379,6 +381,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -396,11 +399,11 @@ class _DebtsScreenState extends State<DebtsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w600)),
+                  Text(title, style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[300] : Colors.grey[700], fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600])),
                 ],
               ),
             ),

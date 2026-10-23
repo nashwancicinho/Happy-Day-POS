@@ -202,6 +202,7 @@ class DatabaseHelper {
           category TEXT DEFAULT 'عام',
           notes TEXT,
           created_by TEXT,
+          is_closed INTEGER DEFAULT 0,
           created_at TEXT NOT NULL
         );
       ''');
@@ -223,6 +224,17 @@ class DatabaseHelper {
     } catch (_) {}
 
     await _addColumnIfMissing(db, 'treasury_transactions', 'is_closed', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'other_expenses', 'is_closed', 'INTEGER DEFAULT 0');
+
+    try {
+      await db.execute('''
+        UPDATE other_expenses 
+        SET is_closed = 1 
+        WHERE is_closed = 0 
+          AND created_at <= (SELECT COALESCE(MAX(created_at), '') FROM daily_treasury WHERE created_at != '')
+          AND (SELECT COUNT(*) FROM daily_treasury) > 0
+      ''');
+    } catch (_) {}
 
     // Suppliers table
     try {

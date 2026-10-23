@@ -31,6 +31,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
   Widget build(BuildContext context) {
     final treasuryProvider = context.watch<TreasuryProvider>();
     final settingsProvider = context.watch<SettingsProvider>();
+    final isDark = settingsProvider.isDarkMode;
     final isEng = settingsProvider.isEnglish;
     final currencySym = settingsProvider.currencySymbol;
 
@@ -38,7 +39,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
     final activeOut = treasuryProvider.activeCashOut;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -72,7 +73,13 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                 // 1. Action Buttons: Deposit (+) and Withdraw (-)
                 Card(
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: BorderSide(
+                      color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
+                    ),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
@@ -126,9 +133,9 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                       elevation: 3,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.3), width: 1.5),
+                        side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.4 : 0.3), width: 1.5),
                       ),
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
                         child: Column(
@@ -140,7 +147,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                                 Text(
                                   isEng ? 'Cash In Amount (+)' : 'المبلغ الداخل (+)',
                                   style: TextStyle(
-                                    color: Colors.grey.shade800,
+                                    color: isDark ? Colors.white : Colors.grey.shade800,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -148,7 +155,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                    color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.12),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.arrow_downward_rounded, color: Color(0xFF10B981), size: 28),
@@ -168,7 +175,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                             const SizedBox(height: 8),
                             Text(
                               isEng ? 'Total cash deposited in current day' : 'إجمالي المبالغ الداخلة المودعة بالخزينة لليوم',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13),
                             ),
                           ],
                         ),
@@ -179,9 +186,9 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                       elevation: 3,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.3), width: 1.5),
+                        side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.4 : 0.3), width: 1.5),
                       ),
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
                         child: Column(
@@ -193,7 +200,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                                 Text(
                                   isEng ? 'Cash Out Amount (-)' : 'المبلغ الخارج (-)',
                                   style: TextStyle(
-                                    color: Colors.grey.shade800,
+                                    color: isDark ? Colors.white : Colors.grey.shade800,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -201,7 +208,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                                    color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.2 : 0.12),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFEF4444), size: 28),
@@ -221,7 +228,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                             const SizedBox(height: 8),
                             Text(
                               isEng ? 'Total cash withdrawn from current day' : 'إجمالي المبالغ المسحوبة والمصروفة من الخزينة لليوم',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13),
                             ),
                           ],
                         ),
@@ -256,8 +263,10 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
   }
 
   void _showTransactionDialog(BuildContext context, {required bool isDeposit}) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final settingsProvider = context.read<SettingsProvider>();
+    final isEng = settingsProvider.isEnglish;
+    final isDark = settingsProvider.isDarkMode;
+    final currencySym = settingsProvider.currencySymbol;
     final currentUser = context.read<AuthProvider>().currentUserName;
 
     final amountController = TextEditingController();
@@ -310,8 +319,12 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
             IconData? icon,
             double fontSize = 20,
           }) {
+            final defaultBg = isDark ? const Color(0xFF242F3E) : Colors.white;
+            final defaultBorder = isDark ? const Color(0xFF475569) : Colors.grey.shade300;
+            final defaultFg = isDark ? Colors.white : Colors.black87;
+
             return Material(
-              color: bg ?? Colors.white,
+              color: bg ?? defaultBg,
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
                 onTap: onTap,
@@ -321,23 +334,23 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderCol ?? Colors.grey.shade300, width: 1.2),
+                    border: Border.all(color: borderCol ?? defaultBorder, width: 1.2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                         blurRadius: 3,
                         offset: const Offset(0, 1),
                       ),
                     ],
                   ),
                   child: icon != null
-                      ? Icon(icon, color: fg ?? Colors.black87, size: 22)
+                      ? Icon(icon, color: fg ?? defaultFg, size: 22)
                       : Text(
                           label,
                           style: TextStyle(
                             fontSize: fontSize,
                             fontWeight: FontWeight.bold,
-                            color: fg ?? Colors.black87,
+                            color: fg ?? defaultFg,
                           ),
                         ),
                 ),
@@ -346,13 +359,19 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
           }
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
+            ),
             title: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isDeposit ? Colors.green.shade50 : Colors.red.shade50,
+                    color: isDeposit
+                        ? (isDark ? const Color(0xFF064E3B) : Colors.green.shade50)
+                        : (isDark ? const Color(0xFF7F1D1D) : Colors.red.shade50),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -366,7 +385,11 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                   isDeposit
                       ? (isEng ? 'Deposit Cash in Safe' : 'إدخال مبلغ في الخزينة (+)')
                       : (isEng ? 'Withdraw Cash from Safe' : 'إخراج مبلغ من الخزينة (-)'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
               ],
             ),
@@ -382,7 +405,11 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                       // 1. Amount Display Input (NO dollar icon!)
                       Text(
                         isEng ? 'Amount ($currencySym):' : 'المبلغ المراد ${isDeposit ? "إدخاله" : "إخراجه"} ($currencySym):',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? Colors.grey.shade300 : Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       TextFormField(
@@ -398,6 +425,9 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                         ),
                         decoration: InputDecoration(
                           hintText: '0',
+                          hintStyle: TextStyle(
+                            color: (isDeposit ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withValues(alpha: 0.5),
+                          ),
                           suffixText: currencySym,
                           suffixStyle: TextStyle(
                             fontSize: 15,
@@ -405,18 +435,24 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                             color: isDeposit ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                           ),
                           filled: true,
-                          fillColor: isDeposit ? Colors.green.shade50.withValues(alpha: 0.35) : Colors.red.shade50.withValues(alpha: 0.35),
+                          fillColor: isDeposit
+                              ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : Colors.green.shade50.withValues(alpha: 0.35))
+                              : (isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : Colors.red.shade50.withValues(alpha: 0.35)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(
-                              color: isDeposit ? Colors.green.shade300 : Colors.red.shade300,
+                              color: isDeposit
+                                  ? (isDark ? const Color(0xFF059669) : Colors.green.shade300)
+                                  : (isDark ? const Color(0xFFDC2626) : Colors.red.shade300),
                               width: 1.5,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(
-                              color: isDeposit ? Colors.green.shade300 : Colors.red.shade300,
+                              color: isDeposit
+                                  ? (isDark ? const Color(0xFF059669) : Colors.green.shade300)
+                                  : (isDark ? const Color(0xFFDC2626) : Colors.red.shade300),
                               width: 1.5,
                             ),
                           ),
@@ -489,9 +525,9 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                                 Expanded(
                                   child: numBtn(
                                     'C',
-                                    bg: Colors.red.shade50,
-                                    borderCol: Colors.red.shade200,
-                                    fg: Colors.red.shade800,
+                                    bg: isDark ? const Color(0xFF450A0A) : Colors.red.shade50,
+                                    borderCol: isDark ? const Color(0xFF991B1B) : Colors.red.shade200,
+                                    fg: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade800,
                                     fontSize: 18,
                                     onTap: () => setDialogState(clearAll),
                                   ),
@@ -502,9 +538,9 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                                 Expanded(
                                   child: numBtn(
                                     '⌫',
-                                    bg: Colors.orange.shade50,
-                                    borderCol: Colors.orange.shade200,
-                                    fg: Colors.orange.shade900,
+                                    bg: isDark ? const Color(0xFF431407) : Colors.orange.shade50,
+                                    borderCol: isDark ? const Color(0xFF9A3412) : Colors.orange.shade200,
+                                    fg: isDark ? const Color(0xFFFDBA74) : Colors.orange.shade900,
                                     icon: Icons.backspace_outlined,
                                     onTap: () => setDialogState(backspace),
                                   ),
@@ -520,18 +556,35 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
                       // 3. Note Input Below Numbers (إدخال ملاحظة أسفل الأرقام)
                       Text(
                         isEng ? 'Note:' : 'إدخال ملاحظة:',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? Colors.grey.shade300 : Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: notesController,
                         maxLines: 2,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           hintText: isEng ? 'Write note or transaction details...' : 'اكتب ملاحظة أو بيان العملية هنا...',
-                          prefixIcon: const Icon(Icons.edit_note_rounded, size: 24),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+                          prefixIcon: Icon(Icons.edit_note_rounded, size: 24, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDeposit ? const Color(0xFF10B981) : const Color(0xFFEF4444), width: 1.8),
+                          ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: isDark ? const Color(0xFF242F3E) : Colors.white,
                         ),
                       ),
                     ],
@@ -542,6 +595,8 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
             actions: [
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                  side: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

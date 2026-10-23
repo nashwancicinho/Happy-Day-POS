@@ -41,6 +41,17 @@ class SettingsProvider extends ChangeNotifier {
   bool get autoOpenCashDrawer => (_settings['auto_open_cash_drawer'] ?? 'true') == 'true';
   bool get showSoldItemsInDayClosing => (_settings['show_sold_items_in_day_closing'] ?? 'false') == 'true';
   bool get isSoundEnabled => (_settings['sound_enabled'] ?? 'true') == 'true';
+  bool get isDarkMode => (_settings['dark_mode'] ?? 'false') == 'true';
+  bool get showPriceOnTable => (_settings['show_price_on_table'] ?? 'true') == 'true';
+
+  Future<void> setDarkMode(bool value) async {
+    AppColors.isDark = value;
+    await updateSetting('dark_mode', value.toString());
+  }
+
+  Future<void> setShowPriceOnTable(bool value) async {
+    await updateSetting('show_price_on_table', value.toString());
+  }
 
   Future<void> setSoundEnabled(bool value) async {
     SoundService.instance.isEnabled = value;
@@ -92,6 +103,8 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
 
     _settings = await _repository.getAllSettings();
+    AppColors.isDark = isDarkMode;
+    AppColors.primary = primaryColor;
     TopNotification.enabled = showTopNotifications;
     SoundService.instance.isEnabled = isSoundEnabled;
     _isLoading = false;

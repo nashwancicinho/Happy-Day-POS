@@ -9,6 +9,7 @@ class TreasuryProvider extends ChangeNotifier {
 
   List<DailyTreasuryModel> _treasuryRecords = [];
   List<OtherExpenseModel> _otherExpenses = [];
+  List<OtherExpenseModel> _activeOtherExpenses = [];
   List<TreasuryTransactionModel> _transactions = [];
   List<TreasuryTransactionModel> _activeTransactions = [];
   double _allTimeBalance = 0.0;
@@ -16,6 +17,7 @@ class TreasuryProvider extends ChangeNotifier {
 
   List<DailyTreasuryModel> get treasuryRecords => _treasuryRecords;
   List<OtherExpenseModel> get otherExpenses => _otherExpenses;
+  List<OtherExpenseModel> get activeOtherExpenses => _activeOtherExpenses;
   List<TreasuryTransactionModel> get transactions => _transactions;
   List<TreasuryTransactionModel> get activeTransactions => _activeTransactions;
   double get allTimeBalance => _allTimeBalance;
@@ -60,6 +62,10 @@ class TreasuryProvider extends ChangeNotifier {
     return _otherExpenses.fold(0.0, (sum, e) => sum + e.amount);
   }
 
+  double get totalActiveOtherExpenses {
+    return _activeOtherExpenses.fold(0.0, (sum, e) => sum + e.amount);
+  }
+
   // --- Load Active Session Transactions for Treasury Screen ---
   Future<void> loadActiveTransactions() async {
     _isLoading = true;
@@ -74,10 +80,17 @@ class TreasuryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Load Active Other Expenses (مصاريف اليوم / الشيفت الحالي فقط) ---
+  Future<void> loadActiveOtherExpenses() async {
+    _activeOtherExpenses = await _repository.getActiveOtherExpenses();
+    notifyListeners();
+  }
+
   // --- Close Active Treasury Session (عند إغلاق اليوم) ---
   Future<void> closeActiveSession() async {
     await _repository.closeActiveTreasurySession();
     await loadActiveTransactions();
+    await loadActiveOtherExpenses();
     await refreshAllTimeBalance();
   }
 
@@ -171,17 +184,20 @@ class TreasuryProvider extends ChangeNotifier {
       fromDate: fromDate,
       toDate: toDate,
     );
+    await loadActiveOtherExpenses();
     notifyListeners();
   }
 
   Future<int> addOtherExpense(OtherExpenseModel expense) async {
     final id = await _repository.addOtherExpense(expense);
+    await loadActiveOtherExpenses();
     await loadOtherExpenses();
     return id;
   }
 
   Future<int> deleteOtherExpense(int id) async {
     final res = await _repository.deleteOtherExpense(id);
+    await loadActiveOtherExpenses();
     await loadOtherExpenses();
     return res;
   }

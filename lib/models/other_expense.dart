@@ -5,6 +5,7 @@ class OtherExpenseModel {
   final String category;
   final String? notes;
   final String? createdBy;
+  final int isClosed;
   final String createdAt;
 
   OtherExpenseModel({
@@ -14,6 +15,7 @@ class OtherExpenseModel {
     this.category = 'عام',
     this.notes,
     this.createdBy,
+    this.isClosed = 0,
     required this.createdAt,
   });
 
@@ -25,6 +27,7 @@ class OtherExpenseModel {
       'category': category,
       'notes': notes,
       'created_by': createdBy,
+      'is_closed': isClosed,
       'created_at': createdAt,
     };
   }
@@ -37,6 +40,7 @@ class OtherExpenseModel {
       category: map['category'] as String? ?? 'عام',
       notes: map['notes'] as String?,
       createdBy: map['created_by'] as String?,
+      isClosed: (map['is_closed'] as int?) ?? 0,
       createdAt: map['created_at'] as String? ?? DateTime.now().toIso8601String(),
     );
   }

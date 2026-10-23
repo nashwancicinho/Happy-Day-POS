@@ -259,7 +259,9 @@ class ShiftManagementDialog extends StatelessWidget {
       if (!context.mounted) return;
       showDialog(
         context: context,
-        builder: (dialogCtx) => AlertDialog(
+        builder: (dialogCtx) {
+          final isDark = Theme.of(dialogCtx).brightness == Brightness.dark;
+          return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
@@ -283,9 +285,9 @@ class ShiftManagementDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark ? const Color(0xFF2E1A1A) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: isDark ? Colors.red.shade900 : Colors.red.shade200),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +298,7 @@ class ShiftManagementDialog extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           'الطاولات المشغولة حالياً (${activeTables.length} طاولات):',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade900, fontSize: 13),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.red.shade300 : Colors.red.shade900, fontSize: 13),
                         ),
                       ],
                     ),
@@ -305,7 +307,7 @@ class ShiftManagementDialog extends StatelessWidget {
                       activeTables.isNotEmpty
                           ? activeTables.map((t) => '• ${t.name} (سعة ${t.capacity} أفراد)').join('\n')
                           : '• توجد طلبات معلقة مفتوحة على الطاولات',
-                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
                     ),
                   ],
                 ),
@@ -319,7 +321,8 @@ class ShiftManagementDialog extends StatelessWidget {
               child: const Text('حسناً، استكمال الدفع أولاً', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
-        ),
+        );
+      },
       );
       return;
     }

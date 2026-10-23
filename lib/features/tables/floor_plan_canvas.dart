@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../models/restaurant_table.dart';
 import '../settings/settings_provider.dart';
 import 'tables_provider.dart';
@@ -63,7 +62,7 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
               child: Container(
                 width: constraints.maxWidth,
                 height: constraints.maxHeight,
-                color: const Color(0xFFF3F4F6),
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF3F4F6),
                 child: Stack(
                   children: [
                     // Render Tables on 2D Layout Canvas
@@ -103,8 +102,19 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
 
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final showPriceOnTable = context.watch<SettingsProvider>().showPriceOnTable;
     final isOccupied = table.status == 1;
-    final statusColor = isOccupied ? AppColors.danger : AppColors.success;
+    final isReserved = table.status == 2;
+    final tableBgColor = isOccupied
+        ? const Color(0xFFDC2626)
+        : (isReserved ? const Color(0xFFD97706) : const Color(0xFF16A34A));
+    final borderColor = widget.isDeleteMode
+        ? Colors.red.shade900
+        : widget.isDesignMode
+            ? Colors.purple
+            : (isOccupied
+                ? const Color(0xFFB91C1C)
+                : (isReserved ? const Color(0xFFB45309) : const Color(0xFF15803D)));
     final tableWidth = (table.shape == 'rectangle' ? 130.0 : 98.0) * scale;
     final tableHeight = (table.shape == 'rectangle' ? 90.0 : 98.0) * scale;
 
@@ -149,30 +159,24 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
           width: tableWidth,
           height: tableHeight,
           child: Stack(
+            clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              // Chairs Surrounding Visual Representation
-              _buildChairsAroundTable(table, scale),
-
               // Main Table Body Box / Cylinder
               AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: tableWidth - (18 * scale),
-                height: tableHeight - (18 * scale),
+                width: tableWidth,
+                height: tableHeight,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: tableBgColor,
                   borderRadius: table.shape == 'round' ? BorderRadius.circular(100) : BorderRadius.circular((13 * scale).clamp(8.0, 20.0)),
                   border: Border.all(
-                    color: widget.isDeleteMode
-                        ? Colors.red
-                        : widget.isDesignMode
-                            ? Colors.purple
-                            : statusColor,
-                    width: widget.isDesignMode || widget.isDeleteMode ? 2.5 : 2.0,
+                    color: borderColor,
+                    width: widget.isDesignMode || widget.isDeleteMode ? 2.5 : 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: (widget.isDesignMode ? Colors.purple : statusColor).withValues(alpha: 0.25),
+                      color: (widget.isDesignMode ? Colors.purple : tableBgColor).withValues(alpha: 0.35),
                       blurRadius: 8,
                       spreadRadius: 1,
                       offset: const Offset(0, 3),
@@ -182,56 +186,46 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Table Icon or Drag Handle
-                    Icon(
-                      widget.isDesignMode
-                          ? Icons.open_with_rounded
-                          : (table.shape == 'round' ? Icons.circle_outlined : Icons.table_restaurant),
-                      size: (widget.isDesignMode ? 18 : 16) * scale,
-                      color: widget.isDesignMode ? Colors.purple : statusColor,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      formatTableName(table.name),
-                      style: TextStyle(
-                        fontSize: (11.5 * scale).clamp(9.0, 18.0),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    if (widget.isDesignMode) ...[
+                      Icon(
+                        Icons.open_with_rounded,
+                        size: 16 * scale,
+                        color: Colors.white,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      const SizedBox(height: 2),
+                    ],
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
-                          style: TextStyle(
-                            fontSize: (9.5 * scale).clamp(7.5, 15.0),
-                            fontWeight: isOccupied ? FontWeight.bold : FontWeight.w600,
-                            color: isOccupied ? AppColors.danger : Colors.grey.shade700,
-                          ),
-                          maxLines: 1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: (5 * scale).clamp(3.0, 8.0), vertical: 1),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
-                        isEng ? (isOccupied ? 'Occupied' : 'Vacant') : (isOccupied ? 'مشغولة' : 'شاغرة'),
+                        formatTableName(table.name),
                         style: TextStyle(
-                          fontSize: (8.0 * scale).clamp(6.5, 13.0),
+                          fontSize: (14.0 * scale).clamp(11.0, 20.0),
                           fontWeight: FontWeight.bold,
-                          color: statusColor,
+                          color: Colors.white,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
+                    if (showPriceOnTable) ...[
+                      SizedBox(height: 4 * scale),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
+                            style: TextStyle(
+                              fontSize: (11.5 * scale).clamp(9.5, 17.0),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -270,146 +264,10 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                     ),
                   ),
                 ),
-
-              if (!widget.isDesignMode && !widget.isDeleteMode)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  child: PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, size: 16, color: Colors.grey.shade600),
-                    padding: EdgeInsets.zero,
-                    onSelected: (val) {
-                      if (val == 'transfer') {
-                        widget.onTransferTable(table);
-                      } else if (val == 'edit') {
-                        widget.onEditTable(table);
-                      } else if (val == 'toggle_status') {
-                        final newStatus = table.status == 1 ? 0 : 1;
-                        context.read<TablesProvider>().changeTableStatus(table.id!, newStatus);
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      if (isOccupied)
-                        const PopupMenuItem(
-                          value: 'transfer',
-                          child: Row(
-                            children: [
-                              Icon(Icons.swap_horiz, size: 16, color: Colors.orange),
-                              SizedBox(width: 6),
-                              Text('تحويل الفاتورة', style: TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 16, color: Colors.indigo),
-                            SizedBox(width: 6),
-                            Text('تعديل البيانات', style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'toggle_status',
-                        child: Row(
-                          children: [
-                            Icon(
-                              isOccupied ? Icons.check_circle_outline : Icons.event_seat,
-                              size: 16,
-                              color: isOccupied ? Colors.green : Colors.orange,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(isOccupied ? 'تحديد كـ شاغرة' : 'تحديد كـ مشغولة', style: const TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  // Visual Chair Indicators around table shape
-  Widget _buildChairsAroundTable(RestaurantTable table, double scale) {
-    final chairColor = Colors.grey.shade400;
-    final double chairSize = 8.0 * scale;
-    final double chairLength = 18.0 * scale;
-
-    return Stack(
-      children: [
-        // Top Chair
-        Positioned(
-          top: 1,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              width: chairLength,
-              height: chairSize,
-              decoration: BoxDecoration(
-                color: chairColor,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-        ),
-
-        // Bottom Chair
-        Positioned(
-          bottom: 1,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              width: chairLength,
-              height: chairSize,
-              decoration: BoxDecoration(
-                color: chairColor,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-        ),
-
-        // Left Chair
-        Positioned(
-          left: 1,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: Container(
-              width: chairSize,
-              height: chairLength,
-              decoration: BoxDecoration(
-                color: chairColor,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-        ),
-
-        // Right Chair
-        Positioned(
-          right: 1,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: Container(
-              width: chairSize,
-              height: chairLength,
-              decoration: BoxDecoration(
-                color: chairColor,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/manager_auth_dialog.dart';
 import '../auth/auth_provider.dart';
+import '../cashier/widgets/refund_dialog.dart';
 import '../categories/categories_provider.dart';
 import '../orders/orders_provider.dart';
 import '../payroll/payroll_provider.dart';
@@ -105,10 +106,29 @@ class ManagementHubScreen extends StatelessWidget {
         'stat': isEng ? '$todayOrdersCount Orders Today' : '$todayOrdersCount طلب اليوم',
         'permKey': 'perm_cashier_access_reports',
       },
+      {
+        'index': -1,
+        'isAction': true,
+        'title': isEng ? 'Refund & Returns' : 'استرجاع الفواتير',
+        'subtitle': isEng ? 'Search invoices & refund items' : 'البحث عن الفواتير واسترجاع المبالغ والمواد',
+        'icon': Icons.assignment_return_rounded,
+        'color': Colors.red.shade800,
+        'bgColor': Colors.red.shade50,
+        'stat': isEng ? 'Refund Center' : 'إدارة المرتجعات',
+        'permKey': 'perm_cashier_access_settings',
+        'action': (BuildContext ctx) {
+          showDialog(
+            context: ctx,
+            builder: (_) => const RefundDialog(),
+          );
+        },
+      },
     ];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         child: Center(
@@ -188,14 +208,14 @@ class ManagementHubScreen extends StatelessWidget {
                 // Section Title
                 Row(
                   children: [
-                    Icon(Icons.dashboard_customize_rounded, color: Colors.grey.shade700, size: 18),
+                    Icon(Icons.dashboard_customize_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, size: 18),
                     const SizedBox(width: 8),
                     Text(
-                      isEng ? 'MANAGEMENT SECTIONS (7)' : 'أقسام الإدارة السبعة (٧)',
+                      isEng ? 'MANAGEMENT SECTIONS (8)' : 'أقسام الإدارة والعمليات (٨)',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade700,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -230,7 +250,7 @@ class ManagementHubScreen extends StatelessWidget {
                           elevation: 1.5,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
-                            side: BorderSide(color: Colors.grey.shade200),
+                            side: BorderSide(color: Theme.of(context).dividerColor),
                           ),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(14),
@@ -243,7 +263,13 @@ class ManagementHubScreen extends StatelessWidget {
                                 );
                                 if (!authorized) return;
                               }
-                              onNavigate(targetIndex);
+                              if (!context.mounted) return;
+                              if (item['isAction'] == true) {
+                                final action = item['action'] as Function(BuildContext);
+                                action(context);
+                              } else {
+                                onNavigate(targetIndex);
+                              }
                             },
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -257,7 +283,7 @@ class ManagementHubScreen extends StatelessWidget {
                                       Container(
                                         padding: const EdgeInsets.all(7),
                                         decoration: BoxDecoration(
-                                          color: itemBgColor,
+                                          color: isDark ? itemColor.withValues(alpha: 0.2) : itemBgColor,
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Icon(
@@ -290,7 +316,7 @@ class ManagementHubScreen extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: itemBgColor,
+                                            color: isDark ? itemColor.withValues(alpha: 0.2) : itemBgColor,
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(
@@ -309,10 +335,10 @@ class ManagementHubScreen extends StatelessWidget {
                                     children: [
                                       Text(
                                         item['title'] as String,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: isDark ? Colors.white : Colors.black87,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -322,7 +348,7 @@ class ManagementHubScreen extends StatelessWidget {
                                         item['subtitle'] as String,
                                         style: TextStyle(
                                           fontSize: 10.5,
-                                          color: Colors.grey.shade600,
+                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,

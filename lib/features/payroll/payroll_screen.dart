@@ -98,6 +98,7 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
   // --- TAB 1: EMPLOYEES LIST ---
   Widget _buildEmployeesTab(BuildContext context, PayrollProvider provider, bool isEng, String currencySym) {
     final employees = provider.employees;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -156,13 +157,13 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: isDark ? const Color(0xFF1E293B) : Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
+                            border: Border.all(color: isDark ? Colors.blue.shade800 : Colors.blue.shade200),
                           ),
                           child: Text(
                             emp.role,
-                            style: TextStyle(fontSize: 11, color: Colors.blue.shade800, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.blue.shade200 : Colors.blue.shade800, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -175,10 +176,10 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
                           isEng
                               ? 'Base Salary: ${emp.baseSalary.toStringAsFixed(0)} $currencySym | Advances: ${totalAdvances.toStringAsFixed(0)} $currencySym'
                               : 'الراتب الأساسي: ${emp.baseSalary.toStringAsFixed(0)} $currencySym | السُلف الحالية: ${totalAdvances.toStringAsFixed(0)} $currencySym',
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                         ),
                         if (emp.phone != null && emp.phone!.isNotEmpty)
-                          Text('الهاتف: ${emp.phone}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('الهاتف: ${emp.phone}', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
                       ],
                     ),
                     trailing: Row(
@@ -188,10 +189,10 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(isEng ? 'Net Payable:' : 'الصافي المستحق:', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text(isEng ? 'Net Payable:' : 'الصافي المستحق:', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey)),
                             Text(
                               '${netSalary.toStringAsFixed(0)} $currencySym',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green.shade800),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.green.shade400 : Colors.green.shade800),
                             ),
                           ],
                         ),

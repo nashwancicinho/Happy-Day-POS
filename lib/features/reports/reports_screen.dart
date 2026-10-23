@@ -1080,12 +1080,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildTypeChip(BuildContext context, String typeKey, String label, IconData icon, {bool isManagerOnly = false}) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final isSelected = _selectedReportType == typeKey;
     final authProvider = context.watch<AuthProvider>();
     final canViewProfitReports = authProvider.hasPermission(context, 'perm_cashier_view_profit_reports');
     final isDisabled = isManagerOnly && !canViewProfitReports;
-
 
     return ChoiceChip(
       avatar: Icon(
@@ -1098,9 +1098,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       selected: isSelected,
       selectedColor: primaryColor,
-      backgroundColor: isDisabled ? Colors.grey.shade200 : Colors.grey.shade100,
+      backgroundColor: isDisabled
+          ? (isDark ? const Color(0xFF1E293B) : Colors.grey.shade200)
+          : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade100),
       labelStyle: TextStyle(
-        color: isDisabled ? Colors.grey.shade600 : (isSelected ? Colors.white : Colors.black87),
+        color: isDisabled
+            ? (isDark ? Colors.grey.shade500 : Colors.grey.shade600)
+            : (isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87)),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       onSelected: (_) {
@@ -1117,14 +1121,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildPeriodChip(BuildContext context, String label, ReportPeriod period) {
     final primaryColor = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedPeriod == period;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       selectedColor: primaryColor,
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: isDark ? const Color(0xFF242F3E) : Colors.grey.shade100,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
+        color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       onSelected: (_) {
@@ -1177,11 +1182,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
       displayProducts = _topSellingProducts.where((p) => availableProds.contains(p.productName.trim())).toList();
     }
 
+    final isDark = settingsProvider.isDarkMode;
+
     return Scaffold(
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -1195,11 +1202,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Expanded(
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white : primaryColor,
+                  side: BorderSide(color: isDark ? const Color(0xFF4B5563) : primaryColor),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => setState(() => _isReportGenerated = false),
-                icon: Icon(Icons.edit_note, color: primaryColor),
+                icon: Icon(Icons.edit_note, color: isDark ? Colors.white : primaryColor),
                 label: Text(isEng ? 'Edit Report Options' : 'تعديل خيارات التقرير', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               ),
             ),
@@ -1554,7 +1563,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               children: [
                                 Text(_getReportTypeTitle(isEng), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 2),
-                                Text('${isEng ? "Time Range:" : "النطاق الزمني:"} ${_getPeriodTitle(isEng)}', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                                Text('${isEng ? "Time Range:" : "النطاق الزمني:"} ${_getPeriodTitle(isEng)}', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
                               ],
                             ),
                           ),
@@ -1913,6 +1922,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final primaryColor = Theme.of(context).primaryColor;
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final isDark = context.watch<SettingsProvider>().isDarkMode;
 
     final ordersProvider = context.watch<OrdersProvider>();
     final treasuryProvider = context.watch<TreasuryProvider>();
@@ -2004,6 +2014,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: isEng ? '100% Gross Baseline' : 'الوارد الإجمالي (100%)',
                 icon: Icons.storefront,
                 color: Colors.green.shade700,
+                isDark: isDark,
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Total Discounts Applied' : 'إجمالي الخصومات الممنوحة',
@@ -2011,6 +2022,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${totalDiscountsPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
                 icon: Icons.discount_outlined,
                 color: Colors.purple.shade700,
+                isDark: isDark,
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Materials & Purchases Cost' : 'كلفة المواد والمشتريات',
@@ -2018,6 +2030,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${materialsPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
                 icon: Icons.inventory_2_outlined,
                 color: Colors.orange.shade800,
+                isDark: isDark,
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Employee Salary Expenses' : 'مصاريف رواتب الموظفين',
@@ -2025,6 +2038,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${salaryPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"}',
                 icon: Icons.badge_outlined,
                 color: Colors.blue.shade800,
+                isDark: isDark,
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Other Expenses & Outflows' : 'مصاريف أخرى ونثريات',
@@ -2032,6 +2046,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${otherExpensesPct.toStringAsFixed(1)}% ${isEng ? "of sales" : "من المبيعات"} (${isEng ? "Details" : "اضغط بالتفاصيل"})',
                 icon: Icons.receipt_long_outlined,
                 color: Colors.deepOrange.shade800,
+                isDark: isDark,
                 onTap: () => _showOtherExpensesDetailsDialog(context, filteredOtherExpenses),
               ),
               _pnlSummaryMetricCard(
@@ -2040,6 +2055,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${netProfitMargin.toStringAsFixed(1)}% ${isEng ? "Net Margin" : "هامش الربح الصافي"}',
                 icon: Icons.insights,
                 color: netStoreProfit >= 0 ? Colors.teal.shade700 : Colors.red.shade900,
+                isDark: isDark,
               ),
               _pnlSummaryMetricCard(
                 title: isEng ? 'Refunded Invoices' : 'الفواتير المسترجعة',
@@ -2047,6 +2063,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${refundedTotal.toStringAsFixed(0)} $currencySym (${isEng ? "Details" : "اضغط بالتفاصيل"})',
                 icon: Icons.history_rounded,
                 color: Colors.orange.shade900,
+                isDark: isDark,
                 onTap: () => _showRefundedOrdersDetailsDialog(context, refundedOrders),
               ),
               _pnlSummaryMetricCard(
@@ -2055,6 +2072,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 subtitle: '${cancelledTotal.toStringAsFixed(0)} $currencySym (${isEng ? "Details" : "اضغط بالتفاصيل"})',
                 icon: Icons.cancel_outlined,
                 color: Colors.red.shade800,
+                isDark: isDark,
                 onTap: () => _showCancelledOrdersDetailsDialog(context, cancelledOrders),
               ),
             ];
@@ -2072,7 +2090,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
         // B. VISUAL INTERACTIVE CHARTS CARD
         Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(22.0),
             child: Column(
@@ -2087,7 +2109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         const SizedBox(width: 10),
                         Text(
                           isEng ? '📊 Store Revenue vs Expenses Visual Distribution' : '📊 المخطط البياني لتوزيع إيرادات ومصاريف المتجر',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: isDark ? Colors.white : Colors.black87),
                         ),
                       ],
                     ),
@@ -2109,7 +2131,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ],
                 ),
-                const Divider(height: 28),
+                Divider(height: 28, color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
 
                 // Visual Bars Section
                 _buildVisualPnlBar(
@@ -2192,7 +2214,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
         // C. COMPREHENSIVE P&L FINANCIAL TABLE CARD
         Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -2204,7 +2230,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     const SizedBox(width: 10),
                     Text(
                       isEng ? 'Comprehensive P&L Statement Details' : 'جدول القائمة المالية المفصلة للأرباح والخسائر',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87),
                     ),
                   ],
                 ),
@@ -2216,51 +2242,51 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     child: SizedBox(
                       width: MediaQuery.of(context).size.width > 900 ? MediaQuery.of(context).size.width - 320 : 800,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+                        headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF242F3E) : Colors.indigo.shade50),
                         columns: [
-                          DataColumn(label: Text(isEng ? 'Financial Item' : 'بند القائمة المالية', style: const TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text(isEng ? 'Type / Direction' : 'النوع / الاتجاه', style: const TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text(isEng ? 'Total Amount' : 'المبلغ الإجمالي', style: const TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text(isEng ? '% of Sales' : 'النسبة من المبيعات', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(isEng ? 'Financial Item' : 'بند القائمة المالية', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                          DataColumn(label: Text(isEng ? 'Type / Direction' : 'النوع / الاتجاه', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                          DataColumn(label: Text(isEng ? 'Total Amount' : 'المبلغ الإجمالي', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                          DataColumn(label: Text(isEng ? '% of Sales' : 'النسبة من المبيعات', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
                         ],
                         rows: [
                           DataRow(cells: [
-                            const DataCell(Text('إجمالي مبيعات المتجر (Gross Revenue)', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('إيراد +', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)))),
-                            DataCell(Text('${totalSales.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green))),
-                            const DataCell(Text('100.0%')),
+                            DataCell(Text('إجمالي مبيعات المتجر (Gross Revenue)', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isDark ? const Color(0xFF064E3B) : Colors.green.shade100, borderRadius: BorderRadius.circular(6)), child: Text('إيراد +', style: TextStyle(color: isDark ? const Color(0xFF6EE7B7) : Colors.green, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('${totalSales.toStringAsFixed(0)} $currencySym', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : Colors.green))),
+                            DataCell(Text('100.0%', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87))),
                           ]),
                           DataRow(cells: [
-                            const DataCell(Text('تكلفة المواد الأولية وخامات الأصناف والمشتريات')),
-                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)))),
-                            DataCell(Text('-${materialsCost.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold))),
-                            DataCell(Text('${materialsPct.toStringAsFixed(1)}%')),
+                            DataCell(Text('تكلفة المواد الأولية وخامات الأصناف والمشتريات', style: TextStyle(color: isDark ? Colors.white : Colors.black87))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isDark ? const Color(0xFF7C2D12) : Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مصروف -', style: TextStyle(color: isDark ? const Color(0xFFFDBA74) : Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${materialsCost.toStringAsFixed(0)} $currencySym', style: TextStyle(color: isDark ? const Color(0xFFFB923C) : Colors.orange.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${materialsPct.toStringAsFixed(1)}%', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87))),
                           ]),
                           DataRow(cells: [
-                            const DataCell(Text('مصاريف رواتب ومستحقات الموظفين والسُلف')),
-                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.blue.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('مصروف -', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)))),
-                            DataCell(Text('-${salaryExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold))),
-                            DataCell(Text('${salaryPct.toStringAsFixed(1)}%')),
+                            DataCell(Text('مصاريف رواتب ومستحقات الموظفين والسُلف', style: TextStyle(color: isDark ? Colors.white : Colors.black87))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isDark ? const Color(0xFF1E3A8A) : Colors.blue.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مصروف -', style: TextStyle(color: isDark ? const Color(0xFF93C5FD) : Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${salaryExpenses.toStringAsFixed(0)} $currencySym', style: TextStyle(color: isDark ? const Color(0xFF60A5FA) : Colors.blue.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${salaryPct.toStringAsFixed(1)}%', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87))),
                           ]),
                           DataRow(cells: [
-                            const DataCell(Text('مصاريف أخرى ونثريات الخزينة (Other Expenses)')),
-                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.deepOrange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مصروف -', style: TextStyle(color: Colors.deepOrange.shade900, fontWeight: FontWeight.bold, fontSize: 12)))),
-                            DataCell(Text('-${otherExpensesTotal.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.deepOrange.shade900, fontWeight: FontWeight.bold))),
-                            DataCell(Text('${otherExpensesPct.toStringAsFixed(1)}%')),
+                            DataCell(Text('مصاريف أخرى ونثريات الخزينة (Other Expenses)', style: TextStyle(color: isDark ? Colors.white : Colors.black87))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isDark ? const Color(0xFF831843) : Colors.deepOrange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مصروف -', style: TextStyle(color: isDark ? const Color(0xFFF472B6) : Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${otherExpensesTotal.toStringAsFixed(0)} $currencySym', style: TextStyle(color: isDark ? const Color(0xFFFB7185) : Colors.deepOrange.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${otherExpensesPct.toStringAsFixed(1)}%', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87))),
                           ]),
                           DataRow(cells: [
-                            const DataCell(Text('إجمالي الفواتير والمواد المسترجعة (Refunded)')),
-                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مُسترجع -', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold, fontSize: 12)))),
-                            DataCell(Text('-${refundedTotal.toStringAsFixed(0)} $currencySym', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold))),
-                            DataCell(Text('${(totalSales > 0 ? (refundedTotal / totalSales) * 100 : 0.0).toStringAsFixed(1)}%')),
+                            DataCell(Text('إجمالي الفواتير والمواد المسترجعة (Refunded)', style: TextStyle(color: isDark ? Colors.white : Colors.black87))),
+                            DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isDark ? const Color(0xFF78350F) : Colors.orange.shade100, borderRadius: BorderRadius.circular(6)), child: Text('مُسترجع -', style: TextStyle(color: isDark ? const Color(0xFFFCD34D) : Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)))),
+                            DataCell(Text('-${refundedTotal.toStringAsFixed(0)} $currencySym', style: TextStyle(color: isDark ? const Color(0xFFFBBF24) : Colors.orange.shade900, fontWeight: FontWeight.bold))),
+                            DataCell(Text('${(totalSales > 0 ? (refundedTotal / totalSales) * 100 : 0.0).toStringAsFixed(1)}%', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87))),
                           ]),
                           DataRow(
-                            color: WidgetStateProperty.all(Colors.purple.shade50),
+                            color: WidgetStateProperty.all(isDark ? const Color(0xFF581C87).withValues(alpha: 0.3) : Colors.purple.shade50),
                             cells: [
-                              const DataCell(Text('صافي ربح المتجر الأخير (Net Profit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-                              DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(6)), child: const Text('صافي ربح =', style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)))),
-                              DataCell(Text('${netStoreProfit.toStringAsFixed(0)} $currencySym', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: netStoreProfit >= 0 ? Colors.purple.shade900 : Colors.red.shade900))),
-                              DataCell(Text('${netProfitMargin.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataCell(Text('صافي ربح المتجر الأخير (Net Profit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : Colors.black87))),
+                              DataCell(Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: isDark ? const Color(0xFF581C87) : Colors.purple.shade100, borderRadius: BorderRadius.circular(6)), child: Text('صافي ربح =', style: TextStyle(color: isDark ? const Color(0xFFD8B4FE) : Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)))),
+                              DataCell(Text('${netStoreProfit.toStringAsFixed(0)} $currencySym', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: netStoreProfit >= 0 ? (isDark ? const Color(0xFFD8B4FE) : Colors.purple.shade900) : (isDark ? const Color(0xFFF87171) : Colors.red.shade900)))),
+                              DataCell(Text('${netProfitMargin.toStringAsFixed(1)}%', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87))),
                             ],
                           ),
                         ],
@@ -2282,13 +2308,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    bool isDark = false,
     VoidCallback? onTap,
   }) {
     return Card(
       elevation: onTap != null ? 3 : 2,
+      color: isDark ? const Color(0xFF1F2937) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: onTap != null ? BorderSide(color: color.withValues(alpha: 0.4), width: 1.5) : BorderSide.none,
+        side: onTap != null
+            ? BorderSide(color: color.withValues(alpha: 0.4), width: 1.5)
+            : BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
       ),
       child: InkWell(
         onTap: onTap,
@@ -2330,7 +2360,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
@@ -2355,6 +2385,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required String currencySym,
     bool isBold = false,
   }) {
+    final isDark = context.watch<SettingsProvider>().isDarkMode;
     final double fillRatio = maxAmount > 0 ? (amount.abs() / maxAmount).clamp(0.0, 1.0) : 0.0;
 
     return Column(
@@ -2368,7 +2399,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               style: TextStyle(
                 fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
                 fontSize: isBold ? 15 : 13.5,
-                color: isBold ? color : Colors.black87,
+                color: isBold ? color : (isDark ? Colors.white : Colors.black87),
               ),
             ),
             Row(
@@ -2404,7 +2435,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               height: isBold ? 14 : 10,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: isDark ? const Color(0xFF374151) : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -2718,6 +2749,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final totalIn = treasuryProvider.totalCashIn;
     final totalOut = treasuryProvider.totalCashOut;
     final netBal = treasuryProvider.netBalance;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (transactions.isEmpty) {
       return Card(
@@ -2837,7 +2869,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         padding: const EdgeInsets.all(10),
                         child: Directionality(
                           textDirection: TextDirection.ltr,
-                          child: Text(_formatFullTime(tx.createdAt), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                          child: Text(_formatFullTime(tx.createdAt), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
                         ),
                       ),
                     ],
@@ -2845,7 +2877,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 }),
                 // Total Summary Row
                 TableRow(
-                  decoration: BoxDecoration(color: Colors.grey.shade200),
+                  decoration: BoxDecoration(color: isDark ? const Color(0xFF2C394B) : Colors.grey.shade200),
                   children: [
                     const Padding(padding: EdgeInsets.all(10), child: Text('Σ', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
                     Padding(padding: const EdgeInsets.all(10), child: Text(isEng ? 'Summary' : 'الإجمالي', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
@@ -3052,6 +3084,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     required Color color,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(
@@ -3078,14 +3111,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                    Text(title, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
                     ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                    Text(subtitle, style: TextStyle(fontSize: 10, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                   ],
                 ),
               ),
@@ -3100,6 +3133,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildAccessDeniedScreen(BuildContext context) {
     final isEng = context.watch<SettingsProvider>().isEnglish;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: Text(isEng ? 'Reports & Analytics Center' : 'مركز التقارير والمبيعات'),
@@ -3134,7 +3168,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       isEng
                           ? 'Sorry, reports and financial analytics section is restricted to System Manager privileges only.'
                           : 'عذراً، قسم التقارير والبيانات المالية مخصص لصلاحيات المدير فقط ولا يتاح لحسابات الكاشيرية.',
-                      style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+                      style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87, height: 1.5),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),

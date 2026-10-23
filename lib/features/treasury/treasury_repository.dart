@@ -109,19 +109,47 @@ class TreasuryRepository {
     return maps.map((e) => OtherExpenseModel.fromMap(e)).toList();
   }
 
-  Future<double> getTodayOtherExpensesTotal({String? lastClosingTimestamp}) async {
+  Future<List<OtherExpenseModel>> getActiveOtherExpenses() async {
     final db = await _databaseHelper.database;
-    final todayPrefix = DateTime.now().toIso8601String().substring(0, 10);
-    
-    String sql = "SELECT SUM(amount) as total FROM other_expenses WHERE created_at LIKE ?";
-    List<dynamic> args = ['$todayPrefix%'];
+    final lastClosing = await getLastClosingTimestamp();
 
-    if (lastClosingTimestamp != null && lastClosingTimestamp.isNotEmpty) {
-      sql = "SELECT SUM(amount) as total FROM other_expenses WHERE created_at > ?";
-      args = [lastClosingTimestamp];
+    List<String> conditions = ["is_closed = 0"];
+    List<dynamic> whereArgs = [];
+
+    if (lastClosing != null && lastClosing.isNotEmpty) {
+      conditions.add("created_at > ?");
+      whereArgs.add(lastClosing);
     }
 
-    final res = await db.rawQuery(sql, args);
+    final whereClause = "WHERE ${conditions.join(' AND ')}";
+    final maps = await db.rawQuery('''
+      SELECT * FROM other_expenses
+      $whereClause
+      ORDER BY id DESC
+    ''', whereArgs);
+
+    return maps.map((e) => OtherExpenseModel.fromMap(e)).toList();
+  }
+
+  Future<double> getTodayOtherExpensesTotal({String? lastClosingTimestamp}) async {
+    final db = await _databaseHelper.database;
+    final lastClosing = lastClosingTimestamp ?? await getLastClosingTimestamp();
+    
+    List<String> conditions = ["is_closed = 0"];
+    List<dynamic> whereArgs = [];
+
+    if (lastClosing != null && lastClosing.isNotEmpty) {
+      conditions.add("created_at > ?");
+      whereArgs.add(lastClosing);
+    } else {
+      final todayPrefix = DateTime.now().toIso8601String().substring(0, 10);
+      conditions.add("created_at LIKE ?");
+      whereArgs.add('$todayPrefix%');
+    }
+
+    final whereClause = "WHERE ${conditions.join(' AND ')}";
+    final sql = "SELECT SUM(amount) as total FROM other_expenses $whereClause";
+    final res = await db.rawQuery(sql, whereArgs);
     if (res.isNotEmpty && res.first['total'] != null) {
       return (res.first['total'] as num).toDouble();
     }
@@ -181,6 +209,11 @@ class TreasuryRepository {
 
   Future<int> closeActiveTreasurySession() async {
     final db = await _databaseHelper.database;
+    await db.update(
+      'other_expenses',
+      {'is_closed': 1},
+      where: 'is_closed = 0',
+    );
     return await db.update(
       'treasury_transactions',
       {'is_closed': 1},

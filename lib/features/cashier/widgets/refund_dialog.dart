@@ -92,14 +92,16 @@ class _RefundDialogState extends State<RefundDialog> {
       return false;
     }).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Row(
         children: [
           CircleAvatar(
-            backgroundColor: Colors.red.shade100,
-            child: const Icon(Icons.assignment_return_rounded, color: Colors.red, size: 26),
+            backgroundColor: isDark ? const Color(0xFF3B1E1E) : Colors.red.shade100,
+            child: Icon(Icons.assignment_return_rounded, color: isDark ? Colors.red.shade300 : Colors.red, size: 26),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -149,7 +151,7 @@ class _RefundDialogState extends State<RefundDialog> {
                     : null,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                 filled: true,
-                fillColor: Colors.red.shade50.withValues(alpha: 0.3),
+                fillColor: isDark ? const Color(0xFF2C394B) : Colors.red.shade50.withValues(alpha: 0.3),
               ),
               onChanged: (val) {
                 setState(() {
@@ -203,7 +205,7 @@ class _RefundDialogState extends State<RefundDialog> {
                               margin: const EdgeInsets.only(bottom: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                side: BorderSide(color: Colors.grey.shade300),
+                                side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                               ),
                               child: Column(
                                 children: [
@@ -252,7 +254,7 @@ class _RefundDialogState extends State<RefundDialog> {
                                     ),
                                     subtitle: Text(
                                       'التاريخ: $dateStr | طريقة الدفع: ${order.paymentMethod == 'CASH' ? 'نقداً (كاش)' : order.paymentMethod == 'CREDIT' ? 'بالآجل (دين)' : 'شبكة/بطاقة'}',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                      style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                                     ),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -294,13 +296,13 @@ class _RefundDialogState extends State<RefundDialog> {
                                     const Divider(height: 1),
                                     Container(
                                       padding: const EdgeInsets.all(12),
-                                      color: Colors.grey.shade50,
+                                      color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade50,
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          const Text(
+                                          Text(
                                             'محتويات الفاتورة (يمكنك استرجاع صنف محدد بشكل منفصل):',
-                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
                                           ),
                                           const SizedBox(height: 8),
                                           ...items.map((item) {
@@ -308,9 +310,9 @@ class _RefundDialogState extends State<RefundDialog> {
                                               margin: const EdgeInsets.only(bottom: 6),
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                               decoration: BoxDecoration(
-                                                color: Colors.white,
+                                                color: isDark ? const Color(0xFF242F3E) : Colors.white,
                                                 borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                border: Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200),
                                               ),
                                               child: Row(
                                                 children: [

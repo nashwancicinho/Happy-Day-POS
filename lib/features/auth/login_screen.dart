@@ -127,9 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget _buildInitialSetupCard(bool isEng) {
+  Widget _buildInitialSetupCard(bool isEng, [bool isDark = false]) {
     return Card(
       elevation: 8,
+      color: isDark ? const Color(0xFF1F2937) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -141,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
+                  color: AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.app_registration_rounded, size: 56, color: AppColors.primary),
@@ -159,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Center(
               child: Text(
                 isEng ? 'System database is empty. Please enter new Manager name & PIN code to get started.' : 'النظام فارغ حالياً. يرجى كتابة اسم ورمز المدير الجديد للبدء.',
-                style: const TextStyle(fontSize: 13, color: Colors.black54),
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.black54),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -169,9 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.purple.shade50,
+                color: isDark ? Colors.purple.shade900.withValues(alpha: 0.3) : Colors.purple.shade50,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.purple.shade200),
+                border: Border.all(color: isDark ? Colors.purple.shade700 : Colors.purple.shade200),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,19 +183,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(width: 8),
                       Text(
                         isEng ? '1. Manager Account Credentials' : '1. بيانات حساب المدير',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.purple),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.purple.shade200 : Colors.purple),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _initManagerNameController,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       labelText: isEng ? 'Manager Name *' : 'اسم المدير *',
-                      prefixIcon: const Icon(Icons.person),
+                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                      prefixIcon: Icon(Icons.person, color: isDark ? Colors.grey.shade300 : null),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -202,16 +205,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _initManagerPassController,
                     obscureText: _isObscure,
                     keyboardType: TextInputType.number,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       labelText: isEng ? 'Manager PIN Code *' : 'الرقم السري للمدير *',
-                      prefixIcon: const Icon(Icons.lock),
+                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                      prefixIcon: Icon(Icons.lock, color: isDark ? Colors.grey.shade300 : null),
                       suffixIcon: IconButton(
-                        icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+                        icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off, color: isDark ? Colors.grey.shade300 : null),
                         onPressed: () => setState(() => _isObscure = !_isObscure),
                       ),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                     ),
                   ),
                 ],
@@ -310,7 +315,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleLogin() async {
     final isEng = context.read<SettingsProvider>().isEnglish;
     final username = _selectedUsername ?? _usernameController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _normalizeArabicNumerals(_passwordController.text.trim());
 
     if (username.isEmpty || password.isEmpty) {
       setState(() {
@@ -375,6 +380,7 @@ class _LoginScreenState extends State<LoginScreen> {
             final activeManagerValue = managerList.any((m) => m.username == managerNameController.text)
                 ? managerNameController.text
                 : (managerList.isNotEmpty ? managerList.first.username : null);
+            final isDark = Theme.of(context).brightness == Brightness.dark;
 
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -402,9 +408,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.purple.shade50,
+                          color: isDark ? Colors.purple.shade900.withValues(alpha: 0.3) : Colors.purple.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.purple.shade200),
+                          border: Border.all(color: isDark ? Colors.purple.shade700 : Colors.purple.shade200),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,14 +421,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(width: 6),
                                 Text(
                                   isEng ? 'Manager Authorization Required' : 'صلاحية إذن المدير لتأكيد الإضافة',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.purple.shade200 : Colors.purple),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               isEng ? 'Enter manager name & PIN code to authorize user addition:' : 'أدخل اسم المدير ورقمه السري للموافق على إضافة المستعمل:',
-                              style: const TextStyle(fontSize: 12, color: Colors.black87),
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
                             ),
                           ],
                         ),
@@ -615,6 +621,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<SettingsProvider>();
     final isEng = settingsProvider.isEnglish;
+    final isDark = settingsProvider.isDarkMode;
     final authProvider = context.watch<AuthProvider>();
 
     // Deduplicate user list for main login dropdown
@@ -626,13 +633,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (userList.isEmpty) {
       return Scaffold(
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
         body: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
-              child: _buildInitialSetupCard(isEng),
+              child: _buildInitialSetupCard(isEng, isDark),
             ),
           ),
         ),
@@ -644,7 +651,7 @@ class _LoginScreenState extends State<LoginScreen> {
         : null;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -656,6 +663,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Login Card (Moved Higher Up)
                 Card(
                   elevation: 8,
+                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
@@ -668,11 +676,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? const Color(0xFF242F3E) : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -695,17 +703,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               Text(
                                 isEng ? 'CashBox POS System' : 'نظام CashBox POS لنقاط البيع',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: isDark ? Colors.white : Colors.black87,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 isEng ? 'Please sign in to continue' : 'يرجى تسجيل الدخول لمتابعة العمل',
-                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -717,13 +725,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (userList.isNotEmpty) ...[
                           DropdownButtonFormField<String>(
                             initialValue: activeLoginUserValue,
-                            hint: Text(isEng ? 'Select User or Manager...' : 'اختر اسم المستخدم أو المدير...'),
+                            dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 15),
+                            hint: Text(
+                              isEng ? 'Select User or Manager...' : 'اختر اسم المستخدم أو المدير...',
+                              style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                            ),
                             decoration: InputDecoration(
                               labelText: isEng ? 'Select User or Manager' : 'اختر اسم المستخدم أو المدير',
-                              prefixIcon: const Icon(Icons.person),
+                              labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                              prefixIcon: Icon(Icons.person, color: isDark ? Colors.grey.shade300 : null),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                              ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             ),
                             items: userList.map((u) {
@@ -736,18 +758,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(u.username, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(u.username, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: u.isManager ? Colors.purple.shade50 : Colors.blue.shade50,
+                                        color: u.isManager
+                                            ? (isDark ? Colors.purple.shade900.withValues(alpha: 0.5) : Colors.purple.shade50)
+                                            : (isDark ? Colors.blue.shade900.withValues(alpha: 0.5) : Colors.blue.shade50),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
                                         roleLabel,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: u.isManager ? Colors.purple : Colors.blue,
+                                          color: u.isManager
+                                              ? (isDark ? Colors.purple.shade200 : Colors.purple)
+                                              : (isDark ? Colors.blue.shade200 : Colors.blue),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -761,7 +787,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _selectedUsername = val;
                                 _errorMessage = null;
                                 if (val != null) {
-                                  _usernameController.text = val;
+                                   _usernameController.text = val;
                                 }
                               });
                             },
@@ -771,6 +797,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextField(
                             controller: _usernameController,
                             focusNode: _usernameFocusNode,
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                             onTap: () => setState(() => _isPasswordFocused = false),
                             onChanged: (_) {
                               if (_errorMessage != null) {
@@ -779,10 +806,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             decoration: InputDecoration(
                               labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
-                              prefixIcon: const Icon(Icons.person),
+                              labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                              prefixIcon: Icon(Icons.person, color: isDark ? Colors.grey.shade300 : null),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                              ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             ),
                           ),
@@ -795,6 +831,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           focusNode: _passwordFocusNode,
                           obscureText: _isObscure,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           onTap: () => setState(() => _isPasswordFocused = true),
                           onChanged: (_) {
                             if (_errorMessage != null) {
@@ -803,14 +840,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           decoration: InputDecoration(
                             labelText: isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور',
-                            prefixIcon: const Icon(Icons.lock),
+                            labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                            prefixIcon: Icon(Icons.lock, color: isDark ? Colors.grey.shade300 : null),
                             suffixIcon: IconButton(
-                              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+                              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off, color: isDark ? Colors.grey.shade300 : null),
                               onPressed: () => setState(() => _isObscure = !_isObscure),
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: AppColors.primary, width: 2),
+                            ),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
                           onSubmitted: (_) => _handleLogin(),
@@ -901,7 +947,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 14),
 
                 // Touchscreen Virtual Keyboard (اسفل شاشه الدخول بالعرض)
-                _buildTouchscreenKeyboard(isEng),
+                _buildTouchscreenKeyboard(isEng, isDark),
               ],
             ),
           ),
@@ -910,11 +956,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTouchscreenKeyboard(bool isEng) {
-    final activeFieldName = _isPasswordFocused
-        ? (isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور')
-        : (isEng ? 'Username' : 'اسم المستخدم');
-
+  Widget _buildTouchscreenKeyboard(bool isEng, [bool isDark = false]) {
     final numbersRow = _isArabicKeyboard
         ? ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٠']
         : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
@@ -934,7 +976,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      color: Colors.grey.shade200,
+      color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
       child: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Directionality(
@@ -950,10 +992,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(2.0),
                       child: _buildKeyCap(
                         label: numStr,
-                        bgColor: Colors.purple.shade50,
-                        textColor: Colors.purple.shade900,
+                        bgColor: isDark ? const Color(0xFF334155) : Colors.purple.shade50,
+                        textColor: isDark ? const Color(0xFFF1F5F9) : Colors.purple.shade900,
                         fontSize: 18,
                         onPressed: () => _onVirtualKeyPress(numStr),
+                        isDark: isDark,
                       ),
                     ),
                   );
@@ -970,10 +1013,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(2.0),
                       child: _buildKeyCap(
                         label: _isArabicKeyboard ? char : char.toUpperCase(),
-                        bgColor: Colors.white,
-                        textColor: Colors.black87,
+                        bgColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                        textColor: isDark ? Colors.white : Colors.black87,
                         fontSize: 15,
                         onPressed: () => _onVirtualKeyPress(char),
+                        isDark: isDark,
                       ),
                     ),
                   );
@@ -992,10 +1036,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.all(2.0),
                         child: _buildKeyCap(
                           label: _isArabicKeyboard ? char : char.toUpperCase(),
-                          bgColor: Colors.white,
-                          textColor: Colors.black87,
+                          bgColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          textColor: isDark ? Colors.white : Colors.black87,
                           fontSize: 15,
                           onPressed: () => _onVirtualKeyPress(char),
+                          isDark: isDark,
                         ),
                       ),
                     );
@@ -1015,10 +1060,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.all(2.0),
                         child: _buildKeyCap(
                           label: _isArabicKeyboard ? char : char.toUpperCase(),
-                          bgColor: Colors.white,
-                          textColor: Colors.black87,
+                          bgColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          textColor: isDark ? Colors.white : Colors.black87,
                           fontSize: 15,
                           onPressed: () => _onVirtualKeyPress(char),
+                          isDark: isDark,
                         ),
                       ),
                     );
@@ -1038,10 +1084,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(2.0),
                       child: _buildKeyCap(
                         label: _isArabicKeyboard ? '🌐 EN' : '🌐 عربي',
-                        bgColor: _isArabicKeyboard ? Colors.teal.shade100 : Colors.purple.shade100,
-                        textColor: _isArabicKeyboard ? Colors.teal.shade900 : Colors.purple.shade900,
+                        bgColor: _isArabicKeyboard
+                            ? (isDark ? const Color(0xFF134E4A) : Colors.teal.shade100)
+                            : (isDark ? const Color(0xFF581C87) : Colors.purple.shade100),
+                        textColor: _isArabicKeyboard
+                            ? (isDark ? const Color(0xFF5EEAD4) : Colors.teal.shade900)
+                            : (isDark ? const Color(0xFFE9D5FF) : Colors.purple.shade900),
                         fontSize: 13,
                         onPressed: () => setState(() => _isArabicKeyboard = !_isArabicKeyboard),
+                        isDark: isDark,
                       ),
                     ),
                   ),
@@ -1052,10 +1103,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(2.0),
                       child: _buildKeyCap(
                         label: isEng ? 'Space' : 'مسافة',
-                        bgColor: Colors.white,
-                        textColor: Colors.black87,
+                        bgColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                        textColor: isDark ? Colors.white : Colors.black87,
                         fontSize: 13,
                         onPressed: () => _onVirtualKeyPress(' '),
+                        isDark: isDark,
                       ),
                     ),
                   ),
@@ -1066,11 +1118,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(2.0),
                       child: _buildKeyCap(
                         label: isEng ? 'Delete ⌫' : 'مسح ⌫',
-                        bgColor: Colors.amber.shade100,
-                        textColor: Colors.amber.shade900,
+                        bgColor: isDark ? const Color(0xFF78350F) : Colors.amber.shade100,
+                        textColor: isDark ? const Color(0xFFFDE68A) : Colors.amber.shade900,
                         fontSize: 12,
                         icon: Icons.backspace_outlined,
                         onPressed: _onVirtualKeyBackspace,
+                        isDark: isDark,
                       ),
                     ),
                   ),
@@ -1081,11 +1134,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(2.0),
                       child: _buildKeyCap(
                         label: isEng ? 'Clear 🧹' : 'تفريغ 🧹',
-                        bgColor: Colors.red.shade100,
-                        textColor: Colors.red.shade900,
+                        bgColor: isDark ? const Color(0xFF7F1D1D) : Colors.red.shade100,
+                        textColor: isDark ? const Color(0xFFFECACA) : Colors.red.shade900,
                         fontSize: 12,
                         icon: Icons.clear_all_rounded,
                         onPressed: _onVirtualKeyClear,
+                        isDark: isDark,
                       ),
                     ),
                   ),
@@ -1101,6 +1155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         fontSize: 13,
                         icon: Icons.check_circle_rounded,
                         onPressed: _handleLogin,
+                        isDark: isDark,
                       ),
                     ),
                   ),
@@ -1120,15 +1175,19 @@ class _LoginScreenState extends State<LoginScreen> {
     required VoidCallback onPressed,
     double fontSize = 14,
     IconData? icon,
+    bool isDark = false,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.12), width: 1),
+        border: Border.all(
+          color: isDark ? const Color(0xFF374151) : Colors.black.withValues(alpha: 0.12),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
             offset: const Offset(0, 2),
             blurRadius: 2,
           ),

@@ -294,8 +294,12 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     }
 
     Widget numBtn(String label, {VoidCallback? onTap, Color? bg, Color? borderCol, Color? fg, IconData? icon, double fontSize = 20}) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final defaultBg = isDark ? const Color(0xFF2C394B) : Colors.grey.shade100;
+      final defaultBorder = isDark ? const Color(0xFF374151) : Colors.grey.shade300;
+      final defaultFg = isDark ? Colors.white : Colors.black87;
       return Material(
-        color: bg ?? Colors.grey.shade100,
+        color: bg ?? defaultBg,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -305,16 +309,16 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderCol ?? Colors.grey.shade300, width: 1.2),
+              border: Border.all(color: borderCol ?? defaultBorder, width: 1.2),
             ),
             child: icon != null
-                ? Icon(icon, color: fg ?? Colors.black87, size: 22)
+                ? Icon(icon, color: fg ?? defaultFg, size: 22)
                 : Text(
                     label,
                     style: TextStyle(
                       fontSize: fontSize,
                       fontWeight: FontWeight.bold,
-                      color: fg ?? Colors.black87,
+                      color: fg ?? defaultFg,
                     ),
                   ),
           ),
@@ -539,6 +543,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     showDialog(
       context: context,
       builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             final qtyVal = double.tryParse(quantityController.text.trim()) ?? 0.0;
@@ -547,7 +552,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
 
             return Dialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              backgroundColor: Colors.white,
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               child: Container(
                 width: 440,
                 padding: const EdgeInsets.all(18),
@@ -1284,6 +1289,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (dialogCtx, setDialogState) {
+            final isDark = Theme.of(dialogCtx).brightness == Brightness.dark;
             final customersProvider = dialogCtx.watch<CustomersProvider>();
             final allCustomers = customersProvider.customers.where((c) {
               final nameLower = c.name.trim().toLowerCase();
@@ -1304,7 +1310,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.indigo.shade50,
+                      color: isDark ? const Color(0xFF1E1B4B) : Colors.indigo.shade50,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.account_balance_wallet, color: Colors.indigo, size: 24),
@@ -1333,20 +1339,20 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.indigo.shade50,
+                        color: isDark ? const Color(0xFF1E293B) : Colors.indigo.shade50,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.indigo.shade200),
+                        border: Border.all(color: isDark ? Colors.indigo.shade400 : Colors.indigo.shade200),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'مبلغ الفاتورة الحالية المضافة للآجل:',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.indigo),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.indigo.shade200 : Colors.indigo),
                           ),
                           Text(
                             '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.indigo.shade200 : Colors.indigo),
                           ),
                         ],
                       ),
@@ -1361,7 +1367,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                       isExpanded: true,
                       decoration: InputDecoration(
                         labelText: 'اختيار صاحب دين مسجل من القائمة 👤',
-                        labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo.shade900),
+                        labelStyle: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.indigo.shade200 : Colors.indigo.shade900),
                         prefixIcon: const Icon(Icons.person_search, color: Colors.indigo),
                         suffixIcon: selectedCustomer != null
                             ? IconButton(
@@ -1378,14 +1384,14 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                             : null,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.indigo.shade50.withValues(alpha: 0.4),
+                        fillColor: isDark ? const Color(0xFF1E293B) : Colors.indigo.shade50.withValues(alpha: 0.4),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
                       hint: Text(
                         allCustomers.isEmpty
                             ? 'لا يوجد أصحاب ديون مسجلون حالياً'
                             : 'اضغط هنا لاختيار صاحب الدين من القائمة...',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                       ),
                       items: allCustomers.where((c) => c.id != null).map((c) {
                         return DropdownMenuItem<int>(
@@ -1404,7 +1410,9 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: c.balance > 0 ? Colors.red.shade50 : Colors.green.shade50,
+                                  color: c.balance > 0
+                                      ? (isDark ? const Color(0xFF3B1E1E) : Colors.red.shade50)
+                                      : (isDark ? const Color(0xFF1E3B2E) : Colors.green.shade50),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -1412,7 +1420,9 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: c.balance > 0 ? Colors.red.shade800 : Colors.green.shade800,
+                                    color: c.balance > 0
+                                        ? (isDark ? Colors.red.shade300 : Colors.red.shade800)
+                                        : (isDark ? Colors.green.shade300 : Colors.green.shade800),
                                   ),
                                 ),
                               ),
@@ -1484,9 +1494,9 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
+                          color: isDark ? const Color(0xFF2E2415) : Colors.amber.shade50,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.amber.shade300),
+                          border: Border.all(color: isDark ? Colors.amber.shade700 : Colors.amber.shade300),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1496,11 +1506,11 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                               children: [
                                 Text(
                                   'الزبون: ${nameController.text.trim()}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.amber.shade100 : Colors.black87),
                                 ),
                                 Text(
                                   'ديون سابقة: ${previousDebt.toStringAsFixed(0)} $_currencySymbol + الطلب: ${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                                  style: const TextStyle(fontSize: 11, color: Colors.black87),
+                                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
                                 ),
                               ],
                             ),
@@ -1564,6 +1574,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     required VoidCallback onBackspace,
     required VoidCallback onClear,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final keys = [
       ['1', '2', '3'],
       ['4', '5', '6'],
@@ -1601,17 +1612,17 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         height: 48,
                         decoration: BoxDecoration(
                           color: isClear
-                              ? Colors.red.shade50
+                              ? (isDark ? const Color(0xFF3B1E1E) : Colors.red.shade50)
                               : isBackspace
-                                  ? Colors.orange.shade50
-                                  : Colors.grey.shade100,
+                                  ? (isDark ? const Color(0xFF3B2E1E) : Colors.orange.shade50)
+                                  : (isDark ? const Color(0xFF2C394B) : Colors.grey.shade100),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isClear
-                                ? Colors.red.shade200
+                                ? (isDark ? Colors.red.shade900 : Colors.red.shade200)
                                 : isBackspace
-                                    ? Colors.orange.shade200
-                                    : Colors.grey.shade300,
+                                    ? (isDark ? Colors.orange.shade900 : Colors.orange.shade200)
+                                    : (isDark ? const Color(0xFF374151) : Colors.grey.shade300),
                           ),
                         ),
                         child: Center(
@@ -1621,10 +1632,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                               fontSize: isBackspace || isClear ? 18 : 20,
                               fontWeight: FontWeight.bold,
                               color: isClear
-                                  ? Colors.red
+                                  ? (isDark ? Colors.red.shade300 : Colors.red)
                                   : isBackspace
-                                      ? Colors.orange.shade900
-                                      : Colors.black87,
+                                      ? (isDark ? Colors.orange.shade300 : Colors.orange.shade900)
+                                      : (isDark ? Colors.white : Colors.black87),
                             ),
                           ),
                         ),
@@ -1673,56 +1684,58 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
 
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          title: const Row(
-            children: [
-              Icon(Icons.percent, color: Colors.purple, size: 28),
-              SizedBox(width: 10),
-              Text('تطبيق خصم على الفاتورة'),
-            ],
-          ),
-          content: SizedBox(
-            width: 360,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'إجمالي الفاتورة الحالي: ${_subtotalAmount.toStringAsFixed(0)} $currencySym',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 12),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            title: const Row(
+              children: [
+                Icon(Icons.percent, color: Colors.purple, size: 28),
+                SizedBox(width: 10),
+                Text('تطبيق خصم على الفاتورة'),
+              ],
+            ),
+            content: SizedBox(
+              width: 360,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'إجمالي الفاتورة الحالي: ${_subtotalAmount.toStringAsFixed(0)} $currencySym',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
 
-                  // Mode Toggle Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ChoiceChip(
-                          label: Center(child: Text('مبلغ مباشر ($currencySym)', style: const TextStyle(fontSize: 12))),
-                          selected: !isPercentage,
-                          selectedColor: Colors.purple.shade100,
-                          onSelected: (val) {
-                            setDialogState(() => isPercentage = false);
-                          },
+                    // Mode Toggle Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: Center(child: Text('مبلغ مباشر ($currencySym)', style: const TextStyle(fontSize: 12))),
+                            selected: !isPercentage,
+                            selectedColor: isDark ? Colors.purple.shade900 : Colors.purple.shade100,
+                            onSelected: (val) {
+                              setDialogState(() => isPercentage = false);
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Center(child: Text('نسبة مئوية (%)', style: TextStyle(fontSize: 12))),
-                          selected: isPercentage,
-                          selectedColor: Colors.purple.shade100,
-                          onSelected: (val) {
-                            setDialogState(() => isPercentage = true);
-                          },
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Center(child: Text('نسبة مئوية (%)', style: TextStyle(fontSize: 12))),
+                            selected: isPercentage,
+                            selectedColor: isDark ? Colors.purple.shade900 : Colors.purple.shade100,
+                            onSelected: (val) {
+                              setDialogState(() => isPercentage = true);
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
                   const SizedBox(height: 14),
 
@@ -1830,9 +1843,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   Future<void> _openCashDrawer() async {
     final settings = context.read<SettingsProvider>();
@@ -1854,23 +1868,25 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     return showDialog<Map<String, String>>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
-          children: [
-            Icon(Icons.two_wheeler, color: Colors.blue, size: 28),
-            SizedBox(width: 10),
-            Text('بيانات توصيل الطلب (Delivery)'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'يرجى إدخال رقم موبايل وعنوان الزبون المطبوعة بالفاتورة:',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
-            ),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.two_wheeler, color: Colors.blue, size: 28),
+              SizedBox(width: 10),
+              Text('بيانات توصيل الطلب (Delivery)'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'يرجى إدخال رقم موبايل وعنوان الزبون المطبوعة بالفاتورة:',
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
+              ),
             const SizedBox(height: 14),
             TextField(
               controller: phoneController,
@@ -1912,22 +1928,24 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
             label: const Text('تأكيد وإتمام الطلب', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
 
 
   Widget _buildAroniumQuickActionBar(BuildContext context) {
     final isEng = context.watch<SettingsProvider>().isEnglish;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2018,15 +2036,32 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     required VoidCallback onTap,
     String? badge,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color effectiveColor = isDark
+        ? (color == Colors.green.shade700
+            ? Colors.greenAccent.shade400
+            : (color == Colors.purple.shade700
+                ? Colors.purple.shade200
+                : (color == Colors.indigo.shade700
+                    ? Colors.indigo.shade200
+                    : (color == Colors.teal.shade800
+                        ? Colors.tealAccent
+                        : (color == Colors.red.shade700
+                            ? Colors.red.shade300
+                            : (color == Colors.deepOrange
+                                ? Colors.deepOrange.shade300
+                                : color))))))
+        : color;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: effectiveColor.withValues(alpha: isDark ? 0.22 : 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+          border: Border.all(color: effectiveColor.withValues(alpha: isDark ? 0.55 : 0.3), width: 1.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2035,7 +2070,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(icon, color: color, size: 24),
+                Icon(icon, color: effectiveColor, size: 24),
                 if (badge != null)
                   Positioned(
                     top: -6,
@@ -2062,7 +2097,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color: effectiveColor,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -2079,6 +2114,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     final categoriesProvider = context.watch<CategoriesProvider>();
     final productsProvider = context.watch<ProductsProvider>();
     final isEng = context.watch<SettingsProvider>().isEnglish;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final selectedCategoryId = productsProvider.selectedCategoryId;
     final searchQuery = productsProvider.searchQuery;
@@ -2107,7 +2143,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         // Right Pane (In RTL): Order Cart Panel + Quick Action Buttons Bar
                         Container(
                           width: cartWidth,
-                          color: Colors.white,
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2153,16 +2189,16 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.shade50,
+                                        color: isDark ? const Color(0xFF3B2E1E) : Colors.orange.shade50,
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                                        border: Border.all(color: isDark ? Colors.orange.shade800 : Colors.orange.shade400, width: 1.2),
                                       ),
                                       child: Text(
                                         widget.selectedTable!.name.replaceAll(RegExp(r'[^0-9\u0660-\u0669\u06F0-\u06F9]'), '').trim().isNotEmpty
                                             ? widget.selectedTable!.name.replaceAll(RegExp(r'[^0-9\u0660-\u0669\u06F0-\u06F9]'), '').trim()
                                             : widget.selectedTable!.name,
                                         style: TextStyle(
-                                          color: Colors.orange.shade900,
+                                          color: isDark ? Colors.orange.shade300 : Colors.orange.shade900,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
                                         ),
@@ -2178,17 +2214,17 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
+                                    color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
                                       value: (_orderType == 'TAKEAWAY' || _orderType == 'DELIVERY') ? _orderType : 'TAKEAWAY',
                                       isDense: true,
-                                      dropdownColor: Colors.white,
-                                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
-                                      icon: Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      style: TextStyle(color: isDark ? Colors.white : AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                                      icon: Icon(Icons.arrow_drop_down, color: isDark ? Colors.white70 : AppColors.primary, size: 18),
                                       items: const [
                                         DropdownMenuItem(value: 'TAKEAWAY', child: Text('سفري 🛍️')),
                                         DropdownMenuItem(value: 'DELIVERY', child: Text('توصيل 🛵')),
@@ -2246,11 +2282,11 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.remove_shopping_cart_outlined, size: 55, color: Colors.grey),
+                                    Icon(Icons.remove_shopping_cart_outlined, size: 55, color: isDark ? Colors.grey.shade600 : Colors.grey),
                                     const SizedBox(height: 8),
-                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: const TextStyle(color: Colors.grey, fontSize: 15)),
+                                    Text(isEng ? 'No items in current order' : 'لا توجد أصناف في الطلب حالياً', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey, fontSize: 15)),
                                     const SizedBox(height: 4),
-                                    Text(isEng ? 'Select an item from the list to add' : 'اختر المادة من القائمة لإضافتها', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                    Text(isEng ? 'Select an item from the list to add' : 'اختر المادة من القائمة لإضافتها', style: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey, fontSize: 12)),
                                   ],
                                 ),
                               )
@@ -2265,19 +2301,19 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                   final isSelected = _selectedItemKeys.contains(itemKey);
 
                                   final Color cardBgColor = isSelected
-                                      ? const Color(0xFFEFF6FF)
-                                      : (isNew ? const Color(0xFFF0FDF4) : Colors.transparent);
+                                      ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFFEFF6FF))
+                                      : (isNew ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFF0FDF4)) : Colors.transparent);
                                   final Border cardBorder = isSelected
                                       ? Border.all(color: const Color(0xFF3B82F6), width: 1.6)
                                       : (isNew
-                                          ? Border.all(color: const Color(0xFF86EFAC), width: 1.2)
-                                          : Border.all(color: Colors.grey.shade200, width: 0.8));
+                                          ? Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC), width: 1.2)
+                                          : Border.all(color: isDark ? const Color(0xFF374151) : Colors.grey.shade200, width: 0.8));
                                   final Color titleColor = isSelected
-                                      ? const Color(0xFF1D4ED8)
-                                      : (isNew ? const Color(0xFF15803D) : Colors.black87);
+                                      ? (isDark ? Colors.blue.shade200 : const Color(0xFF1D4ED8))
+                                      : (isNew ? (isDark ? Colors.green.shade300 : const Color(0xFF15803D)) : (isDark ? Colors.white : Colors.black87));
                                   final Color priceColor = isSelected
-                                      ? const Color(0xFF1D4ED8)
-                                      : (isNew ? const Color(0xFF15803D) : Colors.black87);
+                                      ? (isDark ? Colors.blue.shade200 : const Color(0xFF1D4ED8))
+                                      : (isNew ? (isDark ? Colors.green.shade300 : const Color(0xFF15803D)) : (isDark ? Colors.white70 : Colors.black87));
 
                                   return Container(
                                     margin: const EdgeInsets.symmetric(vertical: 1.5, horizontal: 2),
@@ -2328,17 +2364,21 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                                         children: [
                                                           Text(
                                                             '${item.price.toStringAsFixed(0)} $_currencySymbol',
-                                                            style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                                                            style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 11),
                                                           ),
                                                           if (item.formattedTime.isNotEmpty) ...[
                                                             const SizedBox(width: 5),
                                                             Container(
                                                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                                               decoration: BoxDecoration(
-                                                                color: isNew ? const Color(0xFFDCFCE7) : Colors.blue.shade50,
+                                                                color: isNew
+                                                                    ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                                                                    : (isDark ? const Color(0xFF1E3A8A) : Colors.blue.shade50),
                                                                 borderRadius: BorderRadius.circular(4),
                                                                 border: Border.all(
-                                                                  color: isNew ? const Color(0xFF86EFAC) : Colors.blue.shade200,
+                                                                  color: isNew
+                                                                      ? (isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC))
+                                                                      : (isDark ? const Color(0xFF3B82F6) : Colors.blue.shade200),
                                                                   width: 0.5,
                                                                 ),
                                                               ),
@@ -2348,13 +2388,17 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                                                   Icon(
                                                                     Icons.access_time,
                                                                     size: 9,
-                                                                    color: isNew ? const Color(0xFF16A34A) : Colors.blue,
+                                                                    color: isNew
+                                                                        ? (isDark ? Colors.green.shade300 : const Color(0xFF16A34A))
+                                                                        : (isDark ? Colors.blue.shade300 : Colors.blue),
                                                                   ),
                                                                   const SizedBox(width: 2),
                                                                   Text(
                                                                     item.formattedTime,
                                                                     style: TextStyle(
-                                                                      color: isNew ? const Color(0xFF15803D) : Colors.blue,
+                                                                      color: isNew
+                                                                          ? (isDark ? Colors.green.shade300 : const Color(0xFF15803D))
+                                                                          : (isDark ? Colors.blue.shade300 : Colors.blue),
                                                                       fontSize: 9.5,
                                                                       fontWeight: FontWeight.bold,
                                                                     ),
@@ -2386,7 +2430,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                                     IconButton(
                                                       constraints: const BoxConstraints(),
                                                       padding: const EdgeInsets.all(2),
-                                                      icon: const Icon(Icons.remove_circle_outline, size: 18),
+                                                      icon: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.grey.shade300 : null),
                                                       onPressed: () => _updateQuantity(index, -1),
                                                     ),
                                                     const SizedBox(width: 2),
@@ -2396,11 +2440,11 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                                       alignment: Alignment.center,
                                                       decoration: BoxDecoration(
                                                         color: isNew
-                                                            ? const Color(0xFFDCFCE7)
-                                                            : AppColors.primary.withValues(alpha: 0.1),
+                                                            ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                                                            : (isDark ? AppColors.primary.withValues(alpha: 0.25) : AppColors.primary.withValues(alpha: 0.1)),
                                                         borderRadius: BorderRadius.circular(4),
                                                         border: isNew
-                                                            ? Border.all(color: const Color(0xFF86EFAC), width: 0.8)
+                                                            ? Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC), width: 0.8)
                                                             : null,
                                                       ),
                                                       child: FittedBox(
@@ -2410,7 +2454,9 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                                           style: TextStyle(
                                                             fontWeight: FontWeight.bold,
                                                             fontSize: 12,
-                                                            color: isNew ? const Color(0xFF15803D) : AppColors.primary,
+                                                            color: isNew
+                                                                ? (isDark ? Colors.green.shade300 : const Color(0xFF15803D))
+                                                                : (isDark ? Colors.blue.shade200 : AppColors.primary),
                                                           ),
                                                         ),
                                                       ),
@@ -2419,7 +2465,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                                     IconButton(
                                                       constraints: const BoxConstraints(),
                                                       padding: const EdgeInsets.all(2),
-                                                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                                                      icon: Icon(Icons.add_circle_outline, size: 18, color: isDark ? Colors.grey.shade300 : null),
                                                       onPressed: () => _updateQuantity(index, 1),
                                                     ),
                                                   ],
@@ -2446,7 +2492,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                               IconButton(
                                                 constraints: const BoxConstraints(),
                                                 padding: const EdgeInsets.all(2),
-                                                icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                                icon: Icon(Icons.close, size: 16, color: isDark ? Colors.grey.shade400 : Colors.grey),
                                                 onPressed: () => _removeFromCart(index),
                                               ),
                                             ],
@@ -2466,26 +2512,26 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
-                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            Text(isEng ? 'Subtotal:' : 'المجموع:', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey, fontWeight: FontWeight.w500)),
+                            Text('${_subtotalAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey, fontWeight: FontWeight.w500)),
                           ],
                         ),
                         const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 13, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
-                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 13, color: Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Discount:' : 'الخصم:', style: TextStyle(fontSize: 13, color: isDark ? Colors.purple.shade300 : Colors.purple.shade700, fontWeight: FontWeight.bold)),
+                            Text('-${_discountAmount.toStringAsFixed(0)} $_currencySymbol', style: TextStyle(fontSize: 13, color: isDark ? Colors.purple.shade300 : Colors.purple.shade700, fontWeight: FontWeight.bold)),
                           ],
                         ),
                         const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Net Total:' : 'الصافي:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Net Total:' : 'الصافي:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                             Text(
                               '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.amberAccent : AppColors.primary),
                             ),
                           ],
                         ),
@@ -2493,10 +2539,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(isEng ? 'Grand Total:' : 'المجموع الإجمالي:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                             Text(
                               '${_totalAmount.toStringAsFixed(0)} $_currencySymbol',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.amberAccent : AppColors.primary),
                             ),
                           ],
                         ),
@@ -2510,7 +2556,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                   ),
                 ),
 
-                const VerticalDivider(width: 1),
+                VerticalDivider(width: 1, color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
 
                 // Left Pane (In RTL): Search Bar + Max-Expanded Products & Categories Grid View
                 Expanded(
@@ -2523,14 +2569,27 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
                         child: TextField(
                           controller: _searchController,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
                             hintText: isEng ? 'Search item or scan barcode...' : 'ابحث عن صنف أو امسح الباركود...',
+                            hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                             prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+                            ),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                           ),
                           onChanged: (val) => productsProvider.setSearchQuery(val),
                           onSubmitted: (val) {
@@ -2964,6 +3023,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
         if (index == 0) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return InkWell(
             onTap: () {
               productsProvider.selectCategory(null);
@@ -2973,44 +3033,47 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
               elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Colors.grey.shade300, width: 1.2),
+                side: BorderSide(
+                  color: isDark ? const Color(0xFF3F3F46) : Colors.grey.shade300,
+                  width: 1.2,
+                ),
               ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey.shade100,
+                  color: isDark ? const Color(0xFF27272A) : Colors.grey.shade100,
                 ),
                 padding: const EdgeInsets.all(4),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircleAvatar(
                         radius: 15,
-                        backgroundColor: Colors.white,
+                        backgroundColor: isDark ? const Color(0xFF3F3F46) : Colors.white,
                         child: Icon(
                           Icons.arrow_back,
                           size: 18,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 3),
+                      const SizedBox(height: 3),
                       Text(
                         'الرجوع',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12.5,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 1),
+                      const SizedBox(height: 1),
                       Text(
                         '← القائمة',
                         style: TextStyle(
-                          color: Colors.grey,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey,
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
                         ),

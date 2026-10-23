@@ -7,6 +7,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'features/auth/auth_provider.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/categories/categories_provider.dart';
 import 'features/customers/customers_provider.dart';
@@ -107,11 +108,15 @@ class HappyDayPOS extends StatelessWidget {
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, child) {
+          AppColors.isDark = settings.isDarkMode;
+          AppColors.primary = settings.primaryColor;
           final isMobile = Platform.isAndroid || Platform.isIOS;
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: isMobile ? 'casghbox' : 'CashBox POS',
-            theme: AppTheme.getTheme(settings.primaryColor),
+            theme: AppTheme.getTheme(settings.primaryColor, isDarkMode: false),
+            darkTheme: AppTheme.getTheme(settings.primaryColor, isDarkMode: true),
+            themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             locale: settings.locale,
             supportedLocales: const [
               Locale('ar'),

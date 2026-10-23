@@ -49,7 +49,7 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   int selectedIndex = 0;
   late final AppLifecycleListener _lifecycleListener;
   LicenseInfo? _licenseInfo;
-  bool _isFullscreen = false;
+  bool _isFullscreen = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
   Future<void> _openGlobalCashDrawer() async {
     final settings = context.read<SettingsProvider>();
@@ -67,11 +67,21 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
         final current = await windowManager.isFullScreen();
-        await windowManager.setFullScreen(!current);
-        if (mounted) {
-          setState(() {
-            _isFullscreen = !current;
-          });
+        if (current) {
+          await windowManager.setFullScreen(false);
+          await windowManager.maximize();
+          if (mounted) {
+            setState(() {
+              _isFullscreen = false;
+            });
+          }
+        } else {
+          await windowManager.setFullScreen(true);
+          if (mounted) {
+            setState(() {
+              _isFullscreen = true;
+            });
+          }
         }
       } catch (e) {
         debugPrint('windowManager toggle error: $e');
@@ -221,16 +231,6 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
     }
     _lifecycleListener.dispose();
     super.dispose();
-  }
-
-  @override
-  void onWindowMaximize() async {
-    try {
-      await windowManager.setFullScreen(true);
-      if (mounted) setState(() => _isFullscreen = true);
-    } catch (e) {
-      debugPrint('onWindowMaximize error: $e');
-    }
   }
 
   @override
@@ -591,13 +591,13 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
                           // Fullscreen Toggle
                           IconButton(
                             icon: Icon(
-                              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                              _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
                               color: Colors.white,
                               size: 24,
                             ),
                             tooltip: isEng
-                                ? (_isFullscreen ? 'Exit Full Screen' : 'Full Screen')
-                                : (_isFullscreen ? 'إلغاء ملء الشاشة' : 'تكبير ملء الشاشة'),
+                                ? (_isFullscreen ? 'Restore Window (Exit Full Screen)' : 'Full Screen')
+                                : (_isFullscreen ? 'استعادة النافذة (إلغاء ملء الشاشة)' : 'تكبير ملء الشاشة'),
                             onPressed: _toggleFullscreen,
                           ),
 
@@ -660,52 +660,91 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
 
   Widget _buildDrawerTile(int index, IconData icon, IconData selectedIcon, String label) {
     final isSelected = selectedIndex == index || (index == 14 && [3, 4, 5, 6, 8, 10, 11].contains(selectedIndex));
-    final primaryColor = Theme.of(context).primaryColor;
+    final settingsProvider = context.watch<SettingsProvider>();
+    final primaryColor = settingsProvider.primaryColor;
     final authProvider = context.watch<AuthProvider>();
     final permKey = _getPermissionKeyForIndex(index);
     final isCashier = !authProvider.isManager;
     final isRestricted = isCashier && permKey != null && !authProvider.hasPermission(context, permKey);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedTextColor = isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87;
+    final unselectedIconColor = isDark ? Colors.white70 : Colors.grey[700];
+    final activeTextColor = isDark ? Colors.white : primaryColor;
+    final activeIconColor = isDark ? Colors.white : primaryColor;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        selected: isSelected,
-        selectedTileColor: primaryColor.withValues(alpha: 0.12),
-        leading: Icon(
-          isSelected ? selectedIcon : icon,
-          color: isRestricted ? Colors.grey[400] : (isSelected ? primaryColor : Colors.grey[700]),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2.5),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? primaryColor.withValues(alpha: 0.28) : primaryColor.withValues(alpha: 0.12))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: isSelected
+              ? Border.all(
+                  color: primaryColor,
+                  width: 2.0,
+                )
+              : null,
+          boxShadow: isSelected && isDark
+              ? [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
         ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isRestricted ? Colors.grey[500] : (isSelected ? primaryColor : Colors.black87),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            dense: true,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            leading: Icon(
+              isSelected ? selectedIcon : icon,
+              color: isRestricted
+                  ? (isDark ? Colors.grey[600] : Colors.grey[400])
+                  : (isSelected ? activeIconColor : unselectedIconColor),
+              size: 24,
+            ),
+            title: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isRestricted
+                    ? (isDark ? Colors.grey[600] : Colors.grey[500])
+                    : (isSelected ? activeTextColor : unselectedTextColor),
+              ),
+            ),
+            trailing: isSelected
+                ? Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 14,
+                    color: activeTextColor,
+                  )
+                : (isRestricted ? const Icon(Icons.lock_outline, size: 18, color: Colors.orange) : null),
+            onTap: () async {
+              Navigator.pop(context);
+              if (isRestricted) {
+                final authorized = await ManagerAuthDialog.show(
+                  context,
+                  title: 'إذن المدير مطلوب 🔒',
+                  reason: 'الدخول إلى شاشة ($label) محصورة أو تتطلب موافقة وإذن المدير',
+                );
+                if (!authorized) return;
+                if (!mounted) return;
+              }
+
+              _navigateToPage(index, fromHome: false);
+            },
           ),
         ),
-        trailing: isRestricted ? const Icon(Icons.lock_outline, size: 18, color: Colors.orange) : null,
-        onTap: () async {
-          Navigator.pop(context);
-          if (isRestricted) {
-            final authorized = await ManagerAuthDialog.show(
-              context,
-              title: 'إذن المدير مطلوب 🔒',
-              reason: 'الدخول إلى شاشة ($label) محصورة أو تتطلب موافقة وإذن المدير',
-            );
-            if (!authorized) return;
-            if (!mounted) return;
-          }
-
-          _navigateToPage(index, fromHome: false);
-        },
       ),
-    ),
-  );
+    );
   }
 
   void _confirmLogout(BuildContext parentContext, AuthProvider authProvider) {

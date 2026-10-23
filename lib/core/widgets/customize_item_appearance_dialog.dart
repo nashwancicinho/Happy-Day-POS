@@ -166,7 +166,9 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
 
   @override
   Widget build(BuildContext context) {
-    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     final isAuto = _selectedColor == null || _selectedColor!.trim().isEmpty;
     final cardBgColor = isAuto
         ? (widget.defaultFallbackColor ?? const Color(0xFF1D4ED8))
@@ -176,7 +178,11 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
     final textColor = isDarkBg ? Colors.white : Colors.black87;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620),
         child: Padding(
@@ -204,45 +210,45 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                         children: [
                           Text(
                             isEng ? 'Customize Appearance 🎨' : 'تخصيص مظهر المادة / التصنيف 🎨',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                           ),
                           Text(
                             widget.itemName,
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close, color: isDark ? Colors.white : Colors.black87),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                const Divider(height: 28),
+                Divider(height: 28, color: isDark ? const Color(0xFF374151) : null),
 
                 // Live Preview Card Section
                 Row(
                   children: [
                     Text(
                       isEng ? 'Live Card Preview:' : 'معاينة المظهر الحية:',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: isAuto
-                            ? Colors.blueGrey.shade50
+                            ? (isDark ? const Color(0xFF374151) : Colors.blueGrey.shade50)
                             : (_selectedColor?.toUpperCase() == '#FFFFFF'
-                                ? Colors.grey.shade100
+                                ? (isDark ? const Color(0xFF374151) : Colors.grey.shade100)
                                 : cardBgColor.withValues(alpha: 0.15)),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: isAuto
-                              ? Colors.blueGrey.shade200
+                              ? (isDark ? const Color(0xFF475569) : Colors.blueGrey.shade200)
                               : (_selectedColor?.toUpperCase() == '#FFFFFF'
-                                  ? Colors.grey.shade400
+                                  ? (isDark ? const Color(0xFF475569) : Colors.grey.shade400)
                                   : cardBgColor.withValues(alpha: 0.4)),
                         ),
                       ),
@@ -250,7 +256,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (isAuto)
-                            const Icon(Icons.auto_awesome, size: 13, color: Colors.blueGrey)
+                            Icon(Icons.auto_awesome, size: 13, color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey)
                           else
                             Container(
                               width: 10,
@@ -271,7 +277,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: isAuto ? Colors.blueGrey.shade800 : Colors.black87,
+                              color: isAuto ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade800) : (isDark ? Colors.white : Colors.black87),
                             ),
                           ),
                         ],
@@ -348,7 +354,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                 // Section 1: Background Image
                 Text(
                   isEng ? '1. Background Image 🖼️:' : '1. صورة خلفية الصنف / التصنيف 🖼️:',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -387,7 +393,7 @@ class _CustomizeItemAppearanceDialogState extends State<CustomizeItemAppearanceD
                 // Section 2: Color Palette
                 Text(
                   isEng ? '2. Card Background Color 🎨:' : '2. لون خلفية كارت الصنف 🎨:',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87),
                 ),
                 const SizedBox(height: 10),
                 Wrap(

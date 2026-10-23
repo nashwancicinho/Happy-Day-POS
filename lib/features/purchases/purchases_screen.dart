@@ -47,8 +47,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PurchasesProvider>();
-    final isEng = context.watch<SettingsProvider>().isEnglish;
-    final currencySym = context.watch<SettingsProvider>().currencySymbol;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+    final currencySym = settings.currencySymbol;
     final query = _searchController.text.trim().toLowerCase();
 
     final filteredPurchases = provider.purchases.where((p) {
@@ -131,7 +133,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                 // Top Summary Statistics Cards Header
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  color: Colors.grey.shade100,
+                  color: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
                   child: Row(
                     children: [
                       Expanded(
@@ -139,7 +141,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                           title: isEng ? 'Total Purchases' : 'إجمالي المشتريات',
                           value: '${provider.totalPurchasesAmount.toStringAsFixed(0)} $currencySym',
                           icon: Icons.shopping_bag,
-                          color: Colors.indigo,
+                          color: isDark ? const Color(0xFF818CF8) : Colors.indigo,
+                          isDark: isDark,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -148,7 +151,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                           title: isEng ? 'Paid Amount' : 'المبالغ المدفوعة',
                           value: '${provider.totalPaidAmount.toStringAsFixed(0)} $currencySym',
                           icon: Icons.check_circle_outline,
-                          color: Colors.green.shade800,
+                          color: isDark ? const Color(0xFF34D399) : Colors.green.shade800,
+                          isDark: isDark,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -157,7 +161,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                           title: isEng ? 'Supplier Debts (Payable)' : 'ديون الموردين (كم أنا مدين له)',
                           value: '${provider.totalSuppliersDebt.toStringAsFixed(0)} $currencySym',
                           icon: Icons.error_outline,
-                          color: Colors.red.shade800,
+                          color: isDark ? const Color(0xFFF87171) : Colors.red.shade800,
+                          isDark: isDark,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -166,7 +171,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                           title: isEng ? 'Total Suppliers' : 'إجمالي الموردين',
                           value: isEng ? '${provider.suppliers.length} Suppliers' : '${provider.suppliers.length} مورد',
                           icon: Icons.group,
-                          color: Colors.teal.shade800,
+                          color: isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade800,
+                          isDark: isDark,
                         ),
                       ),
                     ],
@@ -179,12 +185,23 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                   child: TextField(
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
                       hintText: isEng
                           ? 'Search supplier name, invoice no, phone...'
                           : 'ابحث باسم المورد، رقم الفاتورة، الوصل، الهاتف...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                      prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                   ),
@@ -196,13 +213,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     controller: _tabController,
                     children: [
                       // TAB 1: PURCHASES INVOICES LIST
-                      _buildInvoicesTab(context, filteredPurchases, isEng, currencySym),
+                      _buildInvoicesTab(context, filteredPurchases, isEng, currencySym, isDark),
 
                       // TAB 2: SUPPLIERS LIST & DEBTS
-                      _buildSuppliersTab(context, filteredSuppliers, isEng, currencySym),
+                      _buildSuppliersTab(context, filteredSuppliers, isEng, currencySym, isDark),
 
                       // TAB 3: RAW MATERIALS INVENTORY
-                      _buildRawMaterialsTab(context, isEng, currencySym),
+                      _buildRawMaterialsTab(context, isEng, currencySym, isDark),
                     ],
                   ),
                 ),
@@ -216,10 +233,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     required String value,
     required IconData icon,
     required Color color,
+    required bool isDark,
   }) {
     return Card(
+      color: isDark ? const Color(0xFF1F2937) : Colors.white,
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -227,7 +249,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
+                color: color.withValues(alpha: isDark ? 0.25 : 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 24),
@@ -237,7 +259,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     value,
@@ -253,12 +281,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildInvoicesTab(BuildContext context, List<PurchaseInvoiceModel> purchases, bool isEng, String currencySym) {
+  Widget _buildInvoicesTab(BuildContext context, List<PurchaseInvoiceModel> purchases, bool isEng, String currencySym, bool isDark) {
     if (purchases.isEmpty) {
       return Center(
         child: Text(
           isEng ? 'No purchase invoices recorded yet' : 'لا توجد فواتير مشتريات مسجلة حالياً',
-          style: const TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey),
         ),
       );
     }
@@ -272,10 +300,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
         final isPartial = invoice.paymentStatus == 'PARTIAL';
 
         final statusColor = isPaid
-            ? Colors.green
+            ? (isDark ? const Color(0xFF34D399) : Colors.green)
             : isPartial
-                ? Colors.orange
-                : Colors.red;
+                ? (isDark ? const Color(0xFFFBBF24) : Colors.orange)
+                : (isDark ? const Color(0xFFF87171) : Colors.red);
         final statusText = isPaid
             ? (isEng ? 'Fully Paid 🟢' : 'مدفوعة بالكامل 🟢')
             : isPartial
@@ -283,25 +311,33 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                 : (isEng ? 'Credit / Unpaid 🔴' : 'آجل / غير مدفوعة 🔴');
 
         return Card(
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
           margin: const EdgeInsets.only(bottom: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           elevation: 2,
           child: ExpansionTile(
             leading: CircleAvatar(
-              backgroundColor: statusColor.withValues(alpha: 0.15),
+              backgroundColor: statusColor.withValues(alpha: isDark ? 0.25 : 0.15),
               child: Icon(Icons.receipt, color: statusColor),
             ),
             title: Row(
               children: [
                 Text(
                   isEng ? 'Receipt #${invoice.invoiceNumber}' : 'وصل #${invoice.invoiceNumber}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
+                    color: statusColor.withValues(alpha: isDark ? 0.2 : 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -315,11 +351,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               isEng
                   ? 'Supplier: ${invoice.supplierName} • Date: ${invoice.createdAt.split("T").first}'
                   : 'المورد: ${invoice.supplierName} • التاريخ: ${invoice.createdAt.split("T").first}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
             ),
             trailing: Text(
               '${invoice.totalAmount.toStringAsFixed(0)} $currencySym',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.indigo),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isDark ? const Color(0xFF818CF8) : Colors.indigo,
+              ),
             ),
             children: [
               Padding(
@@ -332,11 +372,17 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       children: [
                         Text(
                           isEng ? 'Paid Amount: ${invoice.paidAmount.toStringAsFixed(0)} $currencySym' : 'المبلغ المدفوع: ${invoice.paidAmount.toStringAsFixed(0)} د.ع',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFF34D399) : Colors.green,
+                          ),
                         ),
                         Text(
                           isEng ? 'Remaining Debt to Supplier: ${invoice.remainingAmount.toStringAsFixed(0)} $currencySym' : 'الدين المتبقي للمورد: ${invoice.remainingAmount.toStringAsFixed(0)} د.ع',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade800),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFFF87171) : Colors.red.shade800,
+                          ),
                         ),
                       ],
                     ),
@@ -344,14 +390,18 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       const SizedBox(height: 6),
                       Text(
                         isEng ? 'Notes: ${invoice.notes}' : 'ملاحظات: ${invoice.notes}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                       ),
                     ],
-                    const Divider(),
+                    Divider(color: isDark ? const Color(0xFF374151) : Colors.grey.shade300),
 
                     Text(
                       isEng ? 'Purchased Items & Materials:' : 'المواد والمشتريات بالمشروعات:',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                     ),
                     const SizedBox(height: 6),
 
@@ -360,10 +410,27 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Row(
                           children: [
-                            Text('• ${item.itemName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            Text(
+                              '• ${item.itemName}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
                             const Spacer(),
-                            Text('${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} $currencySym = ', style: const TextStyle(fontSize: 12)),
-                            Text('${item.subtotal.toStringAsFixed(0)} $currencySym', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.indigo)),
+                            Text(
+                              '${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} $currencySym = ',
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.black87),
+                            ),
+                            Text(
+                              '${item.subtotal.toStringAsFixed(0)} $currencySym',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: isDark ? const Color(0xFF818CF8) : Colors.indigo,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -387,12 +454,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildSuppliersTab(BuildContext context, List<SupplierModel> suppliers, bool isEng, String currencySym) {
+  Widget _buildSuppliersTab(BuildContext context, List<SupplierModel> suppliers, bool isEng, String currencySym, bool isDark) {
     if (suppliers.isEmpty) {
       return Center(
         child: Text(
           isEng ? 'No suppliers registered yet' : 'لا يوجد موردون مسجلون حالياً',
-          style: const TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey),
         ),
       );
     }
@@ -405,8 +472,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
         final hasDebt = supplier.balance > 0;
 
         return Card(
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
           margin: const EdgeInsets.only(bottom: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           elevation: 2,
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -414,10 +485,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: hasDebt ? Colors.red.shade100 : Colors.teal.shade100,
+                  backgroundColor: hasDebt
+                      ? (isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade100)
+                      : (isDark ? Colors.teal.shade900.withValues(alpha: 0.3) : Colors.teal.shade100),
                   child: Icon(
                     Icons.business_center,
-                    color: hasDebt ? Colors.red.shade800 : Colors.teal.shade800,
+                    color: hasDebt
+                        ? (isDark ? const Color(0xFFF87171) : Colors.red.shade800)
+                        : (isDark ? const Color(0xFF2DD4BF) : Colors.teal.shade800),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -429,19 +504,23 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     children: [
                       Text(
                         supplier.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         isEng
                             ? 'Phone: ${supplier.phone ?? "N/A"} • Address: ${supplier.address ?? "N/A"}'
                             : 'هاتف: ${supplier.phone ?? "غير محدد"} • العنوان: ${supplier.address ?? "غير محدد"}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                       ),
                       if (supplier.notes != null && supplier.notes!.isNotEmpty)
                         Text(
                           isEng ? 'Notes: ${supplier.notes}' : 'ملاحظات: ${supplier.notes}',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                         ),
                     ],
                   ),
@@ -451,13 +530,18 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(isEng ? 'Debt Payable to Supplier:' : 'الدين المستحق له:', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+                    Text(
+                      isEng ? 'Debt Payable to Supplier:' : 'الدين المستحق له:',
+                      style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                    ),
                     Text(
                       '${supplier.balance.toStringAsFixed(0)} $currencySym',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: hasDebt ? Colors.red.shade800 : Colors.green.shade700,
+                        color: hasDebt
+                            ? (isDark ? const Color(0xFFF87171) : Colors.red.shade800)
+                            : (isDark ? const Color(0xFF34D399) : Colors.green.shade700),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -483,7 +567,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                             },
                           ),
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.indigo, size: 20),
+                          icon: Icon(Icons.edit, color: isDark ? const Color(0xFF818CF8) : Colors.indigo, size: 20),
                           tooltip: isEng ? 'Edit Details' : 'تعديل البيانات',
                           onPressed: () {
                             showDialog(
@@ -525,20 +609,27 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _confirmDeleteSupplier(BuildContext context, SupplierModel supplier) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: Text(isEng ? 'Confirm Delete Supplier' : 'تأكيد مسح المورد'),
+        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+        title: Text(
+          isEng ? 'Confirm Delete Supplier' : 'تأكيد مسح المورد',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        ),
         content: Text(
           isEng
               ? 'Are you sure you want to delete supplier (${supplier.name})?'
               : 'هل أنت متأكد من مسح المورد (${supplier.name})؟',
+          style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+            child: Text(isEng ? 'Cancel' : 'إلغاء', style: TextStyle(color: isDark ? Colors.grey.shade300 : null)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -562,20 +653,27 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _confirmDeleteInvoice(BuildContext context, PurchaseInvoiceModel invoice) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: Text(isEng ? 'Confirm Delete Purchase Invoice' : 'تأكيد مسح فاتورة المشتريات'),
+        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+        title: Text(
+          isEng ? 'Confirm Delete Purchase Invoice' : 'تأكيد مسح فاتورة المشتريات',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        ),
         content: Text(
           isEng
               ? 'Are you sure you want to delete receipt (#${invoice.invoiceNumber}) for supplier (${invoice.supplierName})?'
               : 'هل أنت متأكد من مسح الفاتورة رقم (#${invoice.invoiceNumber}) للمورد (${invoice.supplierName})؟',
+          style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+            child: Text(isEng ? 'Cancel' : 'إلغاء', style: TextStyle(color: isDark ? Colors.grey.shade300 : null)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -598,7 +696,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildRawMaterialsTab(BuildContext context, bool isEng, String currencySym) {
+  Widget _buildRawMaterialsTab(BuildContext context, bool isEng, String currencySym, bool isDark) {
     final rawMaterialsProvider = context.watch<RawMaterialsProvider>();
     final rawMaterials = rawMaterialsProvider.rawMaterials;
     final query = _searchController.text.trim().toLowerCase();
@@ -613,7 +711,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     }
 
     if (filtered.isEmpty) {
-      return Center(child: Text(isEng ? 'No raw materials found' : 'لا توجد مواد أولية مضافة بعد'));
+      return Center(
+        child: Text(
+          isEng ? 'No raw materials found' : 'لا توجد مواد أولية مضافة بعد',
+          style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -622,32 +725,49 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
       itemBuilder: (ctx, i) {
         final rm = filtered[i];
         return Card(
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
-              backgroundColor: rm.isLowStock ? Colors.red.shade100 : Colors.amber.shade100,
+              backgroundColor: rm.isLowStock
+                  ? (isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade100)
+                  : (isDark ? Colors.amber.shade900.withValues(alpha: 0.3) : Colors.amber.shade100),
               child: Icon(
                 rm.isLowStock ? Icons.warning_amber_rounded : Icons.rice_bowl,
-                color: rm.isLowStock ? Colors.red.shade900 : Colors.amber.shade900,
+                color: rm.isLowStock
+                    ? (isDark ? const Color(0xFFF87171) : Colors.red.shade900)
+                    : (isDark ? const Color(0xFFFBBF24) : Colors.amber.shade900),
               ),
             ),
             title: Text(
               rm.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                Text('الوحدة: ${rm.unit} | سعر الكلفة للوحدة: ${rm.costPerUnit.toStringAsFixed(0)} $currencySym'),
+                Text(
+                  'الوحدة: ${rm.unit} | سعر الكلفة للوحدة: ${rm.costPerUnit.toStringAsFixed(0)} $currencySym',
+                  style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87),
+                ),
                 Text(
                   'الرصيد المتاح: ${rm.stockQuantity.toStringAsFixed(0)} ${rm.unit} (الحد الأدنى: ${rm.minStock.toStringAsFixed(0)})',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: rm.isLowStock ? Colors.red.shade800 : Colors.green.shade800,
+                    color: rm.isLowStock
+                        ? (isDark ? const Color(0xFFF87171) : Colors.red.shade800)
+                        : (isDark ? const Color(0xFF34D399) : Colors.green.shade800),
                   ),
                 ),
               ],
@@ -668,7 +788,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                   label: Text(isEng ? 'Add Stock' : 'تزويد الرصيد', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  icon: Icon(Icons.edit, color: isDark ? const Color(0xFF60A5FA) : Colors.blue),
                   onPressed: () => _showAddEditRawMaterialDialog(context, rawMaterial: rm),
                   tooltip: isEng ? 'Edit' : 'تعديل',
                 ),
@@ -686,8 +806,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _showAddEditRawMaterialDialog(BuildContext context, {RawMaterialModel? rawMaterial}) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+    final currencySym = settings.currencySymbol;
 
     final nameController = TextEditingController(text: rawMaterial?.name ?? '');
     String selectedUnit = rawMaterial?.unit ?? 'غرام';
@@ -701,6 +823,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Row(
             children: [
@@ -713,7 +836,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                 rawMaterial == null
                     ? (isEng ? 'Add New Raw Material' : 'إضافة مادة أولية جديدة')
                     : (isEng ? 'Edit Raw Material' : 'تعديل مادة أولية'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
               ),
             ],
           ),
@@ -724,8 +851,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               children: [
                 TextField(
                   controller: nameController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: isEng ? 'Raw Material Name *' : 'اسم المادة الأولية * (مثلاً: لحم همبركر، طماطم)',
+                    labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -735,11 +864,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: unitsList.contains(selectedUnit) ? selectedUnit : unitsList.first,
+                        dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           labelText: isEng ? 'Unit *' : 'وحدة القياس *',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        items: unitsList.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                        items: unitsList.map((u) => DropdownMenuItem(value: u, child: Text(u, style: TextStyle(color: isDark ? Colors.white : Colors.black87)))).toList(),
                         onChanged: (val) {
                           if (val != null) setDialogState(() => selectedUnit = val);
                         },
@@ -750,8 +882,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       child: TextField(
                         controller: costController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           labelText: isEng ? 'Cost per Unit ($currencySym)' : 'سعر كلفة الوحدة ($currencySym)',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -765,8 +899,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       child: TextField(
                         controller: stockController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           labelText: isEng ? 'Current Stock Quantity' : 'الرصيد المتاح حالياً',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -776,8 +912,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                       child: TextField(
                         controller: minStockController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         decoration: InputDecoration(
                           labelText: isEng ? 'Minimum Alert Stock' : 'حد التنبيه للنقصان',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -790,7 +928,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(isEng ? 'Cancel' : 'إلغاء'),
+              child: Text(isEng ? 'Cancel' : 'إلغاء', style: TextStyle(color: isDark ? Colors.grey.shade300 : null)),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -844,8 +982,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _showAddStockDialog(BuildContext context, RawMaterialModel rawMaterial) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
-    final currencySym = context.read<SettingsProvider>().currencySymbol;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
+    final currencySym = settings.currencySymbol;
 
     final qtyController = TextEditingController();
     final costController = TextEditingController(text: rawMaterial.costPerUnit.toStringAsFixed(0));
@@ -853,6 +993,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Row(
           children: [
@@ -863,7 +1004,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
             const SizedBox(width: 10),
             Text(
               isEng ? 'Add Stock: ${rawMaterial.name}' : 'تزويد رصيد: ${rawMaterial.name}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
           ],
         ),
@@ -875,15 +1020,17 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
             children: [
               Text(
                 'الرصيد المتاح حالياً: ${rawMaterial.stockQuantity.toStringAsFixed(0)} ${rawMaterial.unit}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.grey.shade400 : Colors.grey),
               ),
               const SizedBox(height: 14),
               TextField(
                 controller: qtyController,
                 keyboardType: TextInputType.number,
                 autofocus: true,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: isEng ? 'Quantity to Add (${rawMaterial.unit}) *' : 'الكمية المضافة بالمشتريات (${rawMaterial.unit}) *',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -891,8 +1038,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
               TextField(
                 controller: costController,
                 keyboardType: TextInputType.number,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: isEng ? 'New Cost per Unit ($currencySym)' : 'سعر كلفة الوحدة الجديد ($currencySym)',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -902,7 +1051,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+            child: Text(isEng ? 'Cancel' : 'إلغاء', style: TextStyle(color: isDark ? Colors.grey.shade300 : null)),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -933,16 +1082,25 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
   }
 
   void _confirmDeleteRawMaterial(BuildContext context, RawMaterialModel rawMaterial) {
-    final isEng = context.read<SettingsProvider>().isEnglish;
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+    final isDark = settings.isDarkMode;
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: Text(isEng ? 'Confirm Delete Raw Material' : 'تأكيد مسح المادة الأولية'),
-        content: Text('هل أنت متأكد من مسح المادة الأولية (${rawMaterial.name})؟'),
+        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+        title: Text(
+          isEng ? 'Confirm Delete Raw Material' : 'تأكيد مسح المادة الأولية',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        ),
+        content: Text(
+          'هل أنت متأكد من مسح المادة الأولية (${rawMaterial.name})؟',
+          style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(isEng ? 'Cancel' : 'إلغاء'),
+            child: Text(isEng ? 'Cancel' : 'إلغاء', style: TextStyle(color: isDark ? Colors.grey.shade300 : null)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
