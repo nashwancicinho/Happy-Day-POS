@@ -326,7 +326,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     final totalAllExpenses = purchasesCost + salaryExpenses + expenseVal;
     final finalNetProfit = incomeVal - totalAllExpenses;
 
-    final otherExpensesList = treasuryProvider.activeOtherExpenses;
     final List<List<String>> customRows = [];
 
     // 1. General Sales & P&L Comprehensive Summary (الملخص العام والمالي الشامل)
@@ -352,9 +351,11 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
     if (salaryExpenses > 0) {
       customRows.add(['رواتب ومستحقات الموظفين المسددة (-)', '-', '-${salaryExpenses.toStringAsFixed(0)} $currencySym']);
     }
-    if (expenseVal > 0) {
-      customRows.add(['مصاريف ونفقات الخزينة التشغيلية (-)', '${otherExpensesList.length} عملية', '-${expenseVal.toStringAsFixed(0)} $currencySym']);
-    }
+    customRows.add([
+      'مصاريف أخرى (-)',
+      '-',
+      expenseVal > 0 ? '-${expenseVal.toStringAsFixed(0)} $currencySym' : '0',
+    ]);
     customRows.add(['صافي ربح اليوم النهائي والأخير (=)', '=', '${finalNetProfit.toStringAsFixed(0)} $currencySym']);
 
     // 2. Itemized Product Sales Breakdown (تفاصيل مبيعات الأصناف والمنتجات المباعة)
@@ -376,22 +377,6 @@ class _DayClosingScreenState extends State<DayClosingScreen> {
             '${total.toStringAsFixed(0)} $currencySym',
           ]);
         }
-      }
-    }
-
-    // 3. Itemized Expenses Breakdown (جميع المصاريف المسجلة بالخزينة تفصيلياً)
-    customRows.add(['--- تفاصيل المصاريف المسجلة بالخزينة ---', '---', '---']);
-    if (otherExpensesList.isEmpty) {
-      customRows.add(['لا توجد مصاريف مسجلة بالخزينة اليوم', '0', '0 $currencySym']);
-    } else {
-      for (var i = 0; i < otherExpensesList.length; i++) {
-        final exp = otherExpensesList[i];
-        final expUser = exp.createdBy ?? 'المدير';
-        customRows.add([
-          '#${i + 1} ${exp.title} (${exp.category})',
-          'بواسطة: $expUser',
-          '-${exp.amount.toStringAsFixed(0)} $currencySym',
-        ]);
       }
     }
 

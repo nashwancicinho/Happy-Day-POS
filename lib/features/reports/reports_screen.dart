@@ -1354,7 +1354,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         '${salaryPct.toStringAsFixed(1)}%',
                       ],
                       [
-                        'النفقات والمصاريف التشغيلية الخزينة (-)',
+                        isEng ? 'Other Expenses (-)' : 'مصاريف أخرى (-)',
                         '${generalExpenses == 0 ? "0" : "-${generalExpenses.toStringAsFixed(0)}"} ${settingsProvider.currencySymbol}',
                         '${generalPct.toStringAsFixed(1)}%',
                       ],
