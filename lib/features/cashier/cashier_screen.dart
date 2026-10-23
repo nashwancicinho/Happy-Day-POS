@@ -27,7 +27,6 @@ import '../settings/settings_provider.dart';
 import '../shifts/shifts_provider.dart';
 import '../tables/tables_provider.dart';
 import '../../services/local_server_service.dart';
-import 'widgets/refund_dialog.dart';
 
 
 
@@ -1651,10 +1650,196 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     );
   }
 
-  Future<void> _showRefundDialog() async {
+  Future<void> _showTransferTableDialog() async {
+    final tablesProvider = context.read<TablesProvider>();
+    final ordersProvider = context.read<OrdersProvider>();
+    await tablesProvider.loadTables();
+    if (!mounted) return;
+
+    RestaurantTable? sourceTable = widget.selectedTable;
+
+    // If no table was passed directly into cashier screen
+    if (sourceTable == null) {
+      final occupiedTables = tablesProvider.tables.where((t) => t.status == 1).toList();
+      if (occupiedTables.isEmpty) {
+        TopNotification.showWarning(context, 'لا توجد طاولات مشغولة حالياً لتحويلها.');
+        return;
+      }
+      if (occupiedTables.length == 1) {
+        sourceTable = occupiedTables.first;
+      } else {
+        sourceTable = await showDialog<RestaurantTable>(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.swap_horiz_rounded, color: Colors.blue, size: 28),
+                  SizedBox(width: 8),
+                  Text('اختر الطاولة المراد تحويلها', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+              content: SizedBox(
+                width: 380,
+                height: 280,
+                child: ListView.separated(
+                  itemCount: occupiedTables.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, idx) {
+                    final t = occupiedTables[idx];
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Icon(Icons.table_restaurant, color: Colors.white),
+                      ),
+                      title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                      onTap: () => Navigator.pop(ctx, t),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              ],
+            );
+          },
+        );
+        if (sourceTable == null || !mounted) return;
+      }
+    } else {
+      // If there are unsaved items in the current cart, save them first before transfer
+      if (_cart.isNotEmpty && _cart.any((i) => i.isNew)) {
+        final orderId = await ordersProvider.holdTableOrder(
+          existingOrderId: _existingOrderId,
+          tableId: sourceTable.id!,
+          items: _cart,
+          subtotal: _subtotalAmount,
+          discountAmount: _discountAmount,
+          total: _totalAmount,
+          status: 'OPEN',
+        );
+        if (mounted) {
+          setState(() {
+            _existingOrderId = orderId;
+            for (int i = 0; i < _cart.length; i++) {
+              _cart[i] = _cart[i].copyWith(isNew: false);
+            }
+          });
+        }
+      }
+    }
+
+    final availableTargetTables = tablesProvider.tables.where((t) => t.id != sourceTable!.id).toList();
+    if (availableTargetTables.isEmpty) {
+      TopNotification.showWarning(context, 'لا توجد طاولات أخرى متاحة للتحويل إليها.');
+      return;
+    }
+
+    RestaurantTable? selectedTarget = availableTargetTables.first;
+
+    if (!mounted) return;
     await showDialog(
       context: context,
-      builder: (ctx) => const RefundDialog(),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Row(
+              children: [
+                const Icon(Icons.swap_horiz_rounded, color: Colors.blue, size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'تحويل فاتورة (${sourceTable!.name})',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'اختر الطاولة التي تريد نقل تحويل الفاتورة والحساب إليها:',
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<RestaurantTable>(
+                  initialValue: selectedTarget,
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  decoration: InputDecoration(
+                    labelText: 'الطاولة الهدف *',
+                    prefixIcon: const Icon(Icons.table_restaurant, color: Colors.blue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    isDense: true,
+                  ),
+                  items: availableTargetTables.map((table) {
+                    final isOcc = table.status == 1;
+                    return DropdownMenuItem<RestaurantTable>(
+                      value: table,
+                      child: Text(
+                        '${table.name} (${isOcc ? "مشغولة - سيتم دمج الطلبات" : "شاغرة"})',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isOcc ? Colors.red.shade700 : Colors.green.shade700,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() {
+                        selectedTarget = val;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                label: const Text('تأكيد التحويل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () async {
+                  if (selectedTarget == null) return;
+                  Navigator.pop(ctx);
+
+                  final targetName = selectedTarget!.name;
+                  final success = await ordersProvider.transferTableOrder(
+                    sourceTableId: sourceTable!.id!,
+                    targetTableId: selectedTarget!.id!,
+                  );
+
+                  if (!mounted) return;
+                  await tablesProvider.loadTables();
+                  if (!mounted) return;
+                  if (success) {
+                    TopNotification.showSuccess(
+                      context,
+                      '🎉 تم تحويل فاتورة (${sourceTable.name}) إلى ($targetName) بنجاح!',
+                    );
+                    _finishOrderFlowNavigation(returnToHome: false);
+                  } else {
+                    TopNotification.showWarning(context, '⚠️ لا يوجد طلب مفتوح على هذه الطاولة للتحويل.');
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -2013,13 +2198,13 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
               ),
               const SizedBox(width: 4),
 
-              // 6. استرجاع الفواتير (Refund)
+              // 6. تحويل (Transfer)
               Expanded(
                 child: _aroniumActionButton(
-                  label: isEng ? 'Refund ↩️' : 'استرجاع الفواتير',
-                  icon: Icons.assignment_return_rounded,
-                  color: Colors.red.shade700,
-                  onTap: _showRefundDialog,
+                  label: isEng ? 'Transfer' : 'تحويل',
+                  icon: Icons.swap_horiz_rounded,
+                  color: Colors.blue.shade700,
+                  onTap: _showTransferTableDialog,
                 ),
               ),
             ],
@@ -2048,9 +2233,11 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         ? Colors.tealAccent
                         : (color == Colors.red.shade700
                             ? Colors.red.shade300
-                            : (color == Colors.deepOrange
-                                ? Colors.deepOrange.shade300
-                                : color))))))
+                            : (color == Colors.blue.shade700
+                                ? Colors.lightBlueAccent
+                                : (color == Colors.deepOrange
+                                    ? Colors.deepOrange.shade300
+                                    : color)))))))
         : color;
 
     return InkWell(

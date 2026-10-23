@@ -1001,14 +1001,14 @@ class _TablesScreenState extends State<TablesScreen> {
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.center,
                                     ),
-                                    if (showPriceOnTable) ...[
+                                    if (showPriceOnTable && isOccupied && (table.currentOrderAmount ?? 0) > 0) ...[
                                       const SizedBox(height: 4),
                                       Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 4),
                                         child: FittedBox(
                                           fit: BoxFit.scaleDown,
                                           child: Text(
-                                            formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
+                                            formatBillAmount(table.currentOrderAmount),
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: tableAmountFontSize + 1,

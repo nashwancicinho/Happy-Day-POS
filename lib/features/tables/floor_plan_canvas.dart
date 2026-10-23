@@ -208,14 +208,14 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    if (showPriceOnTable) ...[
+                    if (showPriceOnTable && isOccupied && (table.currentOrderAmount ?? 0) > 0) ...[
                       SizedBox(height: 4 * scale),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            formatBillAmount(isOccupied ? table.currentOrderAmount : 0.0),
+                            formatBillAmount(table.currentOrderAmount),
                             style: TextStyle(
                               fontSize: (11.5 * scale).clamp(9.5, 17.0),
                               fontWeight: FontWeight.bold,
