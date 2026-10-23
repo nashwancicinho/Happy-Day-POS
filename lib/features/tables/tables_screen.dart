@@ -211,7 +211,7 @@ class _TablesScreenState extends State<TablesScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: selectedShape,
+                    initialValue: selectedShape,
                     decoration: const InputDecoration(labelText: "شكل الطاولة في الصالة", border: OutlineInputBorder()),
                     items: const [
                       DropdownMenuItem(value: 'square', child: Text('طاولة مربعة ⬛')),
@@ -294,7 +294,7 @@ class _TablesScreenState extends State<TablesScreen> {
                   Expanded(
                     child: ListView.separated(
                       itemCount: tables.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, index) {
                         final table = tables[index];
                         final isOcc = table.status == 1;
@@ -444,7 +444,7 @@ class _TablesScreenState extends State<TablesScreen> {
                         ? const Center(child: Text('لا توجد طاولات مضافة في الصالة'))
                         : ListView.separated(
                             itemCount: tables.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            separatorBuilder: (_, _) => const Divider(height: 1),
                             itemBuilder: (_, index) {
                               final table = tables[index];
                               final isOcc = table.status == 1;

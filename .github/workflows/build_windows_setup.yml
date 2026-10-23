@@ -67,6 +67,7 @@ jobs:
       with:
         tag_name: v${{ env.APP_VERSION }}
         name: Release v${{ env.APP_VERSION }}
+        make_latest: true
         body: |
           تحديث جديد تلقائي لبرنامج Happy Day POS
           الإصدار: v${{ env.APP_VERSION }}

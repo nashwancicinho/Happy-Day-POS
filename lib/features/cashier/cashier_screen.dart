@@ -1360,7 +1360,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
 
                     // 2. Dropdown Bar to select from registered debtors
                     DropdownButtonFormField<int>(
-                      value: selectedCustomer?.id != null && allCustomers.any((c) => c.id == selectedCustomer!.id)
+                      initialValue: selectedCustomer?.id != null && allCustomers.any((c) => c.id == selectedCustomer!.id)
                           ? selectedCustomer!.id
                           : null,
                       isExpanded: true,
@@ -1731,6 +1731,8 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       }
     }
 
+    if (!mounted) return;
+
     final availableTargetTables = tablesProvider.tables.where((t) => t.id != sourceTable!.id).toList();
     if (availableTargetTables.isEmpty) {
       TopNotification.showWarning(context, 'لا توجد طاولات أخرى متاحة للتحويل إليها.');
@@ -1813,13 +1815,18 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 icon: const Icon(Icons.check_circle_outline, color: Colors.white),
                 label: const Text('تأكيد التحويل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 onPressed: () async {
-                  if (selectedTarget == null) return;
+                  final source = sourceTable;
+                  final target = selectedTarget;
+                  if (source == null || target == null) return;
+                  if (source.id == null || target.id == null) return;
+
                   Navigator.pop(ctx);
 
-                  final targetName = selectedTarget!.name;
+                  final targetName = target.name;
+                  final sourceName = source.name;
                   final success = await ordersProvider.transferTableOrder(
-                    sourceTableId: sourceTable!.id!,
-                    targetTableId: selectedTarget!.id!,
+                    sourceTableId: source.id!,
+                    targetTableId: target.id!,
                   );
 
                   if (!mounted) return;
@@ -1828,7 +1835,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                   if (success) {
                     TopNotification.showSuccess(
                       context,
-                      '🎉 تم تحويل فاتورة (${sourceTable.name}) إلى ($targetName) بنجاح!',
+                      '🎉 تم تحويل فاتورة ($sourceName) إلى ($targetName) بنجاح!',
                     );
                     _finishOrderFlowNavigation(returnToHome: false);
                   } else {
