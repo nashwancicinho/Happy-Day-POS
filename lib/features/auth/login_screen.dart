@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -617,6 +619,74 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _confirmExitApp() async {
+    final settings = context.read<SettingsProvider>();
+    final isEng = settings.isEnglish;
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.power_settings_new_rounded, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              isEng ? 'Confirm Exit Application' : 'تأكيد إغلاق وخروج من البرنامج',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Text(
+          isEng
+              ? 'Are you sure you want to exit the POS application completely?'
+              : 'هل أنت متأكد من رغبتك في إغلاق برنامج نقاط البيع والخروج بالكامل؟',
+          style: const TextStyle(fontSize: 15),
+        ),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              isEng ? 'Cancel' : 'لا (إلغاء)',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.power_settings_new_rounded, size: 18),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            label: Text(
+              isEng ? 'Yes, Exit App' : 'نعم، إغلاق البرنامج',
+              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit == true) {
+      SystemNavigator.pop();
+      exit(0);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<SettingsProvider>();
@@ -634,12 +704,48 @@ class _LoginScreenState extends State<LoginScreen> {
     if (userList.isEmpty) {
       return Scaffold(
         backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: _buildInitialSetupCard(isEng, isDark),
+        body: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _confirmExitApp();
+          },
+          child: SafeArea(
+            child: Stack(
+              children: [
+                PositionedDirectional(
+                  top: 10,
+                  end: 14,
+                  child: Tooltip(
+                    message: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
+                    child: OutlinedButton.icon(
+                      onPressed: _confirmExitApp,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: BorderSide(color: isDark ? Colors.red.shade800 : Colors.red.shade200, width: 1.2),
+                        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        elevation: 1,
+                      ),
+                      icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
+                      label: Text(
+                        isEng ? 'Exit App' : 'إغلاق البرنامج',
+                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: _buildInitialSetupCard(isEng, isDark),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -652,10 +758,45 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: ConstrainedBox(
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _confirmExitApp();
+        },
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // Top Bar Floating Exit Button
+              PositionedDirectional(
+                top: 10,
+                end: 14,
+                child: Tooltip(
+                  message: isEng ? 'Exit Application' : 'إغلاق البرنامج وخروج بالكامل',
+                  child: OutlinedButton.icon(
+                    onPressed: _confirmExitApp,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(color: isDark ? Colors.red.shade800 : Colors.red.shade200, width: 1.2),
+                      backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      elevation: 1,
+                    ),
+                    icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
+                    label: Text(
+                      isEng ? 'Exit Application' : 'إغلاق البرنامج',
+                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Main Content
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -963,12 +1104,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   icon: const Icon(Icons.login),
                                   label: Text(
                                     isEng ? 'Sign In 🚪' : 'تسجيل الدخول',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
                               flex: 2,
                               child: SizedBox(
@@ -980,11 +1121,30 @@ class _LoginScreenState extends State<LoginScreen> {
                                     side: BorderSide(color: AppColors.primary, width: 1.5),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   ),
-                                  icon: const Icon(Icons.person_add_alt_1, size: 20),
+                                  icon: const Icon(Icons.person_add_alt_1, size: 18),
                                   label: Text(
-                                    isEng ? 'Add User 👤+' : 'إضافة مستخدم',
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                    isEng ? 'Add User' : 'إضافة مستخدم',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 48,
+                              child: OutlinedButton.icon(
+                                onPressed: _confirmExitApp,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  side: BorderSide(color: Colors.red.shade300, width: 1.5),
+                                  backgroundColor: isDark ? Colors.red.shade900.withValues(alpha: 0.15) : Colors.red.shade50,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                ),
+                                icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
+                                label: Text(
+                                  isEng ? 'Exit' : 'خروج',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red),
                                 ),
                               ),
                             ),
@@ -1004,7 +1164,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+),
+);
   }
 
   Widget _buildTouchscreenKeyboard(bool isEng, [bool isDark = false]) {

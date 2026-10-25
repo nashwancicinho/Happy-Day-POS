@@ -59,8 +59,8 @@ jobs:
     - name: Upload Setup Executable Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: HappyDayPOS_Setup_Windows
-        path: installer/output/HappyDayPOS_Setup.exe
+        name: setup
+        path: installer/output/setup.exe
 
     - name: Create or Update GitHub Release
       uses: softprops/action-gh-release@v2
@@ -69,9 +69,9 @@ jobs:
         name: Release v${{ env.APP_VERSION }}
         make_latest: true
         body: |
-          تحديث جديد تلقائي لبرنامج Happy Day POS
+          تحديث جديد تلقائي لبرنامج CashBox POS
           الإصدار: v${{ env.APP_VERSION }}
         files: |
-          installer/output/HappyDayPOS_Setup.exe
+          installer/output/setup.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
