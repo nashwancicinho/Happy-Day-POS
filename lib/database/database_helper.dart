@@ -103,11 +103,13 @@ class DatabaseHelper {
         role TEXT NOT NULL DEFAULT 'موظف',
         phone TEXT,
         base_salary REAL NOT NULL DEFAULT 0.0,
+        salary_type TEXT DEFAULT 'MONTHLY',
         hire_date TEXT,
         is_active INTEGER DEFAULT 1,
         notes TEXT
       );
     ''');
+    await _addColumnIfMissing(db, 'employees', 'salary_type', "TEXT DEFAULT 'MONTHLY'");
 
     // Employee Advances / Bonuses / Deductions table
     await db.execute('''

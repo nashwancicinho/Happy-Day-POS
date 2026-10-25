@@ -59,6 +59,8 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
   int? _existingOrderId;
   bool _isLoadingTableOrder = false;
   double _discountAmount = 0.0;
+  bool _isRearrangeMode = false;
+  String? _rearrangeSelectedKey;
   void _toggleFullscreen() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
@@ -278,6 +280,8 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       onChanged();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     void setPreset(double val) {
       controller.text = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(3).replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
       controller.selection = TextSelection.collapsed(offset: controller.text.length);
@@ -293,7 +297,6 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     }
 
     Widget numBtn(String label, {VoidCallback? onTap, Color? bg, Color? borderCol, Color? fg, IconData? icon, double fontSize = 20}) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
       final defaultBg = isDark ? const Color(0xFF2C394B) : Colors.grey.shade100;
       final defaultBorder = isDark ? const Color(0xFF374151) : Colors.grey.shade300;
       final defaultFg = isDark ? Colors.white : Colors.black87;
@@ -337,10 +340,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade50,
-                      foregroundColor: Colors.purple.shade800,
+                      backgroundColor: isDark ? const Color(0xFF3B2D54) : Colors.purple.shade50,
+                      foregroundColor: isDark ? const Color(0xFFE9D5FF) : Colors.purple.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.purple.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF7E22CE) : Colors.purple.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -352,10 +355,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade50,
-                      foregroundColor: Colors.purple.shade800,
+                      backgroundColor: isDark ? const Color(0xFF3B2D54) : Colors.purple.shade50,
+                      foregroundColor: isDark ? const Color(0xFFE9D5FF) : Colors.purple.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.purple.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF7E22CE) : Colors.purple.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -367,10 +370,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade50,
-                      foregroundColor: Colors.purple.shade800,
+                      backgroundColor: isDark ? const Color(0xFF3B2D54) : Colors.purple.shade50,
+                      foregroundColor: isDark ? const Color(0xFFE9D5FF) : Colors.purple.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.purple.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF7E22CE) : Colors.purple.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -382,10 +385,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade50,
-                      foregroundColor: Colors.purple.shade800,
+                      backgroundColor: isDark ? const Color(0xFF3B2D54) : Colors.purple.shade50,
+                      foregroundColor: isDark ? const Color(0xFFE9D5FF) : Colors.purple.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.purple.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF7E22CE) : Colors.purple.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -401,10 +404,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade50,
-                      foregroundColor: Colors.blue.shade800,
+                      backgroundColor: isDark ? const Color(0xFF1E3A5F) : Colors.blue.shade50,
+                      foregroundColor: isDark ? const Color(0xFFBFDBFE) : Colors.blue.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -416,10 +419,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade50,
-                      foregroundColor: Colors.blue.shade800,
+                      backgroundColor: isDark ? const Color(0xFF1E3A5F) : Colors.blue.shade50,
+                      foregroundColor: isDark ? const Color(0xFFBFDBFE) : Colors.blue.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -431,10 +434,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade50,
-                      foregroundColor: Colors.blue.shade800,
+                      backgroundColor: isDark ? const Color(0xFF1E3A5F) : Colors.blue.shade50,
+                      foregroundColor: isDark ? const Color(0xFFBFDBFE) : Colors.blue.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -446,10 +449,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade50,
-                      foregroundColor: Colors.blue.shade800,
+                      backgroundColor: isDark ? const Color(0xFF1E3A5F) : Colors.blue.shade50,
+                      foregroundColor: isDark ? const Color(0xFFBFDBFE) : Colors.blue.shade800,
                       elevation: 0,
-                      side: BorderSide(color: Colors.blue.shade200),
+                      side: BorderSide(color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade200),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -601,16 +604,43 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         controller: quantityController,
                         autofocus: true,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.purple),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.purple.shade900,
+                          letterSpacing: 1.2,
+                        ),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: InputDecoration(
                           labelText: 'الوزن / الكمية (${product.unit})',
+                          labelStyle: TextStyle(
+                            color: isDark ? const Color(0xFFE2E8F0) : Colors.purple.shade800,
+                            fontWeight: FontWeight.w600,
+                          ),
                           hintText: '0.000',
-                          prefixIcon: const Icon(Icons.scale, color: Colors.purple, size: 22),
+                          prefixIcon: Icon(
+                            Icons.scale,
+                            color: isDark ? const Color(0xFFD8B4FE) : Colors.purple.shade800,
+                            size: 22,
+                          ),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFFA855F7) : Colors.purple.shade200,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFFC084FC) : Colors.purple,
+                              width: 2,
+                            ),
+                          ),
                           suffixText: product.unit,
                           filled: true,
-                          fillColor: Colors.purple.shade50.withValues(alpha: 0.3),
+                          fillColor: isDark ? const Color(0xFF1E293B) : Colors.purple.shade50.withValues(alpha: 0.3),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
@@ -630,10 +660,19 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         controller: priceController,
                         autofocus: !product.isWeighted,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.blue.shade800,
+                          letterSpacing: 1.2,
+                        ),
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: isEng ? 'Direct Selling Price ($currencySym)' : 'سعر البيع المباشر ($currencySym)',
+                          labelStyle: TextStyle(
+                            color: isDark ? const Color(0xFFE2E8F0) : Colors.blue.shade800,
+                            fontWeight: FontWeight.w600,
+                          ),
                           prefixIcon: Container(
                             width: 48,
                             alignment: Alignment.center,
@@ -642,13 +681,27 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                               style: TextStyle(
                                 fontSize: isEng ? 20 : 15,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade800,
+                                color: isDark ? const Color(0xFF93C5FD) : Colors.blue.shade800,
                               ),
                             ),
                           ),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFF3B82F6) : Colors.blue.shade200,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFF60A5FA) : Colors.blue,
+                              width: 2,
+                            ),
+                          ),
                           filled: true,
-                          fillColor: Colors.blue.shade50.withValues(alpha: 0.3),
+                          fillColor: isDark ? const Color(0xFF1E293B) : Colors.blue.shade50.withValues(alpha: 0.3),
                         ),
                         onChanged: (_) => setStateDialog(() {}),
                       ),
@@ -1872,172 +1925,245 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     final discountController = TextEditingController(
       text: _discountAmount > 0 ? _discountAmount.toStringAsFixed(0) : '',
     );
+    if (discountController.text.isNotEmpty) {
+      discountController.selection = TextSelection.collapsed(offset: discountController.text.length);
+    }
+    final discountFocusNode = FocusNode();
     bool isPercentage = false;
 
     await showDialog(
       context: context,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            title: const Row(
-              children: [
-                Icon(Icons.percent, color: Colors.purple, size: 28),
-                SizedBox(width: 10),
-                Text('تطبيق خصم على الفاتورة'),
-              ],
-            ),
-            content: SizedBox(
-              width: 360,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          builder: (context, setDialogState) {
+            void applyDiscount() {
+              final val = double.tryParse(discountController.text.trim()) ?? 0.0;
+              if (val <= 0) {
+                TopNotification.showWarning(ctx, 'يرجى كتابة قيمة خصم أكبر من الصفر');
+                return;
+              }
+
+              double calculatedDiscount = 0.0;
+              if (isPercentage) {
+                calculatedDiscount = (_subtotalAmount * val) / 100.0;
+              } else {
+                calculatedDiscount = val;
+              }
+
+              if (calculatedDiscount > _subtotalAmount) {
+                TopNotification.showWarning(ctx, 'مبلغ الخصم أكبر من قيمة الفاتورة!');
+                return;
+              }
+
+              setState(() {
+                _discountAmount = calculatedDiscount;
+              });
+
+              Navigator.pop(ctx);
+              TopNotification.showSuccess(
+                context,
+                '🏷️ تم تطبيق خصم بقيمة (${calculatedDiscount.toStringAsFixed(0)} $currencySym) بنجاح!',
+              );
+            }
+
+            return CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.enter): applyDiscount,
+                const SingleActivator(LogicalKeyboardKey.numpadEnter): applyDiscount,
+              },
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                title: Row(
                   children: [
-                    Text(
-                      'إجمالي الفاتورة الحالي: ${_subtotalAmount.toStringAsFixed(0)} $currencySym',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Mode Toggle Buttons
-                    Row(
+                    Icon(Icons.percent, color: isDark ? const Color(0xFFD8B4FE) : Colors.purple, size: 28),
+                    const SizedBox(width: 10),
+                    const Text('تطبيق خصم على الفاتورة'),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 360,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: Center(child: Text('مبلغ مباشر ($currencySym)', style: const TextStyle(fontSize: 12))),
-                            selected: !isPercentage,
-                            selectedColor: isDark ? Colors.purple.shade900 : Colors.purple.shade100,
-                            onSelected: (val) {
-                              setDialogState(() => isPercentage = false);
-                            },
+                        Text(
+                          'إجمالي الفاتورة الحالي: ${_subtotalAmount.toStringAsFixed(0)} $currencySym',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Mode Toggle Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ChoiceChip(
+                                label: Center(child: Text('مبلغ مباشر ($currencySym)', style: const TextStyle(fontSize: 12))),
+                                selected: !isPercentage,
+                                selectedColor: isDark ? Colors.purple.shade800 : Colors.purple.shade100,
+                                onSelected: (val) {
+                                  setDialogState(() {
+                                    isPercentage = false;
+                                    discountFocusNode.requestFocus();
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ChoiceChip(
+                                label: const Center(child: Text('نسبة مئوية (%)', style: TextStyle(fontSize: 12))),
+                                selected: isPercentage,
+                                selectedColor: isDark ? Colors.purple.shade800 : Colors.purple.shade100,
+                                onSelected: (val) {
+                                  setDialogState(() {
+                                    isPercentage = true;
+                                    discountFocusNode.requestFocus();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                      const SizedBox(height: 14),
+
+                      // Display Input Field
+                      Theme(
+                        data: Theme.of(ctx).copyWith(
+                          textSelectionTheme: const TextSelectionThemeData(
+                            selectionColor: Colors.transparent,
+                            selectionHandleColor: Colors.transparent,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Center(child: Text('نسبة مئوية (%)', style: TextStyle(fontSize: 12))),
-                            selected: isPercentage,
-                            selectedColor: isDark ? Colors.purple.shade900 : Colors.purple.shade100,
-                            onSelected: (val) {
-                              setDialogState(() => isPercentage = true);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                  const SizedBox(height: 14),
-
-                  // Display Input Field
-                  TextField(
-                    controller: discountController,
-                    readOnly: true,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.purple),
-                    decoration: InputDecoration(
-                      labelText: isPercentage
-                          ? (isEng ? 'Discount Percentage %' : 'النسبة المئوية للخصم %')
-                          : (isEng ? 'Discount Amount ($currencySym)' : 'مبلغ الخصم ($currencySym)'),
-                      prefixIcon: Container(
-                        width: 48,
-                        alignment: Alignment.center,
-                        child: Text(
-                          isPercentage ? '%' : (isEng ? '\$' : currencySym),
+                        child: TextField(
+                          controller: discountController,
+                          focusNode: discountFocusNode,
+                          autofocus: true,
+                          textAlign: TextAlign.center,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                          ],
+                          onSubmitted: (_) => applyDiscount(),
+                          onChanged: (_) => setDialogState(() {}),
                           style: TextStyle(
-                            fontSize: isPercentage ? 20 : (isEng ? 20 : 15),
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
-                            color: Colors.purple,
+                            color: isDark ? Colors.white : Colors.purple.shade900,
+                            letterSpacing: 1.2,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: isPercentage
+                                ? (isEng ? 'Discount Percentage %' : 'النسبة المئوية للخصم %')
+                                : (isEng ? 'Discount Amount ($currencySym)' : 'مبلغ الخصم ($currencySym)'),
+                            labelStyle: TextStyle(
+                              color: isDark ? const Color(0xFFE2E8F0) : Colors.purple.shade800,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            prefixIcon: Container(
+                              width: 48,
+                              alignment: Alignment.center,
+                              child: Text(
+                                isPercentage ? '%' : (isEng ? '\$' : currencySym),
+                                style: TextStyle(
+                                  fontSize: isPercentage ? 20 : (isEng ? 20 : 15),
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFFD8B4FE) : Colors.purple.shade800,
+                                ),
+                              ),
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark ? const Color(0xFFA855F7) : Colors.purple.shade200,
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: isDark ? const Color(0xFFC084FC) : Colors.purple,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E293B) : Colors.purple.shade50.withValues(alpha: 0.3),
                           ),
                         ),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      filled: true,
-                      fillColor: Colors.purple.shade50.withValues(alpha: 0.3),
-                    ),
+
+                      const SizedBox(height: 16),
+
+                      // Touch Numpad
+                      _buildDiscountNumpad(
+                        onAppend: (digit) {
+                          setDialogState(() {
+                            final current = discountController.text;
+                            final next = current + digit;
+                            discountController.value = TextEditingValue(
+                              text: next,
+                              selection: TextSelection.collapsed(offset: next.length),
+                            );
+                          });
+                        },
+                        onBackspace: () {
+                          setDialogState(() {
+                            final current = discountController.text;
+                            if (current.isNotEmpty) {
+                              final next = current.substring(0, current.length - 1);
+                              discountController.value = TextEditingValue(
+                                text: next,
+                                selection: TextSelection.collapsed(offset: next.length),
+                              );
+                            }
+                          });
+                        },
+                        onClear: () {
+                          setDialogState(() {
+                            discountController.value = const TextEditingValue(
+                              text: '',
+                              selection: TextSelection.collapsed(offset: 0),
+                            );
+                          });
+                        },
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // Touch Numpad
-                  _buildDiscountNumpad(
-                    onAppend: (digit) {
-                      setDialogState(() {
-                        discountController.text += digit;
-                      });
+                ),
+              ),
+              actions: [
+                if (_discountAmount > 0)
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _discountAmount = 0.0);
+                      Navigator.pop(ctx);
+                      TopNotification.showInfo(context, 'تم إزالة الخصم عن الفاتورة.');
                     },
-                    onBackspace: () {
-                      setDialogState(() {
-                        if (discountController.text.isNotEmpty) {
-                          discountController.text = discountController.text.substring(0, discountController.text.length - 1);
-                        }
-                      });
-                    },
-                    onClear: () {
-                      setDialogState(() {
-                        discountController.clear();
-                      });
-                    },
+                    child: const Text('إلغاء الخصم الحالي', style: TextStyle(color: Colors.red)),
                   ),
-                ],
-              ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('إلغاء'),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                  onPressed: applyDiscount,
+                  icon: const Icon(Icons.check, color: Colors.white),
+                  label: const Text('تطبيق الخصم', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
-          ),
-          actions: [
-            if (_discountAmount > 0)
-              TextButton(
-                onPressed: () {
-                  setState(() => _discountAmount = 0.0);
-                  Navigator.pop(ctx);
-                  TopNotification.showInfo(context, 'تم إزالة الخصم عن الفاتورة.');
-                },
-                child: const Text('إلغاء الخصم الحالي', style: TextStyle(color: Colors.red)),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('إلغاء'),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-              onPressed: () {
-                final val = double.tryParse(discountController.text.trim()) ?? 0.0;
-                if (val <= 0) {
-                  TopNotification.showWarning(ctx, 'يرجى كتابة قيمة خصم أكبر من الصفر');
-                  return;
-                }
-
-                double calculatedDiscount = 0.0;
-                if (isPercentage) {
-                  calculatedDiscount = (_subtotalAmount * val) / 100.0;
-                } else {
-                  calculatedDiscount = val;
-                }
-
-                if (calculatedDiscount > _subtotalAmount) {
-                  TopNotification.showWarning(ctx, 'مبلغ الخصم أكبر من قيمة الفاتورة!');
-                  return;
-                }
-
-                setState(() {
-                  _discountAmount = calculatedDiscount;
-                });
-
-                Navigator.pop(ctx);
-                TopNotification.showSuccess(
-                  context,
-                  '🏷️ تم تطبيق خصم بقيمة (${calculatedDiscount.toStringAsFixed(0)} $currencySym) بنجاح!',
-                );
-              },
-              icon: const Icon(Icons.check, color: Colors.white),
-              label: const Text('تطبيق الخصم', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+          );
+        },
       );
     },
   );
+  discountFocusNode.dispose();
 }
 
   Future<void> _openCashDrawer() async {
@@ -2323,6 +2449,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       child: Focus(
         autofocus: true,
         child: Scaffold(
+          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
           body: SafeArea(
             child: _isLoadingTableOrder
                 ? const Center(child: CircularProgressIndicator())
@@ -2755,57 +2882,211 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                 // Left Pane (In RTL): Search Bar + Max-Expanded Products & Categories Grid View
                 Expanded(
                   flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Search Bar (Full Width)
+                  child: Container(
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      // Search Bar & Rearrange Mode Action Row
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                        child: TextField(
-                          controller: _searchController,
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                          decoration: InputDecoration(
-                            hintText: isEng ? 'Search item or scan barcode...' : 'ابحث عن صنف أو امسح الباركود...',
-                            hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                            prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1.5),
-                            ),
-                            filled: true,
-                            fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          ),
-                          onChanged: (val) => productsProvider.setSearchQuery(val),
-                          onSubmitted: (val) {
-                            final clean = val.trim();
-                            if (clean.isEmpty) return;
-                            final match = productsProvider.products.firstWhere(
-                              (p) => (p.barcode != null && p.barcode!.trim() == clean) || p.name.trim() == clean,
-                              orElse: () => productsProvider.products.firstWhere(
-                                (p) => p.name.trim().toLowerCase().contains(clean.toLowerCase()),
-                                orElse: () => const ProductModel(name: '', price: 0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                                decoration: InputDecoration(
+                                  hintText: isEng ? 'Search item or scan barcode...' : 'ابحث عن صنف أو امسح الباركود...',
+                                  hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                  prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+                                  ),
+                                  filled: true,
+                                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                ),
+                                onChanged: (val) => productsProvider.setSearchQuery(val),
+                                onSubmitted: (val) {
+                                  final clean = val.trim();
+                                  if (clean.isEmpty) return;
+                                  final match = productsProvider.products.firstWhere(
+                                    (p) => (p.barcode != null && p.barcode!.trim() == clean) || p.name.trim() == clean,
+                                    orElse: () => productsProvider.products.firstWhere(
+                                      (p) => p.name.trim().toLowerCase().contains(clean.toLowerCase()),
+                                      orElse: () => const ProductModel(name: '', price: 0),
+                                    ),
+                                  );
+                                  if (match.name.isNotEmpty && match.id != null) {
+                                    _addToCart(match);
+                                    _searchController.clear();
+                                    productsProvider.setSearchQuery('');
+                                  } else {
+                                    TopNotification.showWarning(context, isEng ? 'Item not found for barcode: $clean' : 'لم يتم العثور على صنف بالباركود: $clean');
+                                  }
+                                },
                               ),
-                            );
-                            if (match.name.isNotEmpty && match.id != null) {
-                              _addToCart(match);
-                              _searchController.clear();
-                              productsProvider.setSearchQuery('');
-                            } else {
-                              TopNotification.showWarning(context, isEng ? 'Item not found for barcode: $clean' : 'لم يتم العثور على صنف بالباركود: $clean');
-                            }
-                          },
+                            ),
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message: _isRearrangeMode ? 'إنهاء وضع ترتيب المواد' : 'ترتيب وتبديل أماكن المواد والتصنيفات',
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  if (!_isRearrangeMode && _searchController.text.isNotEmpty) {
+                                    _searchController.clear();
+                                    productsProvider.setSearchQuery('');
+                                  }
+                                  setState(() {
+                                    _isRearrangeMode = !_isRearrangeMode;
+                                    _rearrangeSelectedKey = null;
+                                  });
+                                },
+                                icon: Icon(
+                                  _isRearrangeMode ? Icons.check_circle : Icons.swap_horiz,
+                                  color: _isRearrangeMode ? Colors.white : (isDark ? Colors.tealAccent : Colors.teal.shade800),
+                                  size: 19,
+                                ),
+                                label: Text(
+                                  _isRearrangeMode ? 'إنهاء الترتيب' : 'تبديل الأماكن ⇄',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                    color: _isRearrangeMode ? Colors.white : (isDark ? Colors.tealAccent : Colors.teal.shade800),
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _isRearrangeMode
+                                      ? Colors.green.shade600
+                                      : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE0F2FE)),
+                                  elevation: _isRearrangeMode ? 3 : 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: BorderSide(
+                                      color: _isRearrangeMode
+                                          ? Colors.green.shade400
+                                          : (isDark ? Colors.teal.shade700 : Colors.teal.shade200),
+                                      width: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+
+                      // Reorder mode instruction and reset banner
+                      if (_isRearrangeMode)
+                        Container(
+                          margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isDark
+                                  ? [const Color(0xFF0F766E), const Color(0xFF1E293B)]
+                                  : [const Color(0xFFE0F2FE), const Color(0xFFF0FDF4)],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark ? Colors.tealAccent.shade400 : Colors.teal.shade300,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.touch_app,
+                                color: isDark ? Colors.tealAccent : Colors.teal.shade800,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _rearrangeSelectedKey == null
+                                      ? '⚡ اضغط على المادة الأولى ثم اضغط على الثانية لتبديل مكانهما، أو اسحب وأفلت ⇄'
+                                      : '🎯 تم تحديد العنصر الأول! اضغط الآن على المادة أو التصنيف المراد التبديل معه.',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.teal.shade900,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              if (_rearrangeSelectedKey != null)
+                                TextButton.icon(
+                                  onPressed: () {
+                                    setState(() => _rearrangeSelectedKey = null);
+                                  },
+                                  icon: const Icon(Icons.close, size: 16, color: Colors.redAccent),
+                                  label: const Text('إلغاء التحديد', style: TextStyle(color: Colors.redAccent, fontSize: 11.5)),
+                                ),
+                              const SizedBox(width: 4),
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Row(
+                                        children: [
+                                          Icon(Icons.restart_alt, color: Colors.orange),
+                                          SizedBox(width: 8),
+                                          Text('إعادة ضبط الترتيب'),
+                                        ],
+                                      ),
+                                      content: const Text('هل ترغب في إعادة ضبط الترتيب إلى الوضع الأبجدي الافتراضي؟'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('إلغاء'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                                          child: const Text('نعم، إعادة ضبط', style: TextStyle(color: Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed == true && context.mounted) {
+                                    final settings = context.read<SettingsProvider>();
+                                    if (showingCategoriesView) {
+                                      await settings.resetCashierMainOrder();
+                                    } else if (selectedCategoryId != null) {
+                                      await settings.resetCategoryProductsOrder(selectedCategoryId);
+                                    }
+                                    setState(() {
+                                      _rearrangeSelectedKey = null;
+                                    });
+                                    if (context.mounted) {
+                                      TopNotification.showSuccess(context, 'تمت إعادة ضبط الترتيب إلى الوضع الافتراضي بنجاح');
+                                    }
+                                  }
+                                },
+                                icon: const Icon(Icons.restart_alt, size: 15),
+                                label: const Text('إعادة ضبط', style: TextStyle(fontSize: 11.5)),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  foregroundColor: isDark ? Colors.amberAccent : Colors.brown,
+                                  side: BorderSide(
+                                    color: isDark ? Colors.amberAccent.withValues(alpha: 0.5) : Colors.brown.shade300,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
                       // Main Content View (Categories Grid OR Items Grid) - Maximized Space!
                       Expanded(
@@ -2816,6 +3097,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                     ],
                   ),
                 ),
+              ),
               ],
             );
           },
@@ -2886,7 +3168,6 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
   Color _getProductColor(ProductModel product, [int fallbackIndex = 0]) {
     final custom = _parseColor(product.color);
     if (custom != null) return custom;
-    if (!product.isAvailable) return Colors.grey.shade100;
     final key = product.id ?? (fallbackIndex + 1);
     return _autoItemColors[key.abs() % _autoItemColors.length];
   }
@@ -2937,18 +3218,144 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     }
   }
 
-  // 1. Grid View for Categories & Main Screen Products
+  List<_CashierMainGridItem> _getOrderedMainItems(
+    List<CategoryModel> rawCategories,
+    List<ProductModel> rawMainProducts,
+    SettingsProvider settingsProvider,
+  ) {
+    final allItems = <_CashierMainGridItem>[
+      ...rawCategories.map((c) => _CashierMainGridItem.category(c)),
+      ...rawMainProducts.map((p) => _CashierMainGridItem.product(p)),
+    ];
 
+    final savedOrder = settingsProvider.getCashierMainOrder();
+    if (savedOrder.isEmpty) {
+      final cats = rawCategories.map((c) => _CashierMainGridItem.category(c)).toList()
+        ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+      final prods = rawMainProducts.map((p) => _CashierMainGridItem.product(p)).toList()
+        ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+      return [...cats, ...prods];
+    }
+
+    final orderMap = <String, int>{};
+    for (int i = 0; i < savedOrder.length; i++) {
+      orderMap[savedOrder[i]] = i;
+    }
+
+    allItems.sort((a, b) {
+      final idxA = orderMap[a.key];
+      final idxB = orderMap[b.key];
+      if (idxA != null && idxB != null) return idxA.compareTo(idxB);
+      if (idxA != null) return -1;
+      if (idxB != null) return 1;
+      return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+    });
+
+    return allItems;
+  }
+
+  List<ProductModel> _getOrderedCategoryProducts(
+    List<ProductModel> rawProducts,
+    int categoryId,
+    SettingsProvider settingsProvider,
+  ) {
+    final savedOrder = settingsProvider.getCategoryProductsOrder(categoryId);
+    if (savedOrder.isEmpty) {
+      return List<ProductModel>.from(rawProducts)
+        ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
+    }
+
+    final orderMap = <int, int>{};
+    for (int i = 0; i < savedOrder.length; i++) {
+      orderMap[savedOrder[i]] = i;
+    }
+
+    final sorted = List<ProductModel>.from(rawProducts);
+    sorted.sort((a, b) {
+      final idA = a.id;
+      final idB = b.id;
+      final idxA = idA != null ? orderMap[idA] : null;
+      final idxB = idB != null ? orderMap[idB] : null;
+      if (idxA != null && idxB != null) return idxA.compareTo(idxB);
+      if (idxA != null) return -1;
+      if (idxB != null) return 1;
+      return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+    });
+    return sorted;
+  }
+
+  Future<void> _swapMainGridItems(
+    _CashierMainGridItem item1,
+    _CashierMainGridItem item2,
+    List<_CashierMainGridItem> currentItems,
+    SettingsProvider settingsProvider,
+  ) async {
+    if (item1.key == item2.key) return;
+    final index1 = currentItems.indexWhere((it) => it.key == item1.key);
+    final index2 = currentItems.indexWhere((it) => it.key == item2.key);
+    if (index1 == -1 || index2 == -1) return;
+
+    final updated = List<_CashierMainGridItem>.from(currentItems);
+    final temp = updated[index1];
+    updated[index1] = updated[index2];
+    updated[index2] = temp;
+
+    final newKeys = updated.map((it) => it.key).toList();
+    await settingsProvider.saveCashierMainOrder(newKeys);
+    setState(() {
+      _rearrangeSelectedKey = null;
+    });
+    if (mounted) {
+      TopNotification.showSuccess(
+        context,
+        'تم تبديل موقع (${item1.name}) مع (${item2.name}) بنجاح ⇄',
+      );
+    }
+  }
+
+  Future<void> _swapCategoryProducts(
+    ProductModel prod1,
+    ProductModel prod2,
+    int categoryId,
+    List<ProductModel> currentProducts,
+    SettingsProvider settingsProvider,
+  ) async {
+    if (prod1.id == prod2.id || prod1.id == null || prod2.id == null) return;
+    final index1 = currentProducts.indexWhere((p) => p.id == prod1.id);
+    final index2 = currentProducts.indexWhere((p) => p.id == prod2.id);
+    if (index1 == -1 || index2 == -1) return;
+
+    final updated = List<ProductModel>.from(currentProducts);
+    final temp = updated[index1];
+    updated[index1] = updated[index2];
+    updated[index2] = temp;
+
+    final newIds = updated.map((p) => p.id!).toList();
+    await settingsProvider.saveCategoryProductsOrder(categoryId, newIds);
+    setState(() {
+      _rearrangeSelectedKey = null;
+    });
+    if (mounted) {
+      TopNotification.showSuccess(
+        context,
+        'تم تبديل موقع (${prod1.name}) مع (${prod2.name}) بنجاح ⇄',
+      );
+    }
+  }
+
+  // 1. Grid View for Categories & Main Screen Products
   Widget _buildCategoriesGrid(
     BuildContext context,
     CategoriesProvider categoriesProvider,
     ProductsProvider productsProvider,
   ) {
-    final categories = List<CategoryModel>.from(categoriesProvider.categories)
-      ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
-    final mainProducts = List<ProductModel>.from(productsProvider.mainScreenProducts)
-      ..sort((a, b) => a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase()));
-    final totalGridItems = categories.length + mainProducts.length;
+    final settingsProvider = context.watch<SettingsProvider>();
+    final gridItems = _getOrderedMainItems(
+      categoriesProvider.categories,
+      productsProvider.mainScreenProducts,
+      settingsProvider,
+    );
+    final totalGridItems = gridItems.length;
 
     if (totalGridItems == 0) {
       return const Center(
@@ -2956,10 +3363,17 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       );
     }
 
-    final itemExtent = context.watch<SettingsProvider>().cashierItemSize;
-    final catFontSize = (itemExtent * 0.133).clamp(10.5, 16.0);
-    final prodFontSize = (itemExtent * 0.127).clamp(10.0, 15.5);
-    final priceFontSize = (itemExtent * 0.117).clamp(9.5, 14.5);
+    final rawItemExtent = settingsProvider.cashierItemSize;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemExtent = screenWidth >= 1600
+        ? (rawItemExtent * 1.35).clamp(125.0, 165.0)
+        : (screenWidth >= 1350
+            ? (rawItemExtent * 1.2).clamp(112.0, 145.0)
+            : rawItemExtent);
+    final catFontSize = (itemExtent * 0.133).clamp(11.5, 17.0);
+    final prodFontSize = (itemExtent * 0.127).clamp(11.0, 16.5);
+    final priceFontSize = (itemExtent * 0.117).clamp(10.0, 15.5);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GridView.builder(
       padding: const EdgeInsets.all(7),
@@ -2971,33 +3385,67 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       ),
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
-        if (index < categories.length) {
-          final category = categories[index];
+        final item = gridItems[index];
+        final isSelectedForSwap = _isRearrangeMode && _rearrangeSelectedKey == item.key;
+
+        Widget cardContent;
+
+        if (item.isCategory) {
+          final category = item.category!;
           final hasImage = category.image != null && category.image!.isNotEmpty && File(category.image!).existsSync();
           final bgColor = _getCategoryColor(category, index);
-          final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
-          final textColor = isDarkBg ? Colors.white : Colors.black87;
+          final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.55);
+          final textColor = isDarkBg ? Colors.white : const Color(0xFF0F172A);
 
-          return Card(
-            elevation: 2,
+          cardContent = Card(
+            elevation: isSelectedForSwap ? 6 : 2.5,
+            shadowColor: Colors.black38,
             color: hasImage ? Colors.black : bgColor,
             clipBehavior: Clip.antiAlias,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
               side: BorderSide(
-                color: isDarkBg ? Colors.white.withValues(alpha: 0.18) : Colors.grey.shade300,
-                width: 1.0,
+                color: isSelectedForSwap
+                    ? Colors.amberAccent
+                    : (_isRearrangeMode
+                        ? (isDark ? Colors.tealAccent.withValues(alpha: 0.6) : Colors.teal.shade300)
+                        : (isDarkBg ? Colors.white.withValues(alpha: 0.22) : (isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)))),
+                width: isSelectedForSwap ? 3.5 : (_isRearrangeMode ? 1.8 : 1.2),
               ),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () {
+                if (_isRearrangeMode) {
+                  if (_rearrangeSelectedKey == null) {
+                    setState(() => _rearrangeSelectedKey = item.key);
+                  } else if (_rearrangeSelectedKey == item.key) {
+                    setState(() => _rearrangeSelectedKey = null);
+                  } else {
+                    final firstItem = gridItems.firstWhere(
+                      (it) => it.key == _rearrangeSelectedKey,
+                      orElse: () => item,
+                    );
+                    if (firstItem.key != item.key) {
+                      _swapMainGridItems(firstItem, item, gridItems, settingsProvider);
+                    } else {
+                      setState(() => _rearrangeSelectedKey = null);
+                    }
+                  }
+                  return;
+                }
                 productsProvider.selectCategory(category.id);
               },
-              onSecondaryTap: () => _customizeCategoryAppearance(context, category),
-              onLongPress: () => _customizeCategoryAppearance(context, category),
+              onSecondaryTap: () {
+                if (_isRearrangeMode) return;
+                _customizeCategoryAppearance(context, category);
+              },
+              onLongPress: () {
+                if (_isRearrangeMode) return;
+                _customizeCategoryAppearance(context, category);
+              },
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(10),
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -3042,10 +3490,10 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                   category.name,
                                   style: TextStyle(
                                     fontSize: catFontSize,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w800,
                                     color: textColor,
                                     shadows: isDarkBg
-                                        ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
+                                        ? const [Shadow(color: Colors.black54, blurRadius: 2.5, offset: Offset(0, 1))]
                                         : null,
                                   ),
                                   textAlign: TextAlign.center,
@@ -3058,6 +3506,283 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         ),
                       ),
                     ),
+
+                    // Rearrange badges
+                    if (isSelectedForSwap)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade700,
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3)],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle, size: 12, color: Colors.white),
+                              SizedBox(width: 3),
+                              Text(
+                                'محدد للتبديل',
+                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_isRearrangeMode)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.swap_horiz, size: 12, color: Colors.cyanAccent),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${index + 1}',
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Main Screen Product
+          final product = item.product!;
+          final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
+          final rawBgColor = _getProductColor(product, index);
+          final bgColor = product.isAvailable
+              ? rawBgColor
+              : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1));
+          final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.55);
+          final textColor = isDarkBg ? Colors.white : const Color(0xFF0F172A);
+          final priceColor = isDarkBg ? (isDark ? Colors.amberAccent : const Color(0xFFFEF08A)) : const Color(0xFF1E3A8A);
+
+          cardContent = Card(
+            elevation: isSelectedForSwap ? 6 : 2.5,
+            shadowColor: Colors.black38,
+            color: hasImage ? Colors.black : bgColor,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                color: isSelectedForSwap
+                    ? Colors.amberAccent
+                    : (_isRearrangeMode
+                        ? (isDark ? Colors.tealAccent.withValues(alpha: 0.6) : Colors.teal.shade300)
+                        : (product.isAvailable
+                            ? (isDarkBg
+                                ? Colors.white.withValues(alpha: 0.22)
+                                : (isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)))
+                            : Colors.red.shade300)),
+                width: isSelectedForSwap ? 3.5 : (_isRearrangeMode ? 1.8 : 1.2),
+              ),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                if (_isRearrangeMode) {
+                  if (_rearrangeSelectedKey == null) {
+                    setState(() => _rearrangeSelectedKey = item.key);
+                  } else if (_rearrangeSelectedKey == item.key) {
+                    setState(() => _rearrangeSelectedKey = null);
+                  } else {
+                    final firstItem = gridItems.firstWhere(
+                      (it) => it.key == _rearrangeSelectedKey,
+                      orElse: () => item,
+                    );
+                    if (firstItem.key != item.key) {
+                      _swapMainGridItems(firstItem, item, gridItems, settingsProvider);
+                    } else {
+                      setState(() => _rearrangeSelectedKey = null);
+                    }
+                  }
+                  return;
+                }
+                _addToCart(product);
+              },
+              onSecondaryTap: () {
+                if (_isRearrangeMode) return;
+                _customizeProductAppearance(context, product);
+              },
+              onLongPress: () {
+                if (_isRearrangeMode) return;
+                _customizeProductAppearance(context, product);
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          gradient: (!hasImage && product.isAvailable)
+                              ? (bgColor.computeLuminance() > 0.85
+                                  ? (isDark
+                                      ? const LinearGradient(
+                                          colors: [Color(0xFFE2E8F0), Color(0xFFCBD5E1)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : const LinearGradient(
+                                          colors: [Color(0xFFFFFFFF), Color(0xFFF1F5F9)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ))
+                                  : LinearGradient(
+                                      colors: [
+                                        bgColor.withValues(alpha: 0.9),
+                                        bgColor,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ))
+                              : null,
+                        ),
+                      ),
+                    ),
+                    if (hasImage)
+                      Positioned.fill(
+                        child: Image.file(
+                          File(product.image!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Container(color: bgColor),
+                        ),
+                      ),
+                    if (hasImage)
+                      Positioned.fill(
+                        child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                      ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        child: Center(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: prodFontSize,
+                                    color: textColor,
+                                    shadows: isDarkBg
+                                        ? const [Shadow(color: Colors.black54, blurRadius: 2.5, offset: Offset(0, 1))]
+                                        : null,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 3),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: isDarkBg
+                                        ? Colors.black.withValues(alpha: 0.38)
+                                        : Colors.white.withValues(alpha: 0.9),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isDarkBg
+                                          ? Colors.white.withValues(alpha: 0.25)
+                                          : Colors.grey.shade400,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${product.price.toStringAsFixed(0)} $_currencySymbol',
+                                    style: TextStyle(
+                                      color: priceColor,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: priceFontSize,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    if (!product.isAvailable)
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade700,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: const Text('غير متوفر', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+
+                    // Rearrange badges
+                    if (isSelectedForSwap)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade700,
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3)],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle, size: 12, color: Colors.white),
+                              SizedBox(width: 3),
+                              Text(
+                                'محدد للتبديل',
+                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_isRearrangeMode)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.swap_horiz, size: 12, color: Colors.cyanAccent),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${index + 1}',
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -3065,131 +3790,55 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
           );
         }
 
-        // Main Screen Products (displayLocation == 'BOTH' or 'MAIN_ONLY')
-        final product = mainProducts[index - categories.length];
-        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
-        final bgColor = _getProductColor(product, index - categories.length);
-        final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
-        final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
-        final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
+        if (!_isRearrangeMode) {
+          return cardContent;
+        }
 
-        return Card(
-          elevation: 2,
-          color: hasImage ? Colors.black : bgColor,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(
-              color: product.isAvailable
-                  ? (isDarkBg
-                      ? Colors.white.withValues(alpha: 0.18)
-                      : (bgColor.computeLuminance() > 0.85 ? Colors.grey.shade400 : Colors.grey.shade300))
-                  : Colors.red.shade200,
-              width: 1.0,
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () => _addToCart(product),
-            onSecondaryTap: () => _customizeProductAppearance(context, product),
-            onLongPress: () => _customizeProductAppearance(context, product),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        gradient: (!hasImage && product.isAvailable)
-                            ? (bgColor.computeLuminance() > 0.85
-                                ? const LinearGradient(
-                                    colors: [Colors.white, Color(0xFFF8FAFC)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : LinearGradient(
-                                    colors: [
-                                      bgColor.withValues(alpha: 0.88),
-                                      bgColor,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ))
-                            : null,
-                      ),
-                    ),
+        return DragTarget<_CashierMainGridItem>(
+          onWillAcceptWithDetails: (details) => details.data.key != item.key,
+          onAcceptWithDetails: (details) {
+            _swapMainGridItems(details.data, item, gridItems, settingsProvider);
+          },
+          builder: (context, candidateData, rejectedData) {
+            final isTargetOver = candidateData.isNotEmpty;
+            return Draggable<_CashierMainGridItem>(
+              data: item,
+              feedback: Material(
+                elevation: 10,
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.transparent,
+                child: SizedBox(
+                  width: itemExtent,
+                  height: itemExtent,
+                  child: Opacity(
+                    opacity: 0.9,
+                    child: cardContent,
                   ),
-                  if (hasImage)
-                    Positioned.fill(
-                      child: Image.file(
-                        File(product.image!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => Container(color: bgColor),
-                      ),
-                    ),
-                  if (hasImage)
-                    Positioned.fill(
-                      child: Container(color: Colors.black.withValues(alpha: 0.55)),
-                    ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                      child: Center(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                product.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: prodFontSize,
-                                  color: textColor,
-                                  shadows: isDarkBg
-                                      ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
-                                      : null,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 3),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: isDarkBg
-                                      ? Colors.black.withValues(alpha: 0.28)
-                                      : (bgColor.computeLuminance() > 0.85
-                                          ? const Color(0xFFF1F5F9)
-                                          : Colors.white.withValues(alpha: 0.75)),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: isDarkBg
-                                        ? Colors.white.withValues(alpha: 0.2)
-                                        : Colors.grey.shade300,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                child: Text(
-                                  '${product.price.toStringAsFixed(0)} $_currencySymbol',
-                                  style: TextStyle(
-                                    color: priceColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: priceFontSize,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+              childWhenDragging: Opacity(
+                opacity: 0.25,
+                child: cardContent,
+              ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: isTargetOver
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amberAccent, width: 3.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      )
+                    : null,
+                child: cardContent,
+              ),
+            );
+          },
         );
       },
     );
@@ -3199,12 +3848,29 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
 
   // 2. Grid View for Items/Products
   Widget _buildItemsGrid(BuildContext context, ProductsProvider productsProvider) {
-    final products = productsProvider.cashierProducts;
+    final settingsProvider = context.watch<SettingsProvider>();
+    final selectedCatId = productsProvider.selectedCategoryId;
+    final rawProducts = productsProvider.cashierProducts;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final List<ProductModel> products;
+    if (selectedCatId != null && productsProvider.searchQuery.isEmpty) {
+      products = _getOrderedCategoryProducts(rawProducts, selectedCatId, settingsProvider);
+    } else {
+      products = rawProducts;
+    }
+
     final totalGridItems = products.length + 1;
 
-    final itemExtent = context.watch<SettingsProvider>().cashierItemSize;
-    final prodFontSize = (itemExtent * 0.127).clamp(10.0, 15.5);
-    final priceFontSize = (itemExtent * 0.117).clamp(9.5, 14.5);
+    final rawItemExtent = settingsProvider.cashierItemSize;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemExtent = screenWidth >= 1600
+        ? (rawItemExtent * 1.35).clamp(125.0, 165.0)
+        : (screenWidth >= 1350
+            ? (rawItemExtent * 1.2).clamp(112.0, 145.0)
+            : rawItemExtent);
+    final prodFontSize = (itemExtent * 0.127).clamp(11.0, 16.5);
+    final priceFontSize = (itemExtent * 0.117).clamp(10.0, 15.5);
 
     return GridView.builder(
       padding: const EdgeInsets.all(7),
@@ -3217,25 +3883,27 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
       itemCount: totalGridItems,
       itemBuilder: (context, index) {
         if (index == 0) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
           return InkWell(
             onTap: () {
+              setState(() {
+                _rearrangeSelectedKey = null;
+              });
               productsProvider.selectCategory(null);
               productsProvider.setSearchQuery('');
             },
             child: Card(
-              elevation: 2,
+              elevation: 2.5,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
                 side: BorderSide(
-                  color: isDark ? const Color(0xFF3F3F46) : Colors.grey.shade300,
+                  color: isDark ? const Color(0xFF3F3F46) : Colors.grey.shade400,
                   width: 1.2,
                 ),
               ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: isDark ? const Color(0xFF27272A) : Colors.grey.shade100,
+                  color: isDark ? const Color(0xFF27272A) : Colors.white,
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Center(
@@ -3281,32 +3949,69 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
         }
 
         final product = products[index - 1];
-        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
-        final bgColor = _getProductColor(product, index - 1);
-        final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.5);
-        final textColor = isDarkBg ? Colors.white : (product.isAvailable ? Colors.black87 : Colors.grey);
-        final priceColor = isDarkBg ? Colors.amberAccent : AppColors.primary;
+        final productKey = 'prod_${product.id}';
+        final isSelectedForSwap = _isRearrangeMode && _rearrangeSelectedKey == productKey;
 
-        return Card(
-          elevation: 2,
+        final hasImage = product.image != null && product.image!.isNotEmpty && File(product.image!).existsSync();
+        final rawBgColor = _getProductColor(product, index - 1);
+        final bgColor = product.isAvailable
+            ? rawBgColor
+            : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1));
+        final isDarkBg = hasImage || (bgColor.computeLuminance() < 0.55);
+        final textColor = isDarkBg ? Colors.white : const Color(0xFF0F172A);
+        final priceColor = isDarkBg ? (isDark ? Colors.amberAccent : const Color(0xFFFEF08A)) : const Color(0xFF1E3A8A);
+
+        Widget cardContent = Card(
+          elevation: isSelectedForSwap ? 6 : 2.5,
+          shadowColor: Colors.black38,
           color: hasImage ? Colors.black : bgColor,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(
-              color: product.isAvailable
-                  ? (isDarkBg
-                      ? Colors.white.withValues(alpha: 0.18)
-                      : (bgColor.computeLuminance() > 0.85 ? Colors.grey.shade400 : Colors.grey.shade300))
-                  : Colors.red.shade200,
-              width: 1.0,
+              color: isSelectedForSwap
+                  ? Colors.amberAccent
+                  : (_isRearrangeMode
+                      ? (isDark ? Colors.tealAccent.withValues(alpha: 0.6) : Colors.teal.shade300)
+                      : (product.isAvailable
+                          ? (isDarkBg
+                              ? Colors.white.withValues(alpha: 0.22)
+                              : (isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)))
+                          : Colors.red.shade300)),
+              width: isSelectedForSwap ? 3.5 : (_isRearrangeMode ? 1.8 : 1.2),
             ),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: () => _addToCart(product),
-            onSecondaryTap: () => _customizeProductAppearance(context, product),
-            onLongPress: () => _customizeProductAppearance(context, product),
+            onTap: () {
+              if (_isRearrangeMode) {
+                if (_rearrangeSelectedKey == null) {
+                  setState(() => _rearrangeSelectedKey = productKey);
+                } else if (_rearrangeSelectedKey == productKey) {
+                  setState(() => _rearrangeSelectedKey = null);
+                } else {
+                  final firstProd = products.firstWhere(
+                    (p) => 'prod_${p.id}' == _rearrangeSelectedKey,
+                    orElse: () => product,
+                  );
+                  if (firstProd.id != product.id && selectedCatId != null) {
+                    _swapCategoryProducts(firstProd, product, selectedCatId, products, settingsProvider);
+                  } else {
+                    setState(() => _rearrangeSelectedKey = null);
+                  }
+                }
+                return;
+              }
+              _addToCart(product);
+            },
+            onSecondaryTap: () {
+              if (_isRearrangeMode) return;
+              _customizeProductAppearance(context, product);
+            },
+            onLongPress: () {
+              if (_isRearrangeMode) return;
+              _customizeProductAppearance(context, product);
+            },
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: Stack(
@@ -3317,14 +4022,20 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                         color: bgColor,
                         gradient: (!hasImage && product.isAvailable)
                             ? (bgColor.computeLuminance() > 0.85
-                                ? const LinearGradient(
-                                    colors: [Colors.white, Color(0xFFF8FAFC)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
+                                ? (isDark
+                                    ? const LinearGradient(
+                                        colors: [Color(0xFFE2E8F0), Color(0xFFCBD5E1)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : const LinearGradient(
+                                        colors: [Color(0xFFFFFFFF), Color(0xFFF1F5F9)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ))
                                 : LinearGradient(
                                     colors: [
-                                      bgColor.withValues(alpha: 0.88),
+                                      bgColor.withValues(alpha: 0.9),
                                       bgColor,
                                     ],
                                     begin: Alignment.topLeft,
@@ -3357,11 +4068,11 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                               Text(
                                 product.name,
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w800,
                                   fontSize: prodFontSize,
                                   color: textColor,
                                   shadows: isDarkBg
-                                      ? const [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(0, 1))]
+                                      ? const [Shadow(color: Colors.black54, blurRadius: 2.5, offset: Offset(0, 1))]
                                       : null,
                                 ),
                                 textAlign: TextAlign.center,
@@ -3373,15 +4084,13 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                 decoration: BoxDecoration(
                                   color: isDarkBg
-                                      ? Colors.black.withValues(alpha: 0.28)
-                                      : (bgColor.computeLuminance() > 0.85
-                                          ? const Color(0xFFF1F5F9)
-                                          : Colors.white.withValues(alpha: 0.75)),
+                                      ? Colors.black.withValues(alpha: 0.38)
+                                      : Colors.white.withValues(alpha: 0.9),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: isDarkBg
-                                        ? Colors.white.withValues(alpha: 0.2)
-                                        : Colors.grey.shade300,
+                                        ? Colors.white.withValues(alpha: 0.25)
+                                        : Colors.grey.shade400,
                                     width: 0.8,
                                   ),
                                 ),
@@ -3389,7 +4098,7 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                   '${product.price.toStringAsFixed(0)} $_currencySymbol',
                                   style: TextStyle(
                                     color: priceColor,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w900,
                                     fontSize: priceFontSize,
                                   ),
                                 ),
@@ -3428,12 +4137,143 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                       ),
                     ),
                   ),
+
+                  if (!product.isAvailable)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade700,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: const Text('غير متوفر', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+
+                  // Rearrange badges
+                  if (isSelectedForSwap)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade700,
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3)],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle, size: 12, color: Colors.white),
+                            SizedBox(width: 3),
+                            Text(
+                              'محدد للتبديل',
+                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_isRearrangeMode)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.swap_horiz, size: 12, color: Colors.cyanAccent),
+                            const SizedBox(width: 2),
+                            Text(
+                              '$index',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
         );
+
+        if (!_isRearrangeMode || selectedCatId == null) {
+          return cardContent;
+        }
+
+        return DragTarget<ProductModel>(
+          onWillAcceptWithDetails: (details) => details.data.id != product.id,
+          onAcceptWithDetails: (details) {
+            _swapCategoryProducts(details.data, product, selectedCatId, products, settingsProvider);
+          },
+          builder: (context, candidateData, rejectedData) {
+            final isTargetOver = candidateData.isNotEmpty;
+            return Draggable<ProductModel>(
+              data: product,
+              feedback: Material(
+                elevation: 10,
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.transparent,
+                child: SizedBox(
+                  width: itemExtent,
+                  height: itemExtent,
+                  child: Opacity(
+                    opacity: 0.9,
+                    child: cardContent,
+                  ),
+                ),
+              ),
+              childWhenDragging: Opacity(
+                opacity: 0.25,
+                child: cardContent,
+              ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: isTargetOver
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amberAccent, width: 3.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      )
+                    : null,
+                child: cardContent,
+              ),
+            );
+          },
+        );
       },
     );
   }
+}
+
+class _CashierMainGridItem {
+  final String key;
+  final CategoryModel? category;
+  final ProductModel? product;
+
+  _CashierMainGridItem.category(this.category)
+      : key = 'cat_${category!.id}',
+        product = null;
+
+  _CashierMainGridItem.product(this.product)
+      : key = 'prod_${product!.id}',
+        category = null;
+
+  bool get isCategory => category != null;
+  String get name => isCategory ? category!.name : product!.name;
 }

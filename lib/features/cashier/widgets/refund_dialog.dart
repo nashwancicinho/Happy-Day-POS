@@ -23,6 +23,7 @@ class _RefundDialogState extends State<RefundDialog> {
   final Set<int> _expandedOrderIds = {};
   bool _isLoadingItems = false;
   String _searchQuery = '';
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -39,7 +40,9 @@ class _RefundDialogState extends State<RefundDialog> {
   }
 
   Future<void> _loadCompletedOrders() async {
+    final tablesProvider = context.read<TablesProvider>();
     final ordersProvider = context.read<OrdersProvider>();
+    await tablesProvider.loadTables();
     await ordersProvider.loadOrders();
 
     final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
@@ -65,23 +68,94 @@ class _RefundDialogState extends State<RefundDialog> {
     }
   }
 
+  String _getOrderTypeLabel(OrderModel order, TablesProvider tablesProvider) {
+    if (order.orderType == 'DINE_IN') {
+      if (order.tableId != null) {
+        final table = tablesProvider.getTableById(order.tableId!);
+        if (table != null) {
+          final tName = table.name.trim();
+          return tName.startsWith('طاولة') ? tName : 'طاولة $tName';
+        }
+        return 'طاولة #${order.tableId}';
+      }
+      return 'طاولة صالة';
+    } else if (order.orderType == 'DELIVERY') {
+      return 'توصيل';
+    } else {
+      return 'سفري';
+    }
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersProvider = context.watch<OrdersProvider>();
+    final tablesProvider = context.watch<TablesProvider>();
     final settings = context.watch<SettingsProvider>();
     final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
 
-    // Search Filtering: Order ID, Customer Phone, Payment Method, Product Name or Product Barcode
+    // Search and Date Filtering: Order ID, Table Name/Number, Date, Payment Method, Product Name or Barcode
     final filteredOrders = completedOrders.where((order) {
+      // 1. Date filter (if active)
+      if (_selectedDate != null) {
+        try {
+          final dt = DateTime.parse(order.createdAt);
+          if (dt.year != _selectedDate!.year ||
+              dt.month != _selectedDate!.month ||
+              dt.day != _selectedDate!.day) {
+            return false;
+          }
+        } catch (_) {
+          return false;
+        }
+      }
+
+      // 2. Text Search Query
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase().trim();
+      final cleanQ = q.replaceAll('#', '').trim();
 
-      // Search by Order ID
-      if (order.id.toString() == q || '#${order.id}' == q) return true;
+      // Search by Order ID (exact or partial, e.g. 171, #171)
+      final orderIdStr = order.id.toString();
+      if (orderIdStr.contains(cleanQ) || '#$orderIdStr'.contains(q)) return true;
 
-      // Search by Payment Method or Type
-      if (order.paymentMethod.toLowerCase().contains(q)) return true;
+      // Search by Table Name or Table Number
+      if (order.tableId != null) {
+        final table = tablesProvider.getTableById(order.tableId!);
+        if (table != null) {
+          final tName = table.name.toLowerCase().trim();
+          if (tName.contains(q)) return true;
+          // Match digits if user typed just the table number (e.g. "5" for "طاولة 5")
+          final digits = tName.replaceAll(RegExp(r'[^0-9]'), '');
+          if (digits.isNotEmpty && (digits == cleanQ || digits.contains(cleanQ))) return true;
+        }
+        if (order.tableId.toString() == cleanQ) return true;
+      }
+
+      // Search by Date as text (e.g. 2026-10-23 or 10-23)
+      if (order.createdAt.contains(q)) return true;
+      if (order.businessDate != null && order.businessDate!.contains(q)) return true;
+
+      // Search by Order Type & Payment Method
+      final typeLabel = _getOrderTypeLabel(order, tablesProvider).toLowerCase();
+      if (typeLabel.contains(q)) return true;
       if (order.orderType.toLowerCase().contains(q)) return true;
+      if (order.paymentMethod.toLowerCase().contains(q)) return true;
+      if (order.paymentMethod == 'CASH' && ('كاش'.contains(q) || 'نقداً'.contains(q) || 'نقد'.contains(q))) return true;
+      if (order.paymentMethod == 'CREDIT' && ('دين'.contains(q) || 'آجل'.contains(q))) return true;
 
       // Search inside items for Product Name or Barcode
       final items = _orderItemsMap[order.id] ?? [];
@@ -93,6 +167,16 @@ class _RefundDialogState extends State<RefundDialog> {
     }).toList();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
+    final isTodaySelected = _selectedDate != null &&
+        _selectedDate!.year == now.year &&
+        _selectedDate!.month == now.month &&
+        _selectedDate!.day == now.day;
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterdaySelected = _selectedDate != null &&
+        _selectedDate!.year == yesterday.year &&
+        _selectedDate!.month == yesterday.month &&
+        _selectedDate!.day == yesterday.day;
 
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -126,40 +210,132 @@ class _RefundDialogState extends State<RefundDialog> {
         ],
       ),
       content: SizedBox(
-        width: 850,
-        height: 550,
+        width: 880,
+        height: 570,
         child: Column(
           children: [
-            // Search Input Field (Barcode or Invoice ID or Item Name)
-            TextField(
-              controller: _searchController,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'ابحث برقم الفاتورة، الباركود، أو اسم الصنف... 🔍',
-                hintText: 'امسح باركود الفاتورة أو اكتب #12 او اسم المنتج...',
-                prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.red),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                filled: true,
-                fillColor: isDark ? const Color(0xFF2C394B) : Colors.red.shade50.withValues(alpha: 0.3),
-              ),
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val;
-                });
-              },
+            // Search & Filter Bar Row
+            Row(
+              children: [
+                // Search Input Field (Invoice ID, Table Number, Date, Product Name)
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'ابحث برقم الفاتورة، رقم الطاولة، التاريخ، أو اسم الصنف... 🔍',
+                      hintText: 'اكتب رقم الفاتورة (#171) أو الطاولة (طاولة 5) أو التاريخ (2026-10-23)...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.red),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF2C394B) : Colors.red.shade50.withValues(alpha: 0.3),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Calendar Button
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: _selectedDate != null ? Colors.red.shade700 : (isDark ? const Color(0xFF2C394B) : Colors.grey.shade100),
+                    foregroundColor: _selectedDate != null ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                    side: BorderSide(
+                      color: _selectedDate != null ? Colors.red.shade700 : (isDark ? const Color(0xFF374151) : Colors.grey.shade300),
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  ),
+                  icon: Icon(
+                    Icons.calendar_month,
+                    size: 18,
+                    color: _selectedDate != null ? Colors.white : (isDark ? Colors.red.shade300 : Colors.red),
+                  ),
+                  label: Text(
+                    _selectedDate != null
+                        ? '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
+                        : 'اختر التاريخ 📅',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  onPressed: _pickDate,
+                ),
+                if (_selectedDate != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red, size: 22),
+                    tooltip: 'إلغاء تصفية التاريخ',
+                    onPressed: () {
+                      setState(() {
+                        _selectedDate = null;
+                      });
+                    },
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+
+            // Quick Filter Chips Row
+            Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('كل التواريخ', style: TextStyle(fontSize: 11)),
+                  selected: _selectedDate == null,
+                  onSelected: (val) {
+                    if (val) setState(() => _selectedDate = null);
+                  },
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: const Text('اليوم', style: TextStyle(fontSize: 11)),
+                  selected: isTodaySelected,
+                  onSelected: (val) {
+                    setState(() => _selectedDate = val ? DateTime(now.year, now.month, now.day) : null);
+                  },
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: const Text('أمس', style: TextStyle(fontSize: 11)),
+                  selected: isYesterdaySelected,
+                  onSelected: (val) {
+                    setState(() => _selectedDate = val ? DateTime(yesterday.year, yesterday.month, yesterday.day) : null);
+                  },
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'العدد: ${filteredOrders.length} فاتورة',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
 
             // Orders List Body
             Expanded(
@@ -182,7 +358,9 @@ class _RefundDialogState extends State<RefundDialog> {
                               Icon(Icons.search_off_rounded, size: 54, color: Colors.grey.shade400),
                               const SizedBox(height: 10),
                               Text(
-                                _searchQuery.isEmpty ? 'لا توجد فواتير مبيعات مكتملة حالياً' : 'لم يتم العثور على فواتير مطابقة للبحث "$_searchQuery"',
+                                _searchQuery.isEmpty && _selectedDate == null
+                                    ? 'لا توجد فواتير مبيعات مكتملة حالياً'
+                                    : 'لم يتم العثور على فواتير مطابقة للبحث',
                                 style: const TextStyle(fontSize: 15, color: Colors.grey, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -200,6 +378,8 @@ class _RefundDialogState extends State<RefundDialog> {
                               final dt = DateTime.parse(order.createdAt);
                               dateStr = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
                             } catch (_) {}
+
+                            final typeLabel = _getOrderTypeLabel(order, tablesProvider);
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 10),
@@ -236,18 +416,53 @@ class _RefundDialogState extends State<RefundDialog> {
                                         ),
                                         const SizedBox(width: 10),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: AppColors.primary.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            order.orderType == 'DINE_IN'
-                                                ? 'طاولة (${order.tableId ?? ''})'
+                                            color: order.orderType == 'DINE_IN'
+                                                ? Colors.purple.withValues(alpha: 0.12)
                                                 : order.orderType == 'DELIVERY'
-                                                    ? 'توصيل'
-                                                    : 'سفري',
-                                            style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold),
+                                                    ? Colors.blue.withValues(alpha: 0.12)
+                                                    : AppColors.primary.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: order.orderType == 'DINE_IN'
+                                                  ? (isDark ? Colors.purple.shade400 : Colors.purple.shade300)
+                                                  : order.orderType == 'DELIVERY'
+                                                      ? (isDark ? Colors.blue.shade400 : Colors.blue.shade300)
+                                                      : (isDark ? AppColors.primary.withValues(alpha: 0.5) : AppColors.primary.withValues(alpha: 0.4)),
+                                              width: 0.8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                order.orderType == 'DINE_IN'
+                                                    ? Icons.table_restaurant
+                                                    : order.orderType == 'DELIVERY'
+                                                        ? Icons.delivery_dining
+                                                        : Icons.takeout_dining,
+                                                size: 14,
+                                                color: order.orderType == 'DINE_IN'
+                                                    ? (isDark ? Colors.purple.shade200 : Colors.purple.shade800)
+                                                    : order.orderType == 'DELIVERY'
+                                                        ? (isDark ? Colors.blue.shade200 : Colors.blue.shade800)
+                                                        : AppColors.primary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                typeLabel,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: order.orderType == 'DINE_IN'
+                                                      ? (isDark ? Colors.purple.shade200 : Colors.purple.shade800)
+                                                      : order.orderType == 'DELIVERY'
+                                                          ? (isDark ? Colors.blue.shade200 : Colors.blue.shade800)
+                                                          : AppColors.primary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],

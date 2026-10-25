@@ -24,6 +24,8 @@ class PurchasesScreen extends StatefulWidget {
 class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  DateTime? _selectedPurchaseDate;
+  String _quickDateFilter = 'ALL'; // 'ALL', 'TODAY', 'YESTERDAY', 'MONTH', 'CUSTOM'
 
   @override
   void initState() {
@@ -53,11 +55,41 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
     final currencySym = settings.currencySymbol;
     final query = _searchController.text.trim().toLowerCase();
 
+    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+    final yesterdayStr = DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 10);
+    final currentMonthStr = '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
+    final selectedDateStr = _selectedPurchaseDate?.toIso8601String().substring(0, 10);
+
     final filteredPurchases = provider.purchases.where((p) {
-      if (query.isEmpty) return true;
-      return p.invoiceNumber.toLowerCase().contains(query) ||
-          p.supplierName.toLowerCase().contains(query) ||
-          (p.notes != null && p.notes!.toLowerCase().contains(query));
+      final pDate = p.createdAt.split("T").first.trim();
+
+      // 1. Specific Date Filter
+      if (selectedDateStr != null) {
+        if (pDate != selectedDateStr) return false;
+      }
+
+      // 2. Quick Date Filter
+      if (_quickDateFilter == 'TODAY') {
+        if (pDate != todayStr) return false;
+      } else if (_quickDateFilter == 'YESTERDAY') {
+        if (pDate != yesterdayStr) return false;
+      } else if (_quickDateFilter == 'MONTH') {
+        if (!pDate.startsWith(currentMonthStr)) return false;
+      }
+
+      // 3. Text Query Filter
+      if (query.isNotEmpty) {
+        final matchesInvoice = p.invoiceNumber.toLowerCase().contains(query);
+        final matchesSupplier = p.supplierName.toLowerCase().contains(query);
+        final matchesItem = p.items.any((it) => it.itemName.toLowerCase().contains(query));
+        final matchesNotes = p.notes != null && p.notes!.toLowerCase().contains(query);
+        final matchesDate = pDate.contains(query);
+        if (!matchesInvoice && !matchesSupplier && !matchesItem && !matchesNotes && !matchesDate) {
+          return false;
+        }
+      }
+
+      return true;
     }).toList();
 
     final filteredSuppliers = provider.suppliers.where((s) {
@@ -179,31 +211,247 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
                   ),
                 ),
 
-                // Search Bar
+                // Search & Date Filter Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (_) => setState(() {}),
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
-                      hintText: isEng
-                          ? 'Search supplier name, invoice no, phone...'
-                          : 'ابحث باسم المورد، رقم الفاتورة، الوصل، الهاتف...',
-                      hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                      prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          // Text Search
+                          Expanded(
+                            child: SizedBox(
+                              height: 42,
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (_) => setState(() {}),
+                                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: isDark ? const Color(0xFF242F3E) : Colors.grey.shade50,
+                                  hintText: isEng
+                                      ? (_tabController.index == 0
+                                          ? 'Search supplier, invoice no, item...'
+                                          : 'Search supplier name, phone, address...')
+                                      : (_tabController.index == 0
+                                          ? 'ابحث باسم المورد، رقم الفاتورة، أو المادة...'
+                                          : 'ابحث باسم المورد، الهاتف، العنوان...'),
+                                  hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13),
+                                  prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, size: 20),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear, size: 16),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() {});
+                                          },
+                                        )
+                                      : null,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Date Picker Button (for Invoices tab)
+                          if (_tabController.index == 0) ...[
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                                backgroundColor: _selectedPurchaseDate != null
+                                    ? AppColors.primary.withValues(alpha: 0.15)
+                                    : null,
+                                side: BorderSide(
+                                  color: _selectedPurchaseDate != null
+                                      ? AppColors.primary
+                                      : (isDark ? const Color(0xFF475569) : Colors.grey.shade400),
+                                  width: _selectedPurchaseDate != null ? 1.5 : 1,
+                                ),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: Icon(
+                                Icons.calendar_today,
+                                size: 16,
+                                color: _selectedPurchaseDate != null
+                                    ? AppColors.primary
+                                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                              ),
+                              label: Text(
+                                _selectedPurchaseDate != null
+                                    ? selectedDateStr!
+                                    : (isEng ? 'Pick Date' : 'تحديد تاريخ 📅'),
+                                style: TextStyle(
+                                  fontWeight: _selectedPurchaseDate != null ? FontWeight.bold : FontWeight.normal,
+                                  color: _selectedPurchaseDate != null
+                                      ? AppColors.primary
+                                      : (isDark ? Colors.white : Colors.black87),
+                                  fontSize: 13,
+                                ),
+                              ),
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _selectedPurchaseDate ?? DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2035),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    _selectedPurchaseDate = picked;
+                                    _quickDateFilter = 'CUSTOM';
+                                  });
+                                }
+                              },
+                            ),
+                            if (_selectedPurchaseDate != null) ...[
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                                tooltip: isEng ? 'Clear Date' : 'إلغاء فلتر التاريخ',
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedPurchaseDate = null;
+                                    _quickDateFilter = 'ALL';
+                                  });
+                                },
+                              ),
+                            ],
+                          ],
+                        ],
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? const Color(0xFF475569) : Colors.grey.shade400),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    ),
+
+                      // Quick Date Filter Chips & Invoice Count/Total (for Invoices tab)
+                      if (_tabController.index == 0) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  isEng ? 'Quick Date:' : 'الفترة السريعة:',
+                                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                ),
+                                const SizedBox(width: 8),
+                                ChoiceChip(
+                                  label: Text(isEng ? 'All' : 'الكل'),
+                                  selected: _quickDateFilter == 'ALL' && _selectedPurchaseDate == null,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _quickDateFilter = 'ALL';
+                                        _selectedPurchaseDate = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                                ChoiceChip(
+                                  label: Text(isEng ? 'Today ☀️' : 'اليوم ☀️'),
+                                  selected: _quickDateFilter == 'TODAY',
+                                  selectedColor: Colors.amber.withValues(alpha: 0.25),
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _quickDateFilter = 'TODAY';
+                                        _selectedPurchaseDate = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                                ChoiceChip(
+                                  label: Text(isEng ? 'Yesterday ⏱️' : 'أمس ⏱️'),
+                                  selected: _quickDateFilter == 'YESTERDAY',
+                                  selectedColor: Colors.orange.withValues(alpha: 0.2),
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _quickDateFilter = 'YESTERDAY';
+                                        _selectedPurchaseDate = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                                ChoiceChip(
+                                  label: Text(isEng ? 'This Month 🗓️' : 'هذا الشهر 🗓️'),
+                                  selected: _quickDateFilter == 'MONTH',
+                                  selectedColor: Colors.blue.withValues(alpha: 0.2),
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _quickDateFilter = 'MONTH';
+                                        _selectedPurchaseDate = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                if (_searchController.text.isNotEmpty || _selectedPurchaseDate != null || _quickDateFilter != 'ALL') ...[
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.red.shade400,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    ),
+                                    icon: const Icon(Icons.filter_alt_off, size: 16),
+                                    label: Text(isEng ? 'Reset' : 'إعادة ضبط'),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        _selectedPurchaseDate = null;
+                                        _quickDateFilter = 'ALL';
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ],
+                            ),
+
+                            // Statistics badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : Colors.indigo.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: isDark ? Colors.indigo.shade800 : Colors.indigo.shade200),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${isEng ? "Invoices:" : "عدد الفواتير:"} ${filteredPurchases.length}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFF818CF8) : Colors.indigo,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    '${isEng ? "Total:" : "المجموع:"} ${filteredPurchases.fold<double>(0.0, (sum, p) => sum + p.totalAmount).toStringAsFixed(0)} $currencySym',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFF818CF8) : Colors.indigo.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
 
@@ -283,10 +531,34 @@ class _PurchasesScreenState extends State<PurchasesScreen> with SingleTickerProv
 
   Widget _buildInvoicesTab(BuildContext context, List<PurchaseInvoiceModel> purchases, bool isEng, String currencySym, bool isDark) {
     if (purchases.isEmpty) {
+      final isFiltered = _searchController.text.isNotEmpty || _selectedPurchaseDate != null || _quickDateFilter != 'ALL';
       return Center(
-        child: Text(
-          isEng ? 'No purchase invoices recorded yet' : 'لا توجد فواتير مشتريات مسجلة حالياً',
-          style: TextStyle(fontSize: 16, color: isDark ? Colors.grey.shade400 : Colors.grey),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isFiltered ? Icons.search_off : Icons.receipt_long_outlined, size: 60, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              isFiltered
+                  ? (isEng ? 'No purchase invoices match the selected date or search filter.' : 'لا توجد فواتير مشتريات تطابق التاريخ أو البحث المحدد.')
+                  : (isEng ? 'No purchase invoices recorded yet' : 'لا توجد فواتير مشتريات مسجلة حالياً'),
+              style: TextStyle(fontSize: 15, color: isDark ? Colors.grey.shade400 : Colors.grey, fontWeight: FontWeight.bold),
+            ),
+            if (isFiltered) ...[
+              const SizedBox(height: 14),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _searchController.clear();
+                    _selectedPurchaseDate = null;
+                    _quickDateFilter = 'ALL';
+                  });
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: Text(isEng ? 'Show All Invoices' : 'عرض كافة الفواتير'),
+              ),
+            ],
+          ],
         ),
       );
     }

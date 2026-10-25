@@ -726,15 +726,34 @@ class _LoginScreenState extends State<LoginScreen> {
                           DropdownButtonFormField<String>(
                             initialValue: activeLoginUserValue,
                             dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-                            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 15),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
+                            ),
                             hint: Text(
-                              isEng ? 'Select User or Manager...' : 'اختر اسم المستخدم أو المدير...',
-                              style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                              isEng ? 'Select User or Manager' : 'اختر اسم المستخدم أو المدير',
+                              style: TextStyle(
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF374151),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             decoration: InputDecoration(
                               labelText: isEng ? 'Select User or Manager' : 'اختر اسم المستخدم أو المدير',
-                              labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
-                              prefixIcon: Icon(Icons.person, color: isDark ? Colors.grey.shade300 : null),
+                              labelStyle: TextStyle(
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF374151),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.person,
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
+                              ),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -758,7 +777,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(u.username, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                                    Text(
+                                      u.username,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
@@ -797,7 +823,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextField(
                             controller: _usernameController,
                             focusNode: _usernameFocusNode,
-                            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
                             onTap: () => setState(() => _isPasswordFocused = false),
                             onChanged: (_) {
                               if (_errorMessage != null) {
@@ -806,8 +836,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             decoration: InputDecoration(
                               labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
-                              labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
-                              prefixIcon: Icon(Icons.person, color: isDark ? Colors.grey.shade300 : null),
+                              labelStyle: TextStyle(
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF374151),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.person,
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
+                              ),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -831,7 +868,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           focusNode: _passwordFocusNode,
                           obscureText: _isObscure,
                           keyboardType: TextInputType.number,
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
                           onTap: () => setState(() => _isPasswordFocused = true),
                           onChanged: (_) {
                             if (_errorMessage != null) {
@@ -840,10 +881,20 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           decoration: InputDecoration(
                             labelText: isEng ? 'PIN Code / Password' : 'الرقم السري / كلمة المرور',
-                            labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
-                            prefixIcon: Icon(Icons.lock, color: isDark ? Colors.grey.shade300 : null),
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.grey.shade300 : const Color(0xFF374151),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock,
+                              color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
+                            ),
                             suffixIcon: IconButton(
-                              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off, color: isDark ? Colors.grey.shade300 : null),
+                              icon: Icon(
+                                _isObscure ? Icons.visibility : Icons.visibility_off,
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
+                              ),
                               onPressed: () => setState(() => _isObscure = !_isObscure),
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),

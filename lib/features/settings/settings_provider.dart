@@ -86,6 +86,39 @@ class SettingsProvider extends ChangeNotifier {
     await updateSetting('cashier_item_size', value.toStringAsFixed(1));
   }
 
+  // Cashier Screen Custom Sorting & Ordering
+  List<String> getCashierMainOrder() {
+    final raw = _settings['cashier_main_order'] ?? '';
+    if (raw.isEmpty) return [];
+    return raw.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  }
+
+  Future<void> saveCashierMainOrder(List<String> order) async {
+    await updateSetting('cashier_main_order', order.join(','));
+  }
+
+  List<int> getCategoryProductsOrder(int categoryId) {
+    final raw = _settings['cashier_cat_order_$categoryId'] ?? '';
+    if (raw.isEmpty) return [];
+    return raw
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .toList();
+  }
+
+  Future<void> saveCategoryProductsOrder(int categoryId, List<int> order) async {
+    await updateSetting('cashier_cat_order_$categoryId', order.join(','));
+  }
+
+  Future<void> resetCashierMainOrder() async {
+    await updateSetting('cashier_main_order', '');
+  }
+
+  Future<void> resetCategoryProductsOrder(int categoryId) async {
+    await updateSetting('cashier_cat_order_$categoryId', '');
+  }
+
   Color get primaryColor {
     final hex = themeColorHex.replaceAll('#', '');
     final val = int.tryParse(hex, radix: 16);

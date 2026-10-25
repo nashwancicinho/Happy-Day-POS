@@ -1780,6 +1780,8 @@ Write-Output "False"
         pw.Page(
           pageFormat: pageFormat,
           build: (pw.Context context) {
+            final isDailyPayment = payment.monthYear.contains('يومية');
+
             return pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Theme(
@@ -1791,56 +1793,59 @@ Write-Output "False"
                       settings.storeName,
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13),
                     ),
-                    pw.SizedBox(height: 2),
-                    pw.Text('سند صرف راتب شهري', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                    pw.Divider(thickness: 1),
-                    pw.SizedBox(height: 4),
+                            pw.SizedBox(height: 2),
+                            pw.Text(
+                              isDailyPayment ? 'سند صرف أجور يومية' : 'سند صرف راتب شهري',
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                            ),
+                            pw.Divider(thickness: 1),
+                            pw.SizedBox(height: 4),
 
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('اسم الموظف:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                        pw.Text(payment.employeeName ?? 'موظف', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                      ],
-                    ),
-                    pw.SizedBox(height: 3),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('عن شهر / سنة:', style: const pw.TextStyle(fontSize: 8.5)),
-                        pw.Text(payment.monthYear, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
-                      ],
-                    ),
-                    pw.SizedBox(height: 3),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('تاريخ الصرف:', style: const pw.TextStyle(fontSize: 8.5)),
-                        pw.Text(payment.paymentDate, style: const pw.TextStyle(fontSize: 8.5)),
-                      ],
-                    ),
-                    if (payment.paidBy != null && payment.paidBy!.isNotEmpty) ...[
-                      pw.SizedBox(height: 3),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('منفذ الصرف:', style: const pw.TextStyle(fontSize: 8.5)),
-                          pw.Text(payment.paidBy!, style: const pw.TextStyle(fontSize: 8.5)),
-                        ],
-                      ),
-                    ],
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text(isDailyPayment ? 'اسم العامل:' : 'اسم الموظف:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                                pw.Text(payment.employeeName ?? 'موظف', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                              ],
+                            ),
+                            pw.SizedBox(height: 3),
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text(isDailyPayment ? 'فترة اليومية:' : 'عن شهر / سنة:', style: const pw.TextStyle(fontSize: 8.5)),
+                                pw.Text(payment.monthYear, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+                              ],
+                            ),
+                            pw.SizedBox(height: 3),
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text('تاريخ الصرف:', style: const pw.TextStyle(fontSize: 8.5)),
+                                pw.Text(payment.paymentDate, style: const pw.TextStyle(fontSize: 8.5)),
+                              ],
+                            ),
+                            if (payment.paidBy != null && payment.paidBy!.isNotEmpty) ...[
+                              pw.SizedBox(height: 3),
+                              pw.Row(
+                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                children: [
+                                  pw.Text('منفذ الصرف:', style: const pw.TextStyle(fontSize: 8.5)),
+                                  pw.Text(payment.paidBy!, style: const pw.TextStyle(fontSize: 8.5)),
+                                ],
+                              ),
+                            ],
 
-                    pw.SizedBox(height: 6),
-                    pw.Divider(thickness: 0.5),
+                            pw.SizedBox(height: 6),
+                            pw.Divider(thickness: 0.5),
 
-                    // Financial details
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('الراتب الأساسي:', style: const pw.TextStyle(fontSize: 8.5)),
-                        pw.Text('${payment.baseSalary.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 8.5)),
-                      ],
-                    ),
+                            // Financial details
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text(isDailyPayment ? 'أجر العمل المستحق:' : 'الراتب الأساسي:', style: const pw.TextStyle(fontSize: 8.5)),
+                                pw.Text('${payment.baseSalary.toStringAsFixed(0)} ${settings.currencySymbol}', style: const pw.TextStyle(fontSize: 8.5)),
+                              ],
+                            ),
                     if (payment.totalBonuses > 0) ...[
                       pw.SizedBox(height: 2),
                       pw.Row(
