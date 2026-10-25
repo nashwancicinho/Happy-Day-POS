@@ -1109,7 +1109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             Expanded(
                               flex: 2,
                               child: SizedBox(
@@ -1126,25 +1126,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     isEng ? 'Add User' : 'إضافة مستخدم',
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              height: 48,
-                              child: OutlinedButton.icon(
-                                onPressed: _confirmExitApp,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.red,
-                                  side: BorderSide(color: Colors.red.shade300, width: 1.5),
-                                  backgroundColor: isDark ? Colors.red.shade900.withValues(alpha: 0.15) : Colors.red.shade50,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                                ),
-                                icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
-                                label: Text(
-                                  isEng ? 'Exit' : 'خروج',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red),
                                 ),
                               ),
                             ),
