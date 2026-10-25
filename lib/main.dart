@@ -49,8 +49,6 @@ void main() async {
         titleBarStyle: TitleBarStyle.normal,
       );
       windowManager.waitUntilReadyToShow(windowOptions, () async {
-        await windowManager.setBackgroundColor(Colors.white);
-        await windowManager.setFullScreen(true);
         await windowManager.show();
         await windowManager.focus();
       });
