@@ -55,6 +55,8 @@ jobs:
         VER=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
         echo "APP_VERSION=$VER" >> $GITHUB_ENV
         echo "Version extracted: $VER"
+        mkdir -p installer/output
+        git archive --format=zip --output="installer/output/CashBox-POS-FullProject-v${VER}.zip" HEAD
 
     - name: Upload Setup Executable Artifact
       uses: actions/upload-artifact@v4
@@ -73,5 +75,6 @@ jobs:
           الإصدار: v${{ env.APP_VERSION }}
         files: |
           installer/output/setup.exe
+          installer/output/CashBox-POS-FullProject-v${{ env.APP_VERSION }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

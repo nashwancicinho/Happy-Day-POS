@@ -45,7 +45,7 @@ app.*.map.json
 /android/app/release
 
 # Local binaries
-/bin/
+/bin/gh
 *.apk
 build_log.txt
 
