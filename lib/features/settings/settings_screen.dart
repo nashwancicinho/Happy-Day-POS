@@ -50,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _backupFolderController;
   String _selectedLogoIcon = 'storefront';
   String _selectedCurrency = 'د.ع';
+  String _selectedHomeScreenMode = 'both';
   int _selectedTab = 0;
 
   List<Printer> _systemPrinters = [];
@@ -85,6 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _backupFolderController = TextEditingController(text: settings.backupFolderPath);
     _selectedLogoIcon = settings.settings['store_logo_icon'] ?? 'storefront';
     _selectedCurrency = settings.currencySymbol;
+    _selectedHomeScreenMode = settings.homeScreenMode;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSystemPrinters();
@@ -213,6 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'store_address': _addressController.text.trim(),
         'store_phone': _phoneController.text.trim(),
         'currency_symbol': _selectedCurrency,
+        'home_screen_mode': _selectedHomeScreenMode,
         'receipt_header': _headerController.text.trim(),
         'receipt_footer': _footerController.text.trim(),
         'store_logo_icon': _selectedLogoIcon,
@@ -518,6 +521,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _backupFolderController.text = settings.backupFolderPath;
       _selectedLogoIcon = settings.settings['store_logo_icon'] ?? 'storefront';
       _selectedCurrency = settings.currencySymbol;
+      _selectedHomeScreenMode = settings.homeScreenMode;
       _isLoadedFromProvider = true;
     }
   }
@@ -1968,6 +1972,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         const SizedBox(height: 20),
 
+        // Default Main Screen Mode Card (الشاشة الرئيسية الافتراضية)
+        Card(
+          elevation: 3,
+          color: isDark ? const Color(0xFF1F2937) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isDark ? const Color(0xFF374151) : Colors.transparent),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.blue.shade700,
+                      child: const Icon(Icons.dashboard_customize_rounded, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEng ? 'Default Main Screen' : 'الشاشة الرئيسية الافتراضية للنظام',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isEng
+                                ? 'Choose what displays as the primary landing screen when opening POS or navigating Home'
+                                : 'اختر الشاشة التي تفتح كشاشة رئيسية عند بدء تشغيل البرنامج أو الضغط على الرئيسية',
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 28),
+
+                _buildHomeScreenOptionTile(
+                  context,
+                  isDark: isDark,
+                  isEng: isEng,
+                  modeKey: 'both',
+                  title: isEng ? 'Tables & Takeaway (Default)' : 'طاولات وسفري معاً (الافتراضي)',
+                  subtitle: isEng
+                      ? 'Shows the landing page with options for Dine-In Tables and Takeaway POS'
+                      : 'تظهر الشاشة الرئيسية الحالية التي تضم خياري صالة المطعم (الطاولات) وطلب سفري',
+                  icon: Icons.storefront_rounded,
+                  iconColor: Colors.blue,
+                ),
+                const SizedBox(height: 12),
+
+                _buildHomeScreenOptionTile(
+                  context,
+                  isDark: isDark,
+                  isEng: isEng,
+                  modeKey: 'tables',
+                  title: isEng ? 'Dine-In Hall (Tables Only)' : 'صالة المطعم (طاولات فقط)',
+                  subtitle: isEng
+                      ? 'Opens the tables and floor plan directly as the system main screen'
+                      : 'تفتح الشاشة الرئيسية مباشرة على صالة ومخطط الطاولات لمتابعة الطلبات المحلية',
+                  icon: Icons.table_restaurant_rounded,
+                  iconColor: Colors.teal,
+                ),
+                const SizedBox(height: 12),
+
+                _buildHomeScreenOptionTile(
+                  context,
+                  isDark: isDark,
+                  isEng: isEng,
+                  modeKey: 'cashier',
+                  title: isEng ? 'Quick Cashier (Takeaway / POS Only)' : 'كاشير سريع (سفري فقط)',
+                  subtitle: isEng
+                      ? 'Opens the cashier and direct sales directly as the system main screen'
+                      : 'تفتح الشاشة الرئيسية مباشرة على شاشة الكاشير والبيع السريع للطلبات والتوصيل',
+                  icon: Icons.point_of_sale_rounded,
+                  iconColor: Colors.green,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
         // Receipt Messages Card
         Card(
           elevation: 3,
@@ -2020,6 +2113,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildHomeScreenOptionTile(
+    BuildContext context, {
+    required bool isDark,
+    required bool isEng,
+    required String modeKey,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    final isSelected = _selectedHomeScreenMode == modeKey;
+    final primary = AppColors.primary;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedHomeScreenMode = modeKey;
+        });
+        _saveSettings();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? primary.withValues(alpha: isDark ? 0.22 : 0.1)
+              : (isDark ? const Color(0xFF242F3E) : Colors.grey.shade50),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? primary : (isDark ? const Color(0xFF475569) : Colors.grey.shade300),
+            width: isSelected ? 2.5 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: primary.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: iconColor.withValues(alpha: 0.15),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? primary : (isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? primary : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                  width: isSelected ? 7.0 : 2.0,
+                ),
+                color: isSelected ? Colors.white : Colors.transparent,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

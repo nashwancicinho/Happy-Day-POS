@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../models/restaurant_floor.dart';
 import '../../models/restaurant_table.dart';
 import 'tables_repository.dart';
 
@@ -7,16 +8,108 @@ class TablesProvider extends ChangeNotifier {
   final TablesRepository _repository = TablesRepository();
 
   List<RestaurantTable> _tables = [];
+  List<RestaurantFloor> _floors = [];
+  int? _selectedFloorId;
 
   List<RestaurantTable> get tables => _tables;
+  List<RestaurantFloor> get floors => _floors;
+  int? get selectedFloorId => _selectedFloorId;
+
+  RestaurantFloor? get currentFloor {
+    if (_floors.isEmpty) return null;
+    return _floors.firstWhere(
+      (f) => f.id == _selectedFloorId,
+      orElse: () => _floors.first,
+    );
+  }
+
+  List<RestaurantTable> get tablesForCurrentFloor {
+    if (_floors.length <= 1) return _tables;
+    final activeId = _selectedFloorId ?? (_floors.isNotEmpty ? _floors.first.id : 1);
+    return _tables.where((t) => t.floorId == activeId).toList();
+  }
+
+  List<RestaurantTable> tablesForFloor(int floorId) {
+    return _tables.where((t) => t.floorId == floorId).toList();
+  }
+
+  int tableCountForFloor(int floorId) {
+    return _tables.where((t) => t.floorId == floorId).length;
+  }
+
+  String getFloorName(int floorId) {
+    for (final f in _floors) {
+      if (f.id == floorId) return f.name;
+    }
+    return 'الطابق الأرضي';
+  }
+
+  void selectFloor(int floorId) {
+    if (_selectedFloorId != floorId) {
+      _selectedFloorId = floorId;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadFloors() async {
+    _floors = await _repository.getAllFloors();
+    if (_floors.isEmpty) {
+      final defaultFloor = const RestaurantFloor(name: 'الطابق الأرضي', sortOrder: 0);
+      await _repository.insertFloor(defaultFloor);
+      _floors = await _repository.getAllFloors();
+    }
+
+    if (_selectedFloorId == null || !_floors.any((f) => f.id == _selectedFloorId)) {
+      _selectedFloorId = _floors.first.id;
+    }
+  }
 
   Future<void> loadTables() async {
+    await loadFloors();
     _tables = await _repository.getAllTables();
     notifyListeners();
   }
 
-  Future<void> addTable({required String name, int capacity = 4}) async {
-    final table = RestaurantTable(name: name, capacity: capacity);
+  Future<RestaurantFloor> addFloor(String name) async {
+    final floor = RestaurantFloor(name: name, sortOrder: _floors.length);
+    final id = await _repository.insertFloor(floor);
+    await loadFloors();
+    _selectedFloorId = id;
+    notifyListeners();
+    return floor.copyWith(id: id);
+  }
+
+  Future<void> updateFloor(int id, String newName) async {
+    final index = _floors.indexWhere((f) => f.id == id);
+    if (index != -1) {
+      final updated = _floors[index].copyWith(name: newName);
+      await _repository.updateFloor(updated);
+      await loadFloors();
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteFloor(int id) async {
+    final hasOccupied = _tables.any((t) => t.floorId == id && t.status == 1);
+    if (hasOccupied) {
+      return false;
+    }
+    await _repository.deleteTablesByFloor(id);
+    await _repository.deleteFloor(id);
+    if (_selectedFloorId == id) {
+      _selectedFloorId = null;
+    }
+    await loadTables();
+    return true;
+  }
+
+  Future<void> addTable({required String name, int capacity = 4, int? floorId}) async {
+    final targetFloorId = floorId ?? _selectedFloorId ?? (_floors.isNotEmpty ? _floors.first.id : 1) ?? 1;
+    final table = RestaurantTable(
+      name: name,
+      capacity: capacity,
+      floorId: targetFloorId,
+    );
 
     await _repository.insertTable(table);
     await loadTables();
@@ -108,15 +201,19 @@ class TablesProvider extends ChangeNotifier {
     int cols = ((canvasWidth - paddingLeft) / (cardW + spacing)).floor();
     if (cols < 1) cols = 1;
 
-    for (int i = 0; i < _tables.length; i++) {
-      final t = _tables[i];
+    final targetTables = tablesForCurrentFloor;
+    for (int i = 0; i < targetTables.length; i++) {
+      final t = targetTables[i];
       if (t.id != null) {
         int row = i ~/ cols;
         int col = i % cols;
         double x = paddingLeft + col * (cardW + spacing);
         double y = paddingTop + row * (cardH + spacing);
 
-        _tables[i] = t.copyWith(posX: x, posY: y);
+        final idx = _tables.indexWhere((table) => table.id == t.id);
+        if (idx != -1) {
+          _tables[idx] = t.copyWith(posX: x, posY: y);
+        }
         await _repository.updateTablePosition(t.id!, x, y);
       }
     }

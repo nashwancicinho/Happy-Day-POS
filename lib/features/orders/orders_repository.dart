@@ -615,7 +615,7 @@ class OrdersRepository {
       SELECT o.*, c.name as customer_name
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
-      ORDER BY o.id DESC
+      ORDER BY o.created_at DESC, o.id DESC
     ''');
     return maps.map((e) => OrderModel.fromMap(e, customerName: e['customer_name'] as String?)).toList();
   }
@@ -627,7 +627,7 @@ class OrdersRepository {
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.status IN ('SUSPENDED', 'OPEN')
-      ORDER BY o.id DESC
+      ORDER BY o.created_at DESC, o.id DESC
     ''');
     return maps.map((e) => OrderModel.fromMap(e, customerName: e['customer_name'] as String?)).toList();
   }

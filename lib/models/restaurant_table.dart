@@ -10,6 +10,7 @@ class RestaurantTable {
   final double width;
   final double height;
   final double? currentOrderAmount;
+  final int floorId;
 
   const RestaurantTable({
     this.id,
@@ -23,6 +24,7 @@ class RestaurantTable {
     this.width = 120.0,
     this.height = 120.0,
     this.currentOrderAmount,
+    this.floorId = 1,
   });
 
   RestaurantTable copyWith({
@@ -37,6 +39,7 @@ class RestaurantTable {
     double? width,
     double? height,
     double? currentOrderAmount,
+    int? floorId,
   }) {
     return RestaurantTable(
       id: id ?? this.id,
@@ -50,6 +53,7 @@ class RestaurantTable {
       width: width ?? this.width,
       height: height ?? this.height,
       currentOrderAmount: currentOrderAmount ?? this.currentOrderAmount,
+      floorId: floorId ?? this.floorId,
     );
   }
 
@@ -65,6 +69,7 @@ class RestaurantTable {
       'pos_y': posY,
       'width': width,
       'height': height,
+      'floor_id': floorId,
     };
   }
 
@@ -81,6 +86,7 @@ class RestaurantTable {
       width: (map['width'] as num?)?.toDouble() ?? 120.0,
       height: (map['height'] as num?)?.toDouble() ?? 120.0,
       currentOrderAmount: (map['current_order_amount'] as num?)?.toDouble(),
+      floorId: (map['floor_id'] as int?) ?? 1,
     );
   }
 }

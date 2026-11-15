@@ -1,10 +1,57 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../database/database_helper.dart';
+import '../../models/restaurant_floor.dart';
 import '../../models/restaurant_table.dart';
 
 class TablesRepository {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  Future<List<RestaurantFloor>> getAllFloors() async {
+    final db = await _databaseHelper.database;
+    final maps = await db.query(
+      'restaurant_floors',
+      orderBy: 'sort_order ASC, id ASC',
+    );
+    return maps.map((e) => RestaurantFloor.fromMap(e)).toList();
+  }
+
+  Future<int> insertFloor(RestaurantFloor floor) async {
+    final db = await _databaseHelper.database;
+    return await db.insert(
+      'restaurant_floors',
+      floor.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> updateFloor(RestaurantFloor floor) async {
+    final db = await _databaseHelper.database;
+    return await db.update(
+      'restaurant_floors',
+      floor.toMap(),
+      where: 'id = ?',
+      whereArgs: [floor.id],
+    );
+  }
+
+  Future<int> deleteFloor(int id) async {
+    final db = await _databaseHelper.database;
+    return await db.delete(
+      'restaurant_floors',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteTablesByFloor(int floorId) async {
+    final db = await _databaseHelper.database;
+    return await db.delete(
+      'restaurant_tables',
+      where: 'floor_id = ?',
+      whereArgs: [floorId],
+    );
+  }
 
   Future<List<RestaurantTable>> getAllTables() async {
     final db = await _databaseHelper.database;

@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
+import '../../models/restaurant_floor.dart';
 import '../../models/restaurant_table.dart';
 import '../cashier/cashier_screen.dart';
 import '../orders/orders_provider.dart';
 import '../settings/settings_provider.dart';
 import 'floor_plan_canvas.dart';
+import 'realistic_table_widget.dart';
 
 import 'tables_provider.dart';
 
@@ -177,9 +179,13 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 
   void _showEditTableDialog(BuildContext parentContext, RestaurantTable table) {
+    final provider = parentContext.read<TablesProvider>();
+    final floors = provider.floors;
     final nameController = TextEditingController(text: table.name);
     final capacityController = TextEditingController(text: table.capacity.toString());
     String selectedShape = table.shape;
+    int selectedFloorId = table.floorId;
+    String? nameError;
 
     showDialog(
       context: parentContext,
@@ -201,7 +207,16 @@ class _TablesScreenState extends State<TablesScreen> {
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: "اسم الطاولة", border: OutlineInputBorder()),
+                    decoration: InputDecoration(
+                      labelText: "اسم الطاولة",
+                      border: const OutlineInputBorder(),
+                      errorText: nameError,
+                    ),
+                    onChanged: (_) {
+                      if (nameError != null) {
+                        setLocalState(() => nameError = null);
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -224,6 +239,19 @@ class _TablesScreenState extends State<TablesScreen> {
                       }
                     },
                   ),
+                  if (floors.length > 1) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      initialValue: floors.any((f) => f.id == selectedFloorId) ? selectedFloorId : floors.first.id,
+                      decoration: const InputDecoration(labelText: "الطابق 🏢", border: OutlineInputBorder()),
+                      items: floors.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setLocalState(() => selectedFloorId = val);
+                        }
+                      },
+                    ),
+                  ],
                 ],
               ),
               actions: [
@@ -237,9 +265,32 @@ class _TablesScreenState extends State<TablesScreen> {
                     final name = nameController.text.trim();
                     final capacity = int.tryParse(capacityController.text.trim()) ?? table.capacity;
 
-                    if (name.isEmpty) return;
+                    if (name.isEmpty) {
+                      setLocalState(() => nameError = 'يرجى إدخال اسم الطاولة');
+                      return;
+                    }
 
-                    final updatedTable = table.copyWith(name: name, capacity: capacity, shape: selectedShape);
+                    // التحقق مما إذا كان الاسم مكرراً مع طاولة أخرى
+                    final existingTable = provider.tables.cast<RestaurantTable?>().firstWhere(
+                      (t) => t?.id != table.id && t?.name.trim().toLowerCase() == name.toLowerCase(),
+                      orElse: () => null,
+                    );
+
+                    if (existingTable != null) {
+                      final floorName = provider.getFloorName(existingTable.floorId);
+                      final floorInfo = provider.floors.length > 1 ? ' في $floorName' : '';
+                      final warnMsg = '⚠️ لا يمكن تعديل الاسم: الطاولة ($name) موجودة مسبقاً$floorInfo!';
+                      setLocalState(() => nameError = 'هذه الطاولة موجودة مسبقاً$floorInfo');
+                      TopNotification.showWarning(parentContext, warnMsg);
+                      return;
+                    }
+
+                    final updatedTable = table.copyWith(
+                      name: name,
+                      capacity: capacity,
+                      shape: selectedShape,
+                      floorId: selectedFloorId,
+                    );
                     await parentContext.read<TablesProvider>().updateTable(updatedTable);
 
                     if (dialogContext.mounted) {
@@ -312,7 +363,7 @@ class _TablesScreenState extends State<TablesScreen> {
                             ),
                           ),
                           title: Text(table.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('السعة: ${table.capacity} أشخاص | الشكل: ${table.shape == 'round' ? 'دائري' : (table.shape == 'rectangle' ? 'مستطيل' : 'مربع')}'),
+                          subtitle: Text('${tablesProvider.floors.length > 1 ? "الطابق: ${tablesProvider.getFloorName(table.floorId)} | " : ""}السعة: ${table.capacity} أشخاص | الشكل: ${table.shape == 'round' ? 'دائري' : (table.shape == 'rectangle' ? 'مستطيل' : 'مربع')}'),
                           trailing: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue.shade700,
@@ -581,59 +632,369 @@ class _TablesScreenState extends State<TablesScreen> {
     );
   }
 
-  void _showAddTableDialog(BuildContext parentContext) {
+  void _showAddTableDialog(BuildContext parentContext, {int? initialFloorId}) {
+    final provider = parentContext.read<TablesProvider>();
+    final floors = provider.floors;
+    int selectedFloorId = initialFloorId ?? provider.selectedFloorId ?? (floors.isNotEmpty ? floors.first.id! : 1);
     final nameController = TextEditingController();
     final capacityController = TextEditingController(text: '4');
+    String? nameError;
 
     showDialog(
       context: parentContext,
       builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("إضافة طاولة جديدة للصالة"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "اسم الطاولة (مثال: طاولة 9)", border: OutlineInputBorder()),
+        return StatefulBuilder(
+          builder: (ctx, setLocalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.add_circle_outline_rounded, color: Colors.green, size: 26),
+                  SizedBox(width: 8),
+                  Text("إضافة طاولة جديدة للصالة"),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: capacityController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "السعة الاستيعابية (عدد الأشخاص)", border: OutlineInputBorder()),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: "اسم الطاولة (مثال: طاولة 9)",
+                      border: const OutlineInputBorder(),
+                      errorText: nameError,
+                    ),
+                    onChanged: (_) {
+                      if (nameError != null) {
+                        setLocalState(() => nameError = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: capacityController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "السعة الاستيعابية (عدد الأشخاص)", border: OutlineInputBorder()),
+                  ),
+                  if (floors.length > 1) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      initialValue: floors.any((f) => f.id == selectedFloorId) ? selectedFloorId : floors.first.id,
+                      decoration: const InputDecoration(labelText: "الطابق 🏢", border: OutlineInputBorder()),
+                      items: floors.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setLocalState(() => selectedFloorId = val);
+                        }
+                      },
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("إلغاء"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final capacity = int.tryParse(capacityController.text.trim()) ?? 4;
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text("إلغاء"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    final capacity = int.tryParse(capacityController.text.trim()) ?? 4;
 
-                if (name.isEmpty) return;
+                    if (name.isEmpty) {
+                      setLocalState(() => nameError = 'يرجى إدخال اسم الطاولة');
+                      return;
+                    }
 
-                final provider = parentContext.read<TablesProvider>();
-                await provider.addTable(
-                  name: name,
-                  capacity: capacity,
-                );
+                    // التحقق مما إذا كانت الطاولة موجودة مسبقاً بنفس الاسم
+                    final existingTable = provider.tables.cast<RestaurantTable?>().firstWhere(
+                      (t) => t?.name.trim().toLowerCase() == name.toLowerCase(),
+                      orElse: () => null,
+                    );
 
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                  TopNotification.showSuccess(parentContext, '🎉 تم إضافة الطاولة جديدة بنجاح!');
-                }
-              },
-              child: const Text("إضافة الطاولة"),
-            ),
-          ],
+                    if (existingTable != null) {
+                      final floorName = provider.getFloorName(existingTable.floorId);
+                      final floorInfo = provider.floors.length > 1 ? ' في $floorName' : '';
+                      final warnMsg = '⚠️ الطاولة ($name) موجودة مسبقاً$floorInfo! يرجى اختيار اسم أو رقم مختلف.';
+                      setLocalState(() => nameError = 'هذه الطاولة موجودة مسبقاً$floorInfo');
+                      TopNotification.showWarning(parentContext, warnMsg);
+                      return;
+                    }
+
+                    await provider.addTable(
+                      name: name,
+                      capacity: capacity,
+                      floorId: selectedFloorId,
+                    );
+
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                      TopNotification.showSuccess(parentContext, '🎉 تم إضافة الطاولة جديدة بنجاح!');
+                    }
+                  },
+                  child: const Text("إضافة الطاولة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  void _showManageFloorsDialog(BuildContext parentContext) {
+    final floorNameController = TextEditingController();
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogCtx) => Consumer<TablesProvider>(
+        builder: (ctx, provider, _) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          final floors = provider.floors;
+          final isEng = parentContext.read<SettingsProvider>().isEnglish;
+          final primary = AppColors.primary;
+
+          const suggestedNames = [
+            'الطابق الثاني',
+            'الطابق الثالث',
+            'طابق الميزانين',
+            'الروف / السطح',
+            'الحديقة / خارجي',
+            'صالة VIP',
+          ];
+
+          Future<void> submitAddFloor() async {
+            final name = floorNameController.text.trim();
+            if (name.isEmpty) return;
+            await provider.addFloor(name);
+            floorNameController.clear();
+            if (parentContext.mounted) {
+              TopNotification.showSuccess(parentContext, '🎉 تم إضافة ($name) بنجاح!');
+            }
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.layers_rounded, color: Colors.teal, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  isEng ? 'Manage Floors' : 'إدارة طوابق المطعم 🏢',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEng ? 'Current Floors:' : 'الطوابق الحالية:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334155) : Colors.grey.shade200,
+                        ),
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: floors.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: isDark ? const Color(0xFF334155) : Colors.grey.shade200,
+                        ),
+                        itemBuilder: (ctx, idx) {
+                          final floor = floors[idx];
+                          final count = provider.tableCountForFloor(floor.id!);
+                          final isSelected = floor.id == provider.selectedFloorId;
+
+                          return ListTile(
+                            dense: true,
+                            onTap: () {
+                              provider.selectFloor(floor.id!);
+                            },
+                            leading: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: isSelected
+                                  ? primary
+                                  : (isDark ? const Color(0xFF1E293B) : Colors.grey.shade300),
+                              child: Icon(
+                                Icons.apartment_rounded,
+                                size: 16,
+                                color: isSelected ? Colors.white : Colors.grey.shade700,
+                              ),
+                            ),
+                            title: Row(
+                              children: [
+                                Text(
+                                  floor.name,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                    fontSize: 14,
+                                    color: isSelected ? primary : null,
+                                  ),
+                                ),
+                                if (isSelected) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      isEng ? 'Active' : 'الحالي',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primary),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            subtitle: Text(
+                              '$count ${isEng ? "tables" : "طاولات"}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+                                  tooltip: isEng ? 'Rename' : 'تعديل الاسم',
+                                  onPressed: () => _showRenameFloorDialog(parentContext, floor),
+                                ),
+                                if (floors.length > 1)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                    tooltip: isEng ? 'Delete' : 'حذف الطابق',
+                                    onPressed: () async {
+                                      final occupiedCount = provider.tables.where((t) => t.floorId == floor.id && t.status == 1).length;
+                                      if (occupiedCount > 0) {
+                                        TopNotification.showWarning(
+                                          parentContext,
+                                          isEng
+                                              ? '⚠️ Cannot delete (${floor.name}) because it has $occupiedCount occupied table(s)!'
+                                              : '⚠️ لا يمكن حذف (${floor.name}) لأن به $occupiedCount طاولة مشغولة حالياً بطلبات قائمة!',
+                                        );
+                                        return;
+                                      }
+                                      final ok = await provider.deleteFloor(floor.id!);
+                                      if (ok && parentContext.mounted) {
+                                        TopNotification.showSuccess(
+                                          parentContext,
+                                          isEng ? '🗑️ Floor (${floor.name}) deleted successfully' : '🗑️ تم حذف (${floor.name}) بنجاح',
+                                        );
+                                      }
+                                    },
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    Text(
+                      isEng ? 'Add New Floor:' : 'إضافة طابق جديد ➕:',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: floorNameController,
+                      onSubmitted: (_) => submitAddFloor(),
+                      decoration: InputDecoration(
+                        hintText: isEng ? 'e.g. Second Floor, Rooftop...' : 'مثال: الطابق الثاني، الروف...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.add_circle, color: Colors.teal),
+                          onPressed: submitAddFloor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      isEng ? 'Quick suggestions:' : 'اقتراحات سريعة:',
+                      style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: suggestedNames.map((sug) {
+                        return ActionChip(
+                          avatar: const Icon(Icons.add, size: 14),
+                          label: Text(sug, style: const TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            floorNameController.text = sug;
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: Text(isEng ? 'Close' : 'إغلاق'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showRenameFloorDialog(BuildContext parentContext, RestaurantFloor floor) {
+    final controller = TextEditingController(text: floor.name);
+    showDialog(
+      context: parentContext,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('تعديل اسم ${floor.name}'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'اسم الطابق', border: OutlineInputBorder()),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != floor.name) {
+                await parentContext.read<TablesProvider>().updateFloor(floor.id!, newName);
+                if (parentContext.mounted) {
+                  TopNotification.showSuccess(parentContext, '✅ تم تعديل اسم الطابق إلى ($newName)');
+                }
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -641,20 +1002,16 @@ class _TablesScreenState extends State<TablesScreen> {
   Widget build(BuildContext context) {
     final tablesProvider = context.watch<TablesProvider>();
     final settings = context.watch<SettingsProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEng = settings.isEnglish;
     final showPriceOnTable = settings.showPriceOnTable;
     final currencySym = settings.currencySymbol;
     final tableCardSize = settings.tablesCardSize;
-    final tableNameFontSize = (tableCardSize * 0.104).clamp(11.5, 18.0);
-    final tableAmountFontSize = (tableCardSize * 0.08).clamp(9.0, 14.0);
-    final tables = tablesProvider.tables;
-
-    String formatBillAmount(double? amount) {
-      final val = amount ?? 0.0;
-      final formatted = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(2);
-      final withCommas = formatted.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
-      return '$withCommas $currencySym';
-    }
+    final floors = tablesProvider.floors;
+    final selectedFloorId = tablesProvider.selectedFloorId;
+    final currentFloor = tablesProvider.currentFloor;
+    final tables = tablesProvider.tablesForCurrentFloor;
+    final primary = AppColors.primary;
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -691,7 +1048,7 @@ class _TablesScreenState extends State<TablesScreen> {
           ],
           PopupMenuButton<String>(
             tooltip: isEng ? 'Table Properties' : 'خصائص الطاولات',
-            offset: const Offset(0, -320),
+            offset: const Offset(0, -385),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             color: const Color(0xFF1F2937),
             elevation: 8,
@@ -713,6 +1070,8 @@ class _TablesScreenState extends State<TablesScreen> {
             onSelected: (value) {
               if (value == 'add') {
                 _showAddTableDialog(context);
+              } else if (value == 'floors') {
+                _showManageFloorsDialog(context);
               } else if (value == 'edit') {
                 _showSelectTableToEditDialog(context);
               } else if (value == 'reservation') {
@@ -745,6 +1104,27 @@ class _TablesScreenState extends State<TablesScreen> {
                     const SizedBox(width: 12),
                     Text(
                       isEng ? 'Add New Table ➕' : 'إضافة طاولة جديدة ➕',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'floors',
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.layers_rounded, color: Colors.tealAccent, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isEng ? 'Manage Floors 🏢' : 'إضافة طوابق 🏢',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -927,13 +1307,67 @@ class _TablesScreenState extends State<TablesScreen> {
               ),
             ),
 
+          // Floors Selector Bar (Shown above tables when 2 or more floors exist)
+          if (floors.length >= 2)
+            _buildFloorsSelectorBar(context, tablesProvider, floors, selectedFloorId, primary, isDark, isEng),
+
           Expanded(
             child: tables.isEmpty
-                ? const Center(
-                    child: Text("لا توجد طاولات مضافة حالياً", style: TextStyle(fontSize: 18, color: Colors.grey)),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.table_restaurant_rounded,
+                            size: 56,
+                            color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          floors.length > 1 && currentFloor != null
+                              ? 'لا توجد طاولات مضافة في (${currentFloor.name}) حالياً'
+                              : 'لا توجد طاولات مضافة حالياً',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddTableDialog(context, initialFloorId: currentFloor?.id),
+                          icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                          label: Text(
+                            floors.length > 1 && currentFloor != null
+                                ? 'إضافة طاولة في ${currentFloor.name} ➕'
+                                : 'إضافة طاولة جديدة ➕',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
                   )
                 : _isFloorPlanView
                     ? FloorPlanCanvas(
+                        key: ValueKey('floor_canvas_$selectedFloorId'),
                         tables: tables,
                         isDesignMode: _isDesignMode,
                         isDeleteMode: _isDeleteMode,
@@ -946,105 +1380,55 @@ class _TablesScreenState extends State<TablesScreen> {
                     padding: const EdgeInsets.all(12),
                     itemCount: tables.length,
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: tableCardSize,
-                      childAspectRatio: 1.1,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
+                      maxCrossAxisExtent: tableCardSize.clamp(170.0, 300.0),
+                      childAspectRatio: 1.0,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
                     ),
                     itemBuilder: (context, index) {
                       final table = tables[index];
                       final isOccupied = table.status == 1;
                       final isReserved = table.status == 2;
-                      final bgColor = isOccupied
-                          ? const Color(0xFFDC2626)
-                          : (isReserved ? const Color(0xFFD97706) : const Color(0xFF16A34A));
-                      final borderColor = _isDeleteMode
-                          ? Colors.red.shade900
-                          : (isOccupied
-                              ? const Color(0xFFB91C1C)
-                              : (isReserved ? const Color(0xFFB45309) : const Color(0xFF15803D)));
 
-                      Widget cardContent = Card(
-                        elevation: _isDeleteMode ? 5 : 3,
-                        color: bgColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: borderColor,
-                            width: _isDeleteMode ? 2 : 1.5,
+                      Widget cardContent = Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _isDeleteMode
+                                ? Colors.red.shade400
+                                : (isOccupied
+                                    ? Colors.red.withValues(alpha: 0.35)
+                                    : (isReserved
+                                        ? Colors.amber.withValues(alpha: 0.35)
+                                        : Colors.green.withValues(alpha: 0.25))),
+                            width: _isDeleteMode ? 2 : 1,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: () {
-                            if (_isDeleteMode) {
-                              _confirmDeleteTable(context, table);
-                            } else {
-                              _openCashierForTable(table);
-                            }
-                          },
-                          child: Stack(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      table.name,
-                                      style: TextStyle(
-                                        fontSize: tableNameFontSize + 2,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    if (showPriceOnTable && isOccupied && (table.currentOrderAmount ?? 0) > 0) ...[
-                                      const SizedBox(height: 4),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                                        child: FittedBox(
-                                          fit: BoxFit.scaleDown,
-                                          child: Text(
-                                            formatBillAmount(table.currentOrderAmount),
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: tableAmountFontSize + 1,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            maxLines: 1,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-
-                              // Mode-Specific Action Header Controls (Delete badge only in delete mode)
-                              if (_isDeleteMode)
-                                Positioned(
-                                  top: 4,
-                                  left: 4,
-                                  child: GestureDetector(
-                                    onTap: () => _confirmDeleteTable(context, table),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.delete_forever,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                        child: Center(
+                          child: RealisticRestaurantTableWidget(
+                            table: table,
+                            scale: (tableCardSize / 165.0).clamp(0.65, 1.15),
+                            isDesignMode: false,
+                            isDeleteMode: _isDeleteMode,
+                            showPriceOnTable: showPriceOnTable,
+                            currencySym: currencySym,
+                            isEng: isEng,
+                            onTap: () {
+                              if (_isDeleteMode) {
+                                _confirmDeleteTable(context, table);
+                              } else {
+                                _openCashierForTable(table);
+                              }
+                            },
+                            onDelete: () => _confirmDeleteTable(context, table),
                           ),
                         ),
                       );
@@ -1240,4 +1624,119 @@ class _TablesScreenState extends State<TablesScreen> {
     },
   );
 }
+
+  Widget _buildFloorsSelectorBar(
+    BuildContext context,
+    TablesProvider provider,
+    List<RestaurantFloor> floors,
+    int? selectedFloorId,
+    Color primary,
+    bool isDark,
+    bool isEng,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF334155) : Colors.grey.shade200,
+            width: 1.2,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: floors.map((floor) {
+            final isSelected = floor.id == selectedFloorId;
+            final count = provider.tableCountForFloor(floor.id!);
+
+            return Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => provider.selectFloor(floor.id!),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [primary, primary.withValues(alpha: 0.85)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isSelected
+                        ? null
+                        : (isDark ? const Color(0xFF0F172A) : Colors.grey.shade100),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? primary
+                          : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                      width: isSelected ? 1.5 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: primary.withValues(alpha: 0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        floor.name,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.25)
+                              : (isDark ? const Color(0xFF1E293B) : Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 }

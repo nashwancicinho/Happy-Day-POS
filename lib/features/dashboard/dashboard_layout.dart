@@ -22,6 +22,7 @@ import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/settings_provider.dart';
 import '../tables/tables_screen.dart';
+import '../tables/open_sales_screen.dart';
 import '../users/users_screen.dart';
 import 'home_operation_screen.dart';
 import '../../services/local_server_service.dart';
@@ -47,9 +48,23 @@ class DashboardLayout extends StatefulWidget {
 class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int selectedIndex = 0;
+  bool _initialModeSet = false;
+  String? _lastKnownHomeMode;
   late final AppLifecycleListener _lifecycleListener;
   LicenseInfo? _licenseInfo;
   bool _isFullscreen = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  int _getHomeIndex(SettingsProvider settings) {
+    switch (settings.homeScreenMode) {
+      case 'tables':
+        return 1;
+      case 'cashier':
+        return 2;
+      case 'both':
+      default:
+        return 0;
+    }
+  }
 
   Future<void> _openGlobalCashDrawer() async {
     final settings = context.read<SettingsProvider>();
@@ -144,19 +159,19 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
         onNavigate: (index) => _navigateToPage(index, fromHome: true),
       ),
       TablesScreen(
-        onBack: () => _navigateToPage(0),
+        onBack: () => _navigateToPage(_getHomeIndex(context.read<SettingsProvider>())),
         onOrderCompleted: () {
           if (_openedFromHome) {
-            _navigateToPage(0);
+            _navigateToPage(_getHomeIndex(context.read<SettingsProvider>()));
           }
         },
       ),
       CashierScreen(
         onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
-        onBack: () => _navigateToPage(0),
+        onBack: () => _navigateToPage(_getHomeIndex(context.read<SettingsProvider>())),
         onOrderCompleted: () {
           if (_openedFromHome) {
-            _navigateToPage(0);
+            _navigateToPage(_getHomeIndex(context.read<SettingsProvider>()));
           }
         },
       ),
@@ -175,6 +190,11 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
         onNavigate: _navigateToPage,
       ),
       const TreasuryScreen(),
+      OpenSalesScreen(
+        onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
+        onBack: () => _navigateToPage(_getHomeIndex(context.read<SettingsProvider>())),
+        onNavigate: _navigateToPage,
+      ),
     ];
 
     _lifecycleListener = AppLifecycleListener(
@@ -298,7 +318,20 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final isEng = context.watch<SettingsProvider>().isEnglish;
+    final settings = context.watch<SettingsProvider>();
+    final isEng = settings.isEnglish;
+
+    // Adapt initial or active screen according to user's configured homeScreenMode
+    if (!_initialModeSet && !settings.isLoading) {
+      selectedIndex = _getHomeIndex(settings);
+      _initialModeSet = true;
+      _lastKnownHomeMode = settings.homeScreenMode;
+    } else if (_lastKnownHomeMode != null && _lastKnownHomeMode != settings.homeScreenMode) {
+      _lastKnownHomeMode = settings.homeScreenMode;
+      if ([0, 1, 2].contains(selectedIndex)) {
+        selectedIndex = _getHomeIndex(settings);
+      }
+    }
 
     // 1. Check if user is logged in. If not, show LoginScreen
     if (!authProvider.isLoggedIn) {
@@ -364,8 +397,7 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           children: [
                             _buildDrawerTile(0, Icons.home_outlined, Icons.home, isEnglish ? "Home" : "الرئيسية"),
-                            _buildDrawerTile(1, Icons.table_restaurant_outlined, Icons.table_restaurant, isEnglish ? "Tables Map" : "الطاولات"),
-                            _buildDrawerTile(2, Icons.point_of_sale_outlined, Icons.point_of_sale, isEnglish ? "Cashier & POS" : "الكاشير"),
+                            _buildDrawerTile(16, Icons.receipt_long_outlined, Icons.receipt_long_rounded, isEnglish ? "Open Sales" : "المبيعات المفتوحة"),
                             _buildDrawerTile(15, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet, isEnglish ? "Treasury" : "الخزينة"),
                             _buildDrawerTile(7, Icons.receipt_long_outlined, Icons.receipt_long, isEnglish ? "Other Expenses" : "مصاريف أخرى"),
                             _buildDrawerTile(9, Icons.request_quote_outlined, Icons.request_quote, isEnglish ? "Debts Log" : "سجل الديون"),
@@ -382,7 +414,7 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
                 ],
               ),
             ),
-            appBar: selectedIndex == 2
+            appBar: (selectedIndex == 2 || selectedIndex == 16)
                 ? null
                 : AppBar(
               automaticallyImplyLeading: false,
@@ -401,7 +433,7 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
                           onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
                       ),
-                      if (selectedIndex == 1) ...[
+                      if (selectedIndex == 1 && settings.homeScreenMode == 'both') ...[
                         const SizedBox(width: 4),
                         InkWell(
                           borderRadius: BorderRadius.circular(20),
@@ -659,8 +691,12 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   }
 
   Widget _buildDrawerTile(int index, IconData icon, IconData selectedIcon, String label) {
-    final isSelected = selectedIndex == index || (index == 14 && [3, 4, 5, 6, 8, 10, 11].contains(selectedIndex));
     final settingsProvider = context.watch<SettingsProvider>();
+    final homeIndex = _getHomeIndex(settingsProvider);
+    final isSelected = (index == 0)
+        ? (selectedIndex == homeIndex)
+        : (selectedIndex == index && (index != homeIndex || settingsProvider.homeScreenMode == 'both')) ||
+            (index == 14 && [3, 4, 5, 6, 8, 10, 11].contains(selectedIndex));
     final primaryColor = settingsProvider.primaryColor;
     final authProvider = context.watch<AuthProvider>();
     final permKey = _getPermissionKeyForIndex(index);
@@ -739,7 +775,8 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
                 if (!mounted) return;
               }
 
-              _navigateToPage(index, fromHome: false);
+              final targetIndex = (index == 0) ? _getHomeIndex(context.read<SettingsProvider>()) : index;
+              _navigateToPage(targetIndex, fromHome: false);
             },
           ),
         ),

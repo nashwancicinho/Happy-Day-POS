@@ -2533,10 +2533,12 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                             children: [
                               if (widget.selectedTable == null) ...[
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                                   ),
                                   child: DropdownButtonHideUnderline(
@@ -2560,23 +2562,24 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 8),
                               ],
-                              ElevatedButton.icon(
-                                onPressed: _cancelOrderAndGoHome,
-                                icon: const Icon(Icons.cancel_outlined, size: 15, color: Colors.white),
-                                label: Text(
-                                  isEng ? 'Cancel' : 'إلغاء الفاتورة',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade700,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  elevation: 1,
+                              SizedBox(
+                                height: 38,
+                                child: ElevatedButton.icon(
+                                  onPressed: _cancelOrderAndGoHome,
+                                  icon: const Icon(Icons.cancel_outlined, size: 17, color: Colors.white),
+                                  label: Text(
+                                    isEng ? 'Cancel' : 'إلغاء الفاتورة',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red.shade700,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    elevation: 1,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
                                 ),
                               ),
                               if (_cart.isNotEmpty) ...[

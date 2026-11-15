@@ -43,6 +43,11 @@ class SettingsProvider extends ChangeNotifier {
   bool get isSoundEnabled => (_settings['sound_enabled'] ?? 'true') == 'true';
   bool get isDarkMode => (_settings['dark_mode'] ?? 'false') == 'true';
   bool get showPriceOnTable => (_settings['show_price_on_table'] ?? 'true') == 'true';
+  String get homeScreenMode => _settings['home_screen_mode'] ?? 'both';
+
+  Future<void> setHomeScreenMode(String mode) async {
+    await updateSetting('home_screen_mode', mode);
+  }
 
   Future<void> setDarkMode(bool value) async {
     AppColors.isDark = value;

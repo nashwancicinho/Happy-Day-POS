@@ -39,13 +39,22 @@ class _RefundDialogState extends State<RefundDialog> {
     super.dispose();
   }
 
+  int _compareOrdersNewestFirst(OrderModel a, OrderModel b) {
+    final dtA = DateTime.tryParse(a.createdAt) ?? DateTime(1970);
+    final dtB = DateTime.tryParse(b.createdAt) ?? DateTime(1970);
+    final comp = dtB.compareTo(dtA);
+    if (comp != 0) return comp;
+    return (b.id ?? 0).compareTo(a.id ?? 0);
+  }
+
   Future<void> _loadCompletedOrders() async {
     final tablesProvider = context.read<TablesProvider>();
     final ordersProvider = context.read<OrdersProvider>();
     await tablesProvider.loadTables();
     await ordersProvider.loadOrders();
 
-    final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
+    final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList()
+      ..sort(_compareOrdersNewestFirst);
 
     if (!mounted) return;
     setState(() {
@@ -105,7 +114,8 @@ class _RefundDialogState extends State<RefundDialog> {
     final ordersProvider = context.watch<OrdersProvider>();
     final tablesProvider = context.watch<TablesProvider>();
     final settings = context.watch<SettingsProvider>();
-    final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList();
+    final completedOrders = ordersProvider.orders.where((o) => o.status == 'COMPLETED').toList()
+      ..sort(_compareOrdersNewestFirst);
 
     // Search and Date Filtering: Order ID, Table Name/Number, Date, Payment Method, Product Name or Barcode
     final filteredOrders = completedOrders.where((order) {
@@ -164,7 +174,8 @@ class _RefundDialogState extends State<RefundDialog> {
       }
 
       return false;
-    }).toList();
+    }).toList()
+      ..sort(_compareOrdersNewestFirst);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();

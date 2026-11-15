@@ -3,7 +3,36 @@ import 'package:provider/provider.dart';
 
 import '../../models/restaurant_table.dart';
 import '../settings/settings_provider.dart';
+import 'realistic_table_widget.dart';
 import 'tables_provider.dart';
+
+/// Custom painter for drawing a subtle, architectural floor grid pattern in the dining hall.
+class FloorGridPainter extends CustomPainter {
+  final bool isDark;
+
+  const FloorGridPainter({this.isDark = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dotPaint = Paint()
+      ..color = isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.06)
+      ..style = PaintingStyle.fill;
+
+    const spacing = 32.0;
+    const dotRadius = 1.2;
+
+    for (double x = spacing; x < size.width; x += spacing) {
+      for (double y = spacing; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant FloorGridPainter oldDelegate) => oldDelegate.isDark != isDark;
+}
 
 class FloorPlanCanvas extends StatefulWidget {
   final List<RestaurantTable> tables;
@@ -47,6 +76,8 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Stack(
@@ -62,17 +93,19 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
               child: Container(
                 width: constraints.maxWidth,
                 height: constraints.maxHeight,
-                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF3F4F6),
-                child: Stack(
-                  children: [
-                    // Render Tables on 2D Layout Canvas
-                    for (int i = 0; i < widget.tables.length; i++)
-                      _buildTableItem(context, widget.tables[i], i, constraints.maxWidth, constraints.maxHeight),
-                  ],
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                child: CustomPaint(
+                  painter: FloorGridPainter(isDark: isDark),
+                  child: Stack(
+                    children: [
+                      // Render Tables on 2D Layout Canvas
+                      for (int i = 0; i < widget.tables.length; i++)
+                        _buildTableItem(context, widget.tables[i], i, constraints.maxWidth, constraints.maxHeight),
+                    ],
+                  ),
                 ),
               ),
             ),
-
           ],
         );
       },
@@ -80,57 +113,35 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
   }
 
   Widget _buildTableItem(BuildContext context, RestaurantTable table, int index, double canvasW, double canvasH) {
+    final tablesCardSize = context.watch<SettingsProvider>().tablesCardSize;
+    final scale = (tablesCardSize / 135.0).clamp(0.65, 1.8);
+
+    final componentSize = RealisticRestaurantTableWidget.getComponentSize(table.shape, scale);
+    final tableWidth = componentSize.width;
+    final tableHeight = componentSize.height;
+
     // Initial position calculation if table has default -1 position
     double posX = table.posX;
     double posY = table.posY;
 
-    final tablesCardSize = context.watch<SettingsProvider>().tablesCardSize;
-    final scale = (tablesCardSize / 135.0).clamp(0.65, 1.8);
-
     if (posX < 0 || posY < 0) {
-      final double cardSize = 105 * scale;
-      final double spacing = 16 * scale;
+      final double spacing = 18 * scale;
       const double paddingLeft = 30;
-      const double paddingTop = 45;
-      int cols = ((canvasW - paddingLeft) / (cardSize + spacing)).floor();
+      const double paddingTop = 35;
+      int cols = ((canvasW - paddingLeft) / (tableWidth + spacing)).floor();
       if (cols < 1) cols = 1;
       int row = index ~/ cols;
       int col = index % cols;
-      posX = paddingLeft + col * (cardSize + spacing);
-      posY = paddingTop + row * (cardSize + spacing);
+      posX = paddingLeft + col * (tableWidth + spacing);
+      posY = paddingTop + row * (tableHeight + spacing);
     }
 
     final isEng = context.watch<SettingsProvider>().isEnglish;
     final currencySym = context.watch<SettingsProvider>().currencySymbol;
     final showPriceOnTable = context.watch<SettingsProvider>().showPriceOnTable;
-    final isOccupied = table.status == 1;
-    final isReserved = table.status == 2;
-    final tableBgColor = isOccupied
-        ? const Color(0xFFDC2626)
-        : (isReserved ? const Color(0xFFD97706) : const Color(0xFF16A34A));
-    final borderColor = widget.isDeleteMode
-        ? Colors.red.shade900
-        : widget.isDesignMode
-            ? Colors.purple
-            : (isOccupied
-                ? const Color(0xFFB91C1C)
-                : (isReserved ? const Color(0xFFB45309) : const Color(0xFF15803D)));
-    final tableWidth = (table.shape == 'rectangle' ? 130.0 : 98.0) * scale;
-    final tableHeight = (table.shape == 'rectangle' ? 90.0 : 98.0) * scale;
-
-    String formatTableName(String rawName) {
-      if (!isEng) return rawName;
-      return rawName.replaceAll('طاولة', 'Table');
-    }
-
-    String formatBillAmount(double? amount) {
-      final val = amount ?? 0.0;
-      final formatted = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(2);
-      final withCommas = formatted.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
-      return '$withCommas $currencySym';
-    }
 
     return Positioned(
+      key: ValueKey('table_${table.id}'),
       left: posX,
       top: posY,
       child: GestureDetector(
@@ -155,117 +166,25 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
             widget.onTableTap(table);
           }
         },
-        child: SizedBox(
-          width: tableWidth,
-          height: tableHeight,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              // Main Table Body Box / Cylinder
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: tableWidth,
-                height: tableHeight,
-                decoration: BoxDecoration(
-                  color: tableBgColor,
-                  borderRadius: table.shape == 'round' ? BorderRadius.circular(100) : BorderRadius.circular((13 * scale).clamp(8.0, 20.0)),
-                  border: Border.all(
-                    color: borderColor,
-                    width: widget.isDesignMode || widget.isDeleteMode ? 2.5 : 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (widget.isDesignMode ? Colors.purple : tableBgColor).withValues(alpha: 0.35),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (widget.isDesignMode) ...[
-                      Icon(
-                        Icons.open_with_rounded,
-                        size: 16 * scale,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 2),
-                    ],
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        formatTableName(table.name),
-                        style: TextStyle(
-                          fontSize: (14.0 * scale).clamp(11.0, 20.0),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    if (showPriceOnTable && isOccupied && (table.currentOrderAmount ?? 0) > 0) ...[
-                      SizedBox(height: 4 * scale),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            formatBillAmount(table.currentOrderAmount),
-                            style: TextStyle(
-                              fontSize: (11.5 * scale).clamp(9.5, 17.0),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Action Badges / Controls in Design or Normal Mode
-              if (widget.isDeleteMode)
-                Positioned(
-                  top: 2,
-                  left: 2,
-                  child: GestureDetector(
-                    onTap: () => widget.onDeleteTable(table),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.delete_forever, color: Colors.white, size: 16),
-                    ),
-                  ),
-                ),
-
-              if (widget.isDesignMode)
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: GestureDetector(
-                    onTap: () => _showShapeSelectorDialog(context, table),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade700,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.edit_road_rounded, color: Colors.white, size: 14),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        child: RealisticRestaurantTableWidget(
+          table: table,
+          scale: scale,
+          isDesignMode: widget.isDesignMode,
+          isDeleteMode: widget.isDeleteMode,
+          onTap: () {
+            if (widget.isDeleteMode) {
+              widget.onDeleteTable(table);
+            } else if (widget.isDesignMode) {
+              _showShapeSelectorDialog(context, table);
+            } else {
+              widget.onTableTap(table);
+            }
+          },
+          onDelete: () => widget.onDeleteTable(table),
+          onEditShape: () => _showShapeSelectorDialog(context, table),
+          showPriceOnTable: showPriceOnTable,
+          currencySym: currencySym,
+          isEng: isEng,
         ),
       ),
     );
@@ -275,15 +194,24 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('تغيير شكل الطاولة (${table.name})'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.table_restaurant_rounded, color: Colors.purple, size: 26),
+            const SizedBox(width: 8),
+            Text('تغيير شكل الطاولة (${table.name})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.crop_square, color: Colors.indigo),
-              title: const Text('طاولة مربعة 🔲'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: const Icon(Icons.crop_square_rounded, color: Colors.indigo, size: 28),
+              title: const Text('طاولة مربعة 🔲', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('تصميم مربع متناسق وأنيق'),
               selected: table.shape == 'square',
+              selectedTileColor: Colors.indigo.withValues(alpha: 0.1),
               onTap: () {
                 Navigator.pop(dialogCtx);
                 context.read<TablesProvider>().saveTablePosition(
@@ -294,10 +222,14 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                     );
               },
             ),
+            const SizedBox(height: 4),
             ListTile(
-              leading: const Icon(Icons.circle_outlined, color: Colors.teal),
-              title: const Text('طاولة دائرية ⭕'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: const Icon(Icons.circle_outlined, color: Colors.teal, size: 28),
+              title: const Text('طاولة دائرية ⭕', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('تصميم دائري انسيابي عصري'),
               selected: table.shape == 'round',
+              selectedTileColor: Colors.teal.withValues(alpha: 0.1),
               onTap: () {
                 Navigator.pop(dialogCtx);
                 context.read<TablesProvider>().saveTablePosition(
@@ -308,10 +240,14 @@ class _FloorPlanCanvasState extends State<FloorPlanCanvas> {
                     );
               },
             ),
+            const SizedBox(height: 4),
             ListTile(
-              leading: const Icon(Icons.rectangle_outlined, color: Colors.orange),
-              title: const Text('طاولة مستطيلة كبيرة ▭'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              leading: const Icon(Icons.rectangle_outlined, color: Colors.orange, size: 28),
+              title: const Text('طاولة مستطيلة كبيرة ▭', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('تصميم مستطيل فسيح للطاولات الكبيرة'),
               selected: table.shape == 'rectangle',
+              selectedTileColor: Colors.orange.withValues(alpha: 0.1),
               onTap: () {
                 Navigator.pop(dialogCtx);
                 context.read<TablesProvider>().saveTablePosition(

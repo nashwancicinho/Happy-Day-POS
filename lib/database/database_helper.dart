@@ -160,6 +160,22 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'restaurant_tables', 'pos_y', 'REAL DEFAULT -1.0');
     await _addColumnIfMissing(db, 'restaurant_tables', 'width', 'REAL DEFAULT 120.0');
     await _addColumnIfMissing(db, 'restaurant_tables', 'height', 'REAL DEFAULT 120.0');
+    await _addColumnIfMissing(db, 'restaurant_tables', 'floor_id', 'INTEGER DEFAULT 1');
+
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS restaurant_floors(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          sort_order INTEGER DEFAULT 0
+        );
+      ''');
+      final floorsCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM restaurant_floors')) ?? 0;
+      if (floorsCount == 0) {
+        await db.insert('restaurant_floors', {'id': 1, 'name': 'الطابق الأرضي', 'sort_order': 0});
+      }
+      await db.rawUpdate('UPDATE restaurant_tables SET floor_id = 1 WHERE floor_id IS NULL OR floor_id = 0');
+    } catch (_) {}
 
     try {
       await db.execute('''
@@ -367,6 +383,16 @@ class DatabaseHelper {
       )
     ''');
 
+    // Restaurant Floors
+    await db.execute('''
+      CREATE TABLE restaurant_floors(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0
+      )
+    ''');
+    await db.insert('restaurant_floors', {'id': 1, 'name': 'الطابق الأرضي', 'sort_order': 0});
+
     // Restaurant Tables
     await db.execute('''
       CREATE TABLE restaurant_tables(
@@ -379,7 +405,8 @@ class DatabaseHelper {
         pos_x REAL DEFAULT -1.0,
         pos_y REAL DEFAULT -1.0,
         width REAL DEFAULT 120.0,
-        height REAL DEFAULT 120.0
+        height REAL DEFAULT 120.0,
+        floor_id INTEGER DEFAULT 1
       )
     ''');
 
@@ -506,6 +533,13 @@ class DatabaseHelper {
       'balance': 0.0,
     });
 
+    // Default Floor
+    await db.insert('restaurant_floors', {
+      'id': 1,
+      'name': 'الطابق الأرضي',
+      'sort_order': 0,
+    });
+
     // Seed Tables (1 to 8)
     for (int i = 1; i <= 8; i++) {
       await db.insert('restaurant_tables', {
@@ -534,6 +568,7 @@ class DatabaseHelper {
       await txn.delete('cash_transactions');
       await txn.delete('shifts');
       await txn.delete('restaurant_tables');
+      await txn.delete('restaurant_floors');
       await txn.delete('settings');
       await txn.delete('users');
       await txn.delete('customers');

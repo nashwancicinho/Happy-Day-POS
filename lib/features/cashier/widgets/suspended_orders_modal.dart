@@ -19,7 +19,14 @@ class SuspendedOrdersModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final ordersProvider = context.watch<OrdersProvider>();
     final currencySymbol = context.watch<SettingsProvider>().currencySymbol;
-    final suspended = ordersProvider.suspendedOrders;
+    final suspended = List<OrderModel>.from(ordersProvider.suspendedOrders)
+      ..sort((a, b) {
+        final dtA = DateTime.tryParse(a.createdAt) ?? DateTime(1970);
+        final dtB = DateTime.tryParse(b.createdAt) ?? DateTime(1970);
+        final comp = dtB.compareTo(dtA);
+        if (comp != 0) return comp;
+        return (b.id ?? 0).compareTo(a.id ?? 0);
+      });
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

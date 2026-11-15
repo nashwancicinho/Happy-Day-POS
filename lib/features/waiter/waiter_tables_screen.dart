@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../services/waiter_api_client.dart';
 import 'waiter_connect_screen.dart';
 import 'waiter_order_screen.dart';
+import 'waiter_display_settings.dart';
+import 'waiter_display_settings_sheet.dart';
 
 class WaiterTablesScreen extends StatefulWidget {
   final WaiterApiClient apiClient;
@@ -27,6 +29,9 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
   @override
   void initState() {
     super.initState();
+    WaiterDisplaySettings.ensureLoaded().then((_) {
+      if (mounted) setState(() {});
+    });
     _loadTables();
     // Auto refresh every 5 seconds so table statuses update when Cashier or other waiters make updates
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadTables(silent: true));
@@ -104,6 +109,16 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.tune_rounded, color: Colors.white),
+            tooltip: 'إعدادات العرض والأعمدة',
+            onPressed: () {
+              WaiterDisplaySettingsSheet.show(
+                context,
+                onSettingsChanged: () => setState(() {}),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => _loadTables(),
           ),
@@ -160,12 +175,7 @@ class _WaiterTablesScreenState extends State<WaiterTablesScreen> {
                         onRefresh: () => _loadTables(),
                         child: GridView.builder(
                           padding: const EdgeInsets.all(12),
-                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 170,
-                            childAspectRatio: 1.05,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
+                          gridDelegate: WaiterDisplaySettings.buildTablesGridDelegate(),
                           itemCount: _tables.length,
                           itemBuilder: (context, index) {
                             final table = _tables[index];
