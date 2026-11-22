@@ -558,6 +558,51 @@ class DatabaseHelper {
     }
   }
 
+  /// مسح الأصناف والتصنيفات فقط (مع وصفات الأصناف وترتيب الكاشير)
+  Future<void> clearProductsAndCategories() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('product_recipes');
+      await txn.delete('products');
+      await txn.delete('categories');
+      await txn.delete(
+        'settings',
+        where: "key = 'cashier_main_order' OR key LIKE 'cashier_cat_order_%'",
+      );
+    });
+  }
+
+  /// مسح جميع الحسابات (المصاريف، الواردات، الفواتير، الخزينة، المشتريات، الرواتب والسلف، الورديات، وتصفير أرصدة الديون والموردين)
+  Future<void> clearAllAccounts() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('order_items');
+      await txn.delete('orders');
+      await txn.delete('daily_treasury');
+      await txn.delete('treasury_transactions');
+      await txn.delete('other_expenses');
+      await txn.delete('cash_transactions');
+      await txn.delete('shifts');
+      await txn.delete('purchase_items');
+      await txn.delete('purchases');
+      await txn.delete('supplier_payments');
+      await txn.delete('employee_advances');
+      await txn.delete('salary_payments');
+      await txn.rawUpdate('UPDATE customers SET balance = 0.0');
+      await txn.rawUpdate('UPDATE suppliers SET balance = 0.0');
+      await txn.rawUpdate('UPDATE restaurant_tables SET status = 0');
+    });
+  }
+
+  /// تصفير المخزن (جعل كميات جميع الأصناف والمواد الخام تساوي صفر)
+  Future<void> resetInventoryStock() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.rawUpdate('UPDATE products SET stock_quantity = 0.0');
+      await txn.rawUpdate('UPDATE raw_materials SET stock_quantity = 0.0');
+    });
+  }
+
   Future<void> resetAllData() async {
     final db = await database;
     await db.transaction((txn) async {

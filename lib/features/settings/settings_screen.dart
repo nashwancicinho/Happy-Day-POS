@@ -29,6 +29,13 @@ import '../treasury/treasury_provider.dart';
 import 'settings_provider.dart';
 
 
+enum _ResetActionType {
+  productsAndCategories,
+  accounts,
+  inventory,
+  factoryReset,
+}
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -276,141 +283,300 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _confirmFactoryReset() {
+  void _confirmResetAction(_ResetActionType actionType) {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final isDark = context.read<SettingsProvider>().isDarkMode;
     final managerNameController = TextEditingController();
     final managerPassController = TextEditingController();
+
+    late final String dialogTitle;
+    late final String warningText;
+    late final String confirmButtonLabel;
+    late final String successMessage;
+    late final IconData headerIcon;
+    late final IconData buttonIcon;
+    late final Color accentColor;
+
+    switch (actionType) {
+      case _ResetActionType.productsAndCategories:
+        dialogTitle = isEng
+            ? 'Confirm Clear Products & Categories'
+            : 'تأكيد مسح الأصناف والتصنيفات فقط';
+        warningText = isEng
+            ? '⚠️ Warning: This will permanently delete all products, categories, and product recipes. Accounts, expenses, revenues, inventory raw materials, users, and settings will remain intact.'
+            : '⚠️ تحذير: هذه العملية ستؤدي لحذف كافة الأصناف (المنتجات) والتصنيفات والوصفات فقط. ستبقى الحسابات والمصاريف والواردات والمستخدمين والإعدادات كما هي.';
+        confirmButtonLabel = isEng ? 'Clear Products & Categories' : 'تأكيد مسح الأصناف والتصنيفات';
+        successMessage = isEng
+            ? '✅ All products and categories have been cleared successfully.'
+            : '✅ تم مسح جميع الأصناف والتصنيفات بنجاح.';
+        headerIcon = Icons.category_rounded;
+        buttonIcon = Icons.delete_sweep_rounded;
+        accentColor = Colors.deepOrange;
+        break;
+      case _ResetActionType.accounts:
+        dialogTitle = isEng
+            ? 'Confirm Clear All Accounts'
+            : 'تأكيد مسح جميع الحسابات (المصاريف والواردات)';
+        warningText = isEng
+            ? '⚠️ Warning: This will permanently delete all invoices, sales, revenues, other expenses, daily treasury closings, treasury transactions, purchases, shifts, salary payments, and employee advances, and reset customer/supplier balances to 0. Products, categories, inventory, and settings will remain intact.'
+            : '⚠️ تحذير: هذه العملية ستؤدي لحذف جميع الفواتير والمبيعات والواردات والمصاريف وحركات وإغلاقات الخزينة والمشتريات والرواتب والسلف والورديات، وتصفير أرصدة الديون والموردين. ستبقى الأصناف والتصنيفات والمخزن والإعدادات كما هي.';
+        confirmButtonLabel = isEng ? 'Clear All Accounts' : 'تأكيد مسح جميع الحسابات';
+        successMessage = isEng
+            ? '✅ All accounts (expenses, revenues, and financial records) have been cleared successfully.'
+            : '✅ تم مسح جميع الحسابات والمصاريف والواردات بنجاح.';
+        headerIcon = Icons.account_balance_wallet_rounded;
+        buttonIcon = Icons.cleaning_services_rounded;
+        accentColor = Colors.purple;
+        break;
+      case _ResetActionType.inventory:
+        dialogTitle = isEng
+            ? 'Confirm Zero Out Inventory'
+            : 'تأكيد تصفير المخزن';
+        warningText = isEng
+            ? '⚠️ Warning: This will reset stock quantities for all products and raw materials to 0. No products, categories, or financial records will be deleted.'
+            : '⚠️ تحذير: هذه العملية ستؤدي لتصفير كميات المخزون لجميع الأصناف والمواد الخام لتصبح (0)، دون حذف أي أصناف أو تصنيفات أو حسابات.';
+        confirmButtonLabel = isEng ? 'Zero Inventory Stock' : 'تأكيد تصفير المخزن';
+        successMessage = isEng
+            ? '✅ Inventory stock quantities have been reset to zero successfully.'
+            : '✅ تم تصفير كميات المخزن بنجاح.';
+        headerIcon = Icons.warehouse_rounded;
+        buttonIcon = Icons.exposure_zero_rounded;
+        accentColor = Colors.blue.shade700;
+        break;
+      case _ResetActionType.factoryReset:
+        dialogTitle = isEng
+            ? 'Confirm Factory Reset (Erase All Data)'
+            : 'تأكيد مسح جميع المحتويات وإعادة تعيين المصنع';
+        warningText = isEng
+            ? '⚠️ Warning: This will permanently delete all products, categories, accounts, inventory, invoices, tables, users, and settings, and restore the system to its fresh installation state!'
+            : '⚠️ تحذير: هذه العملية ستؤدي لحذف كافة محتويات النظام (الأصناف، التصنيفات، الحسابات، المخزن، الفواتير، الطاولات، والمستخدمين) وإعادة النظام لحالته الأولى عند التثبيت!';
+        confirmButtonLabel = isEng ? 'Erase All & Factory Reset' : 'مسح جميع المحتويات وإعادة المصنع';
+        successMessage = isEng
+            ? '🗑️ All contents erased & factory reset completed! Please set up the new manager credentials.'
+            : '🗑️ تم مسح جميع المحتويات وإعادة ضبط المصنع بنجاح! يرجى إدخال اسم ورمز المدير الجديد.';
+        headerIcon = Icons.warning_amber_rounded;
+        buttonIcon = Icons.delete_forever;
+        accentColor = Colors.red;
+        break;
+    }
+
+    bool isProcessing = false;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
-            SizedBox(width: 10),
-            Text('تأكيد إعادة تعيين المصنع (مسح البيانات)'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(headerIcon, color: accentColor, size: 30),
+              const SizedBox(width: 10),
+              Expanded(child: Text(dialogTitle)),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: isDark ? 0.18 : 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: accentColor.withValues(alpha: 0.45)),
+                  ),
+                  child: Text(
+                    warningText,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : accentColor,
+                      fontWeight: FontWeight.bold,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isEng
+                      ? 'Please enter Manager username and PIN to authorize:'
+                      : 'يرجى إدخال اسم المدير وكلمة المرور للتحقق والصلاحية:',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: managerNameController,
+                  enabled: !isProcessing,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Manager Username *' : 'اسم المدير *',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: managerPassController,
+                  enabled: !isProcessing,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: isEng ? 'Manager PIN *' : 'الرقم السري للمدير *',
+                    prefixIcon: const Icon(Icons.lock),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isProcessing ? null : () => Navigator.pop(ctx),
+              child: Text(isEng ? 'Cancel' : 'إلغاء (عدم المسح)'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+              onPressed: isProcessing
+                  ? null
+                  : () async {
+                      final managerUser = managerNameController.text.trim();
+                      final managerPass = managerPassController.text.trim();
+
+                      if (managerUser.isEmpty || managerPass.isEmpty) {
+                        TopNotification.showWarning(
+                          ctx,
+                          isEng
+                              ? 'Please enter manager username and PIN first'
+                              : 'يرجى إدخال اسم المدير والرقم السري أولاً',
+                        );
+                        return;
+                      }
+
+                      final authProvider = context.read<AuthProvider>();
+                      final settingsProvider = context.read<SettingsProvider>();
+                      final productsProvider = context.read<ProductsProvider>();
+                      final categoriesProvider = context.read<CategoriesProvider>();
+                      final tablesProvider = context.read<TablesProvider>();
+                      final ordersProvider = context.read<OrdersProvider>();
+                      final treasuryProvider = context.read<TreasuryProvider>();
+                      final shiftsProvider = context.read<ShiftsProvider>();
+                      final payrollProvider = context.read<PayrollProvider>();
+                      final purchasesProvider = context.read<PurchasesProvider>();
+                      final customersProvider = context.read<CustomersProvider>();
+                      final rawMaterialsProvider = context.read<RawMaterialsProvider>();
+
+                      setDialogState(() => isProcessing = true);
+
+                      try {
+                        final isValid = await authProvider.verifyManagerCredentials(managerUser, managerPass);
+
+                        if (!isValid) {
+                          setDialogState(() => isProcessing = false);
+                          if (ctx.mounted) {
+                            TopNotification.showError(
+                              ctx,
+                              isEng
+                                  ? 'Invalid manager credentials! Access denied.'
+                                  : 'بيانات اعتماد المدير غير صحيحة! لا تملك الصلاحية.',
+                            );
+                          }
+                          return;
+                        }
+
+                        switch (actionType) {
+                          case _ResetActionType.productsAndCategories:
+                            await DatabaseHelper.instance.clearProductsAndCategories();
+                            await productsProvider.loadProducts();
+                            await categoriesProvider.loadCategories();
+                            await settingsProvider.loadSettings();
+                            break;
+
+                          case _ResetActionType.accounts:
+                            await DatabaseHelper.instance.clearAllAccounts();
+                            await ordersProvider.loadOrders();
+                            await treasuryProvider.loadTreasuryRecords();
+                            await treasuryProvider.loadOtherExpenses();
+                            await treasuryProvider.loadActiveTransactions();
+                            await treasuryProvider.loadActiveOtherExpenses();
+                            await shiftsProvider.loadCurrentShift();
+                            await purchasesProvider.loadAllData();
+                            await payrollProvider.loadPayrollData();
+                            await customersProvider.loadCustomers();
+                            await tablesProvider.loadTables();
+                            break;
+
+                          case _ResetActionType.inventory:
+                            await DatabaseHelper.instance.resetInventoryStock();
+                            await productsProvider.loadProducts();
+                            await rawMaterialsProvider.loadRawMaterials();
+                            break;
+
+                          case _ResetActionType.factoryReset:
+                            await DatabaseHelper.instance.resetAllData();
+                            await authProvider.loadUsers();
+                            await settingsProvider.loadSettings();
+                            await productsProvider.loadProducts();
+                            await categoriesProvider.loadCategories();
+                            await tablesProvider.loadTables();
+                            await ordersProvider.loadOrders();
+                            await treasuryProvider.loadTreasuryRecords();
+                            await treasuryProvider.loadOtherExpenses();
+                            await treasuryProvider.loadActiveTransactions();
+                            await treasuryProvider.loadActiveOtherExpenses();
+                            await shiftsProvider.loadCurrentShift();
+                            await payrollProvider.loadPayrollData();
+                            await purchasesProvider.loadAllData();
+                            await customersProvider.loadCustomers();
+                            await rawMaterialsProvider.loadRawMaterials();
+                            break;
+                        }
+
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
+
+                        if (actionType == _ResetActionType.factoryReset) {
+                          authProvider.logout();
+                          if (mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              (route) => false,
+                            );
+                            TopNotification.showSuccess(context, successMessage);
+                          }
+                        } else if (mounted) {
+                          TopNotification.showSuccess(context, successMessage);
+                        }
+                      } catch (e) {
+                        setDialogState(() => isProcessing = false);
+                        if (ctx.mounted) {
+                          TopNotification.showError(
+                            ctx,
+                            isEng ? 'Operation failed: $e' : 'حدث خطأ أثناء تنفيذ العملية: $e',
+                          );
+                        }
+                      }
+                    },
+              icon: isProcessing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Icon(buttonIcon, color: Colors.white),
+              label: Text(
+                confirmButtonLabel,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: const Text(
-                '⚠️ تحذير: هذه العملية ستؤدي لحذف كافة المنتجات، الأصناف، الفواتير، الطاولات، والمستخدمين، وإعادة النظام لحالته الأولى عند التثبيت!',
-                style: TextStyle(fontSize: 13, color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'يرجى إدخال اسم المدير وكلمة المرور للتحقق والصلاحية:',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: managerNameController,
-              decoration: InputDecoration(
-                labelText: 'اسم المدير *',
-                prefixIcon: const Icon(Icons.person),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: managerPassController,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'الرقم السري للمدير *',
-                prefixIcon: const Icon(Icons.lock),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء (عدم المسح)'),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              final managerUser = managerNameController.text.trim();
-              final managerPass = managerPassController.text.trim();
-
-              if (managerUser.isEmpty || managerPass.isEmpty) {
-                TopNotification.showWarning(ctx, 'يرجى إدخال اسم المدير والرقم السري أولاً');
-                return;
-              }
-
-              final authProvider = context.read<AuthProvider>();
-              final settingsProvider = context.read<SettingsProvider>();
-              final productsProvider = context.read<ProductsProvider>();
-              final categoriesProvider = context.read<CategoriesProvider>();
-              final tablesProvider = context.read<TablesProvider>();
-              final ordersProvider = context.read<OrdersProvider>();
-              final treasuryProvider = context.read<TreasuryProvider>();
-              final shiftsProvider = context.read<ShiftsProvider>();
-              final payrollProvider = context.read<PayrollProvider>();
-              final purchasesProvider = context.read<PurchasesProvider>();
-              final customersProvider = context.read<CustomersProvider>();
-              final rawMaterialsProvider = context.read<RawMaterialsProvider>();
-
-              final isValid = await authProvider.verifyManagerCredentials(managerUser, managerPass);
-
-              if (!isValid) {
-                if (ctx.mounted) {
-                  TopNotification.showError(ctx, 'بيانات اعتماد المدير غير صحيحة! لا تملك الصلاحية.');
-                }
-                return;
-              }
-
-              // Perform factory reset
-              await DatabaseHelper.instance.resetAllData();
-
-              await authProvider.loadUsers();
-              await settingsProvider.loadSettings();
-              await productsProvider.loadProducts();
-              await categoriesProvider.loadCategories();
-              await tablesProvider.loadTables();
-              await ordersProvider.loadOrders();
-              await treasuryProvider.loadTreasuryRecords();
-              await treasuryProvider.loadOtherExpenses();
-              await shiftsProvider.loadCurrentShift();
-              await payrollProvider.loadPayrollData();
-              await purchasesProvider.loadAllData();
-              await customersProvider.loadCustomers();
-              await rawMaterialsProvider.loadRawMaterials();
-
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-              }
-              authProvider.logout();
-              if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-                TopNotification.showSuccess(
-                  context,
-                  '🗑️ تم تصفية كل شيء وإعادة ضبط المصنع بنجاح! يرجى إدخال اسم ورمز المدير الجديد.',
-                );
-              }
-            },
-            icon: const Icon(Icons.delete_forever, color: Colors.white),
-            label: const Text('مسح وإعادة تعيين المصنع', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
-    );
+    ).then((_) {
+      managerNameController.dispose();
+      managerPassController.dispose();
+    });
   }
 
   void _showPrinterSelectionDialog(TextEditingController controller, String title) {
@@ -2990,63 +3156,203 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildMaintenanceResetCard({
+    required bool isDark,
+    required Color accentColor,
+    required Color lightBgColor,
+    required Color darkBgColor,
+    required IconData icon,
+    required String title,
+    required String description,
+    required String buttonLabel,
+    required IconData buttonIcon,
+    required VoidCallback onPressed,
+  }) {
+    return Card(
+      elevation: 3,
+      color: isDark ? darkBgColor : lightBgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: accentColor.withValues(alpha: isDark ? 0.55 : 0.35),
+          width: 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: accentColor,
+                  child: Icon(icon, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : accentColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: onPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: Icon(buttonIcon),
+                label: Text(
+                  buttonLabel,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // TAB 4: Maintenance & Factory Reset
   Widget _buildMaintenanceTab(BuildContext context, SettingsProvider settings, bool isEng) {
     final isDark = settings.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          elevation: 3,
-          color: isDark ? const Color(0xFF3F1D1D) : Colors.red.shade50,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: isDark ? Colors.red.shade900 : Colors.red.shade200, width: 1.5),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.delete_forever, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      isEng ? 'Factory Reset (Erase All Data)' : 'إعادة تعيين المصنع (مسح جميع البيانات)',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-                    ),
-                  ],
-                ),
-                const Divider(height: 28),
-                Text(
-                  isEng ? 'Warning: Deletes all products, categories, invoices, and user records. Reverts to default fresh install.' : 'تنبيه: مسح كافة بيانات النظام والمنتجات والفواتير السابقة وإعادة التثبيت الافتراضي. تتطلب موافقة المدير بالرمز السري.',
-                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: _confirmFactoryReset,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade700,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.warning_rounded),
-                    label: Text(
-                      isEng ? 'Factory Reset & Wipe Data...' : 'إعادة تعيين المصنع ومسح البيانات...',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.amber.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? Colors.amber.shade700.withValues(alpha: 0.4) : Colors.amber.shade300,
             ),
           ),
+          child: Row(
+            children: [
+              Icon(Icons.admin_panel_settings_rounded, color: Colors.amber.shade800, size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isEng
+                      ? 'Choose the exact data scope you want to clear or reset. All operations require Manager username & PIN authorization.'
+                      : 'اختر نوع المسح أو التصفير المطلوب بدقة. جميع العمليات التالية تتطلب التحقق من اسم المدير والرقم السري.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.amber.shade200 : Colors.amber.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // 1. مسح الأصناف والتصنيفات فقط
+        _buildMaintenanceResetCard(
+          isDark: isDark,
+          accentColor: Colors.deepOrange.shade600,
+          lightBgColor: Colors.deepOrange.shade50,
+          darkBgColor: const Color(0xFF3A2318),
+          icon: Icons.category_rounded,
+          title: isEng
+              ? 'Clear Products & Categories Only'
+              : 'مسح الأصناف والتصنيفات فقط',
+          description: isEng
+              ? 'Deletes only products, categories, and their recipes. Accounts, expenses, revenues, inventory raw materials, users, and settings will not be affected.'
+              : 'حذف جميع الأصناف (المنتجات) والتصنيفات ووصفاتها فقط، مع الإبقاء على جميع الحسابات والمصاريف والواردات والمستخدمين والإعدادات كما هي.',
+          buttonLabel: isEng
+              ? 'Clear Products & Categories...'
+              : 'مسح الأصناف والتصنيفات فقط...',
+          buttonIcon: Icons.delete_sweep_rounded,
+          onPressed: () => _confirmResetAction(_ResetActionType.productsAndCategories),
+        ),
+        const SizedBox(height: 16),
+
+        // 2. مسح جميع الحسابات (المصاريف والواردات)
+        _buildMaintenanceResetCard(
+          isDark: isDark,
+          accentColor: Colors.purple.shade700,
+          lightBgColor: Colors.purple.shade50,
+          darkBgColor: const Color(0xFF2E1A3B),
+          icon: Icons.account_balance_wallet_rounded,
+          title: isEng
+              ? 'Clear All Accounts (Expenses & Revenues)'
+              : 'مسح جميع الحسابات (المصاريف والواردات)',
+          description: isEng
+              ? 'Deletes all sales invoices, revenues, other expenses, daily treasury closings, treasury transactions, purchases, shifts, salaries, and advances, and resets customer/supplier balances to zero. Keeps products, categories, inventory, and settings.'
+              : 'حذف جميع الفواتير والمبيعات والواردات والمصاريف وحركات وإغلاقات الخزينة والمشتريات والرواتب والسلف والورديات، وتصفير أرصدة الديون والموردين، مع الإبقاء على الأصناف والتصنيفات والمخزن والإعدادات.',
+          buttonLabel: isEng
+              ? 'Clear All Accounts (Expenses & Revenues)...'
+              : 'مسح جميع الحسابات والمصاريف والواردات...',
+          buttonIcon: Icons.cleaning_services_rounded,
+          onPressed: () => _confirmResetAction(_ResetActionType.accounts),
+        ),
+        const SizedBox(height: 16),
+
+        // 3. تصفير المخزن
+        _buildMaintenanceResetCard(
+          isDark: isDark,
+          accentColor: Colors.blue.shade700,
+          lightBgColor: Colors.blue.shade50,
+          darkBgColor: const Color(0xFF17283D),
+          icon: Icons.warehouse_rounded,
+          title: isEng
+              ? 'Zero Out Inventory (Reset Stock to 0)'
+              : 'تصفير المخزن',
+          description: isEng
+              ? 'Resets stock quantities for all products and raw materials to zero (0) without deleting any products, categories, or financial accounts.'
+              : 'تصفير كميات المخزون لجميع الأصناف والمواد الخام لتصبح (0) مع الإبقاء على الأصناف والتصنيفات وجميع الحسابات كما هي.',
+          buttonLabel: isEng
+              ? 'Zero Out Inventory Stock...'
+              : 'تصفير كميات المخزن...',
+          buttonIcon: Icons.exposure_zero_rounded,
+          onPressed: () => _confirmResetAction(_ResetActionType.inventory),
+        ),
+        const SizedBox(height: 16),
+
+        // 4. مسح جميع المحتويات وإعادة تعيين المصنع
+        _buildMaintenanceResetCard(
+          isDark: isDark,
+          accentColor: Colors.red.shade700,
+          lightBgColor: Colors.red.shade50,
+          darkBgColor: const Color(0xFF3F1D1D),
+          icon: Icons.delete_forever,
+          title: isEng
+              ? 'Erase All Contents & Factory Reset'
+              : 'مسح جميع المحتويات وإعادة تعيين المصنع',
+          description: isEng
+              ? 'Warning: Permanently deletes all system contents (products, categories, accounts, inventory, invoices, tables, users, and settings) and reverts to fresh default installation.'
+              : 'تنبيه: مسح جميع محتويات النظام بالكامل (الأصناف، التصنيفات، الحسابات، المخزن، الفواتير، الطاولات، والمستخدمين) وإعادة البرنامج لحالته الأولى عند التثبيت الافتراضي.',
+          buttonLabel: isEng
+              ? 'Erase All Contents & Factory Reset...'
+              : 'مسح جميع المحتويات وإعادة تعيين المصنع...',
+          buttonIcon: Icons.warning_rounded,
+          onPressed: () => _confirmResetAction(_ResetActionType.factoryReset),
         ),
       ],
     );
