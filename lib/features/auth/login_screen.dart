@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/top_notification.dart';
@@ -16,7 +17,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with WindowListener {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -29,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isObscure = true;
   String? _selectedUsername;
   String? _errorMessage;
+  bool _isFullScreen = false;
 
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -38,6 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.addListener(this);
+      windowManager.isFullScreen().then((fs) {
+        if (mounted) setState(() => _isFullScreen = fs);
+      }).catchError((_) {});
+    }
     _usernameFocusNode.addListener(() {
       if (_usernameFocusNode.hasFocus) {
         setState(() => _isPasswordFocused = false);
@@ -52,6 +60,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
     _usernameController.dispose();
     _passwordController.dispose();
     _initManagerNameController.dispose();
@@ -61,6 +72,50 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    if (mounted) setState(() => _isFullScreen = true);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    if (mounted) setState(() => _isFullScreen = false);
+  }
+
+  @override
+  void onWindowMaximize() async {
+    try {
+      await windowManager.setFullScreen(true);
+    } catch (_) {}
+  }
+
+  @override
+  void onWindowUnmaximize() async {
+    try {
+      await windowManager.setFullScreen(false);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFullscreen() async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      try {
+        final current = await windowManager.isFullScreen();
+        if (current) {
+          await windowManager.setFullScreen(false);
+          await windowManager.unmaximize();
+          await windowManager.setSize(const Size(1100, 750));
+          await windowManager.center();
+          if (mounted) setState(() => _isFullScreen = false);
+        } else {
+          await windowManager.setFullScreen(true);
+          if (mounted) setState(() => _isFullScreen = true);
+        }
+      } catch (e) {
+        debugPrint('toggleFullscreen error in Login: $e');
+      }
+    }
   }
 
   void _onVirtualKeyPress(String char) {
@@ -716,24 +771,63 @@ class _LoginScreenState extends State<LoginScreen> {
                 PositionedDirectional(
                   top: 10,
                   end: 14,
-                  child: Tooltip(
-                    message: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
-                    child: OutlinedButton.icon(
-                      onPressed: _confirmExitApp,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: BorderSide(color: isDark ? Colors.red.shade800 : Colors.red.shade200, width: 1.2),
-                        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        elevation: 1,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
+                        Tooltip(
+                          message: _isFullScreen
+                              ? (isEng ? 'Restore Window' : 'استعادة النافذة')
+                              : (isEng ? 'Full Screen' : 'تكبير الشاشة'),
+                          child: OutlinedButton.icon(
+                            onPressed: _toggleFullscreen,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isDark ? Colors.white70 : Colors.black87,
+                              side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1.2),
+                              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              elevation: 1,
+                            ),
+                            icon: Icon(
+                              _isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            label: Text(
+                              _isFullScreen
+                                  ? (isEng ? 'Restore' : 'استعادة النافذة')
+                                  : (isEng ? 'Full Screen' : 'تكبير الشاشة'),
+                              style: TextStyle(
+                                color: isDark ? Colors.white70 : Colors.black87,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Tooltip(
+                        message: isEng ? 'Exit Application' : 'إغلاق البرنامج بالكامل',
+                        child: OutlinedButton.icon(
+                          onPressed: _confirmExitApp,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: BorderSide(color: isDark ? Colors.red.shade800 : Colors.red.shade200, width: 1.2),
+                            backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            elevation: 1,
+                          ),
+                          icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
+                          label: Text(
+                            isEng ? 'Exit App' : 'إغلاق البرنامج',
+                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
                       ),
-                      icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
-                      label: Text(
-                        isEng ? 'Exit App' : 'إغلاق البرنامج',
-                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
                 Center(
@@ -767,28 +861,67 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              // Top Bar Floating Exit Button
+              // Top Bar Floating Action Buttons
               PositionedDirectional(
                 top: 10,
                 end: 14,
-                child: Tooltip(
-                  message: isEng ? 'Exit Application' : 'إغلاق البرنامج وخروج بالكامل',
-                  child: OutlinedButton.icon(
-                    onPressed: _confirmExitApp,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: BorderSide(color: isDark ? Colors.red.shade800 : Colors.red.shade200, width: 1.2),
-                      backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      elevation: 1,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
+                      Tooltip(
+                        message: _isFullScreen
+                            ? (isEng ? 'Restore Window' : 'استعادة النافذة')
+                            : (isEng ? 'Full Screen' : 'تكبير الشاشة'),
+                        child: OutlinedButton.icon(
+                          onPressed: _toggleFullscreen,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: isDark ? Colors.white70 : Colors.black87,
+                            side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1.2),
+                            backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            elevation: 1,
+                          ),
+                          icon: Icon(
+                            _isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          label: Text(
+                            _isFullScreen
+                                ? (isEng ? 'Restore' : 'استعادة النافذة')
+                                : (isEng ? 'Full Screen' : 'تكبير الشاشة'),
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Tooltip(
+                      message: isEng ? 'Exit Application' : 'إغلاق البرنامج وخروج بالكامل',
+                      child: OutlinedButton.icon(
+                        onPressed: _confirmExitApp,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: BorderSide(color: isDark ? Colors.red.shade800 : Colors.red.shade200, width: 1.2),
+                          backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          elevation: 1,
+                        ),
+                        icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
+                        label: Text(
+                          isEng ? 'Exit Application' : 'إغلاق البرنامج',
+                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
                     ),
-                    icon: const Icon(Icons.power_settings_new_rounded, size: 18, color: Colors.red),
-                    label: Text(
-                      isEng ? 'Exit Application' : 'إغلاق البرنامج',
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ),
+                  ],
                 ),
               ),
 

@@ -52,7 +52,7 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   String? _lastKnownHomeMode;
   late final AppLifecycleListener _lifecycleListener;
   LicenseInfo? _licenseInfo;
-  bool _isFullscreen = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  bool _isFullscreen = false;
 
   int _getHomeIndex(SettingsProvider settings) {
     switch (settings.homeScreenMode) {
@@ -84,7 +84,9 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
         final current = await windowManager.isFullScreen();
         if (current) {
           await windowManager.setFullScreen(false);
-          await windowManager.maximize();
+          await windowManager.unmaximize();
+          await windowManager.setSize(const Size(1100, 750));
+          await windowManager.center();
           if (mounted) {
             setState(() {
               _isFullscreen = false;
@@ -261,6 +263,20 @@ class _DashboardLayoutState extends State<DashboardLayout> with WindowListener {
   @override
   void onWindowLeaveFullScreen() {
     if (mounted) setState(() => _isFullscreen = false);
+  }
+
+  @override
+  void onWindowMaximize() async {
+    try {
+      await windowManager.setFullScreen(true);
+    } catch (_) {}
+  }
+
+  @override
+  void onWindowUnmaximize() async {
+    try {
+      await windowManager.setFullScreen(false);
+    } catch (_) {}
   }
 
   Future<AppExitResponse> _handleExitRequested() async {

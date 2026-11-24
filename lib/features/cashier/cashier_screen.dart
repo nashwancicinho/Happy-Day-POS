@@ -65,7 +65,14 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
         final current = await windowManager.isFullScreen();
-        await windowManager.setFullScreen(!current);
+        if (current) {
+          await windowManager.setFullScreen(false);
+          await windowManager.unmaximize();
+          await windowManager.setSize(const Size(1100, 750));
+          await windowManager.center();
+        } else {
+          await windowManager.setFullScreen(true);
+        }
       } catch (e) {
         debugPrint('windowManager toggle error in Cashier: $e');
       }
@@ -76,6 +83,13 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
   void onWindowMaximize() async {
     try {
       await windowManager.setFullScreen(true);
+    } catch (_) {}
+  }
+
+  @override
+  void onWindowUnmaximize() async {
+    try {
+      await windowManager.setFullScreen(false);
     } catch (_) {}
   }
 
