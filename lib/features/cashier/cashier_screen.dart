@@ -998,11 +998,17 @@ class _CashierScreenState extends State<CashierScreen> with WindowListener {
     final ordersProvider = context.read<OrdersProvider>();
     final settingsProvider = context.read<SettingsProvider>();
 
+    int? effectiveOrderId = _existingOrderId;
+    if (effectiveOrderId == null) {
+      final openOrder = await ordersProvider.getOpenOrderByTable(tableId);
+      effectiveOrderId = openOrder?.id;
+    }
+
     // Calculate new/delta items for kitchen printing before saving
-    final kitchenDeltaItems = await ordersProvider.getKitchenDeltaItems(_existingOrderId, _cart);
+    final kitchenDeltaItems = await ordersProvider.getKitchenDeltaItems(effectiveOrderId, _cart);
 
     final orderId = await ordersProvider.holdTableOrder(
-      existingOrderId: _existingOrderId,
+      existingOrderId: effectiveOrderId,
       tableId: tableId,
       items: _cart,
       subtotal: _subtotalAmount,

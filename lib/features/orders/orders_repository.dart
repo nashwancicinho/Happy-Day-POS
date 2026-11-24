@@ -335,8 +335,27 @@ class OrdersRepository {
         orderId = await txn.insert('orders', newOrder.toMap());
       }
 
-      // Insert all updated final items under the primary order
+      // دمج العناصر المتطابقة (نفس الصنف والسعر والملاحظات وطابعة المطبخ) قبل الحفظ في قاعدة البيانات
+      final List<OrderItemModel> mergedFinalItems = [];
       for (final item in finalItems) {
+        final idx = mergedFinalItems.indexWhere((m) =>
+          m.productId == item.productId &&
+          (m.price - item.price).abs() < 0.01 &&
+          (m.notes ?? '').trim() == (item.notes ?? '').trim() &&
+          (m.kitchenPrinter ?? '').trim() == (item.kitchenPrinter ?? '').trim()
+        );
+        if (idx >= 0) {
+          final existing = mergedFinalItems[idx];
+          mergedFinalItems[idx] = existing.copyWith(
+            quantity: existing.quantity + item.quantity,
+          );
+        } else {
+          mergedFinalItems.add(item);
+        }
+      }
+
+      // Insert all updated final items under the primary order
+      for (final item in mergedFinalItems) {
         final itemWithOrderId = item.copyWith(orderId: orderId);
         await txn.insert('order_items', itemWithOrderId.toMap());
       }
@@ -635,15 +654,22 @@ class OrdersRepository {
   Future<List<OrderItemModel>> getOrderItems(int orderId) async {
     final db = await _databaseHelper.database;
     final maps = await db.rawQuery('''
-      SELECT oi.*, p.name as product_name, COALESCE(oi.print_to_kitchen, p.print_to_kitchen, 1) as item_print_to_kitchen
+      SELECT oi.*, p.name as product_name,
+             CASE WHEN oi.print_to_kitchen = 1 OR p.print_to_kitchen = 1 THEN 1 ELSE 0 END as item_print_to_kitchen,
+             COALESCE(NULLIF(oi.kitchen_printer, ''), NULLIF(p.kitchen_printer, '')) as item_kitchen_printer
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = ?
     ''', [orderId]);
 
     return maps.map((e) {
-      final isPrint = (e['item_print_to_kitchen'] as int? ?? 1) == 1;
-      return OrderItemModel.fromMap(e, productName: e['product_name'] as String?, printToKitchen: isPrint);
+      final isPrint = (e['item_print_to_kitchen'] as int? ?? 0) == 1;
+      return OrderItemModel.fromMap(
+        e,
+        productName: e['product_name'] as String?,
+        printToKitchen: isPrint,
+        kitchenPrinter: e['item_kitchen_printer'] as String?,
+      );
     }).toList();
   }
 
@@ -652,26 +678,49 @@ class OrdersRepository {
     final List<OrderItemModel> kitchenItems = newItems.where((i) => i.printToKitchen).toList();
     if (kitchenItems.isEmpty) return [];
 
+    // تجميع الأصناف الحالية في السلة حسب الصنف والملاحظات وطابعة المطبخ
+    final Map<String, OrderItemModel> consolidatedNew = {};
+    for (final item in kitchenItems) {
+      final key = _getKitchenItemKey(item);
+      if (consolidatedNew.containsKey(key)) {
+        final existing = consolidatedNew[key]!;
+        consolidatedNew[key] = existing.copyWith(
+          quantity: existing.quantity + item.quantity,
+          productName: (existing.productName != null && existing.productName!.isNotEmpty)
+              ? existing.productName
+              : item.productName,
+          kitchenPrinter: (existing.kitchenPrinter != null && existing.kitchenPrinter!.isNotEmpty)
+              ? existing.kitchenPrinter
+              : item.kitchenPrinter,
+        );
+      } else {
+        consolidatedNew[key] = item;
+      }
+    }
+
     if (existingOrderId == null) {
-      return kitchenItems;
+      return consolidatedNew.values.toList();
     }
 
     final oldItems = await getOrderItems(existingOrderId);
     if (oldItems.isEmpty) {
-      return kitchenItems;
+      return consolidatedNew.values.toList();
+    }
+
+    // تجميع الأصناف المطبوعة أو المسجلة سابقاً لنفس الطلب في قاعدة البيانات
+    final Map<String, double> consolidatedOldQty = {};
+    for (final item in oldItems) {
+      if (!item.printToKitchen) continue;
+      final key = _getKitchenItemKey(item);
+      consolidatedOldQty[key] = (consolidatedOldQty[key] ?? 0.0) + item.quantity;
     }
 
     final List<OrderItemModel> deltaItems = [];
 
-    for (final newItem in kitchenItems) {
-      final oldMatches = oldItems.where(
-        (o) => o.productId == newItem.productId && (o.price - newItem.price).abs() < 0.01,
-      );
-
-      double oldQty = 0.0;
-      if (oldMatches.isNotEmpty) {
-        oldQty = oldMatches.fold(0.0, (sum, o) => sum + o.quantity);
-      }
+    for (final entry in consolidatedNew.entries) {
+      final key = entry.key;
+      final newItem = entry.value;
+      final oldQty = consolidatedOldQty[key] ?? 0.0;
 
       final deltaQty = newItem.quantity - oldQty;
       if (deltaQty > 0.001) {
@@ -680,6 +729,12 @@ class OrdersRepository {
     }
 
     return deltaItems;
+  }
+
+  String _getKitchenItemKey(OrderItemModel item) {
+    final note = (item.notes ?? '').trim();
+    final printer = (item.kitchenPrinter ?? '').trim();
+    return '${item.productId}_${note}_$printer';
   }
 
 
