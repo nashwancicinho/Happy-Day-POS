@@ -194,6 +194,77 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
+  // Direct Setup or Update of Manager Account
+  Future<bool> setupOrUpdateManager({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final db = await _dbHelper.database;
+      final uTrim = username.trim();
+      final pTrim = password.trim();
+
+      if (uTrim.isEmpty || pTrim.isEmpty) {
+        throw Exception('يرجى كتابة اسم المدير والرقم السري الخاص به');
+      }
+
+      // Remove placeholder dummy user '1' if present
+      await db.delete('users', where: "username = '1'");
+
+      // Check if user with this username exists
+      final existing = await db.query(
+        'users',
+        where: 'LOWER(username) = ?',
+        whereArgs: [uTrim.toLowerCase()],
+      );
+
+      int managerId;
+      if (existing.isNotEmpty) {
+        managerId = existing.first['id'] as int;
+        await db.update(
+          'users',
+          {
+            'username': uTrim,
+            'password': pTrim,
+            'role': 'مدير',
+            'is_active': 1,
+          },
+          where: 'id = ?',
+          whereArgs: [managerId],
+        );
+      } else {
+        final managerUser = UserModel(
+          username: uTrim,
+          password: pTrim,
+          role: 'مدير',
+          isActive: true,
+          createdAt: DateTime.now().toIso8601String(),
+        );
+        managerId = await db.insert(
+          'users',
+          managerUser.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      await loadUsers();
+
+      // Log in as manager immediately
+      _currentUser = UserModel(
+        id: managerId,
+        username: uTrim,
+        password: pTrim,
+        role: 'مدير',
+        isActive: true,
+      );
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('setupOrUpdateManager error: $e');
+      rethrow;
+    }
+  }
+
   // Initial Setup when system database is empty
   Future<bool> registerInitialSetup({
     required String managerUsername,
@@ -203,16 +274,25 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     try {
       final db = await _dbHelper.database;
+      final mName = managerUsername.trim();
+      final mPass = managerPassword.trim();
+
+      // Remove placeholder dummy user '1' if present
+      await db.delete('users', where: "username = '1'");
 
       final managerUser = UserModel(
-        username: managerUsername.trim(),
-        password: managerPassword.trim(),
+        username: mName,
+        password: mPass,
         role: 'مدير',
         isActive: true,
         createdAt: DateTime.now().toIso8601String(),
       );
 
-      final managerId = await db.insert('users', managerUser.toMap());
+      final managerId = await db.insert(
+        'users',
+        managerUser.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
       if (cashierUsername != null &&
           cashierUsername.trim().isNotEmpty &&
@@ -225,7 +305,11 @@ class AuthProvider extends ChangeNotifier {
           isActive: true,
           createdAt: DateTime.now().toIso8601String(),
         );
-        await db.insert('users', cashierUser.toMap());
+        await db.insert(
+          'users',
+          cashierUser.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
 
       await loadUsers();
@@ -248,14 +332,12 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     final db = await _dbHelper.database;
 
-    // 1. Verify Manager credentials
-    final managerMatch = await db.query(
-      'users',
-      where: 'username = ? AND password = ? AND role = ? AND is_active = 1',
-      whereArgs: [managerUsername.trim(), managerPassword.trim(), 'مدير'],
-    );
+    // 1. Verify Manager credentials with numeral normalization
+    final isAuthorized = await verifyManagerCredentials(managerUsername, managerPassword);
+    final usersCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) ?? 0;
 
-    if (managerMatch.isEmpty) {
+    // Allow if authorized or if only dummy placeholder '1' user exists
+    if (!isAuthorized && usersCount > 1) {
       throw Exception('اسم المدير أو الرقم السري للمدير غير صحيح! غير مخول بنشاط إضافة المستخدمين.');
     }
 
@@ -274,7 +356,7 @@ class AuthProvider extends ChangeNotifier {
     await db.insert(
       'users',
       newUser.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.fail,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
     await loadUsers();

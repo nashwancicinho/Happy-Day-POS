@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -31,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
   String? _selectedUsername;
   String? _errorMessage;
   bool _isFullScreen = false;
+  bool _useManualUsernameInput = false;
 
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -40,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
   @override
   void initState() {
     super.initState();
+    _loadSavedUsername();
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.addListener(this);
       windowManager.isFullScreen().then((fs) {
@@ -56,6 +59,19 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
         setState(() => _isPasswordFocused = true);
       }
     });
+  }
+
+  Future<void> _loadSavedUsername() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('saved_last_username');
+      if (saved != null && saved.trim().isNotEmpty && mounted) {
+        setState(() {
+          _selectedUsername = saved.trim();
+          _usernameController.text = saved.trim();
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -168,7 +184,14 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
         cashierPassword: cashierPass,
       );
 
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_last_username', managerName);
+
       if (mounted) {
+        setState(() {
+          _selectedUsername = managerName;
+          _usernameController.text = managerName;
+        });
         TopNotification.showSuccess(
           context,
           isEng ? '🎉 System setup saved successfully! Welcome $managerName' : '🎉 تم حفظ الحسابات وإعداد النظام بنجاح! أهلاً بك $managerName',
@@ -182,6 +205,193 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
         );
       }
     }
+  }
+
+  void _showSetupManagerDialog() {
+    final isEng = context.read<SettingsProvider>().isEnglish;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authProvider = context.read<AuthProvider>();
+
+    final nameController = TextEditingController(
+      text: _selectedUsername != null && _selectedUsername != '1' ? _selectedUsername : '',
+    );
+    final passController = TextEditingController();
+    final confirmPassController = TextEditingController();
+    bool obscure = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              title: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.purple.withValues(alpha: 0.15),
+                    child: const Icon(Icons.admin_panel_settings, color: Colors.purple),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isEng ? 'Setup Manager Account' : 'تسجيل / إعداد حساب المدير',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEng
+                            ? 'Enter the manager name and PIN code to access the system with full privileges.'
+                            : 'أدخل اسم المدير والرقم السري الخاص به للدخول للنظام والتحكم بكافة الصلاحيات.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.grey.shade300 : Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Manager Name
+                      TextField(
+                        controller: nameController,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Manager Name *' : 'اسم المدير *',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                          prefixIcon: const Icon(Icons.person),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF111827) : Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Manager PIN
+                      TextField(
+                        controller: passController,
+                        obscureText: obscure,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Manager PIN Code *' : 'الرقم السري للمدير *',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () => setDialogState(() => obscure = !obscure),
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF111827) : Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Confirm PIN
+                      TextField(
+                        controller: confirmPassController,
+                        obscureText: obscure,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: isEng ? 'Confirm PIN Code *' : 'تأكيد الرقم السري *',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey.shade300 : null),
+                          prefixIcon: const Icon(Icons.lock_clock),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF111827) : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(isEng ? 'Cancel' : 'إلغاء'),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                  icon: const Icon(Icons.check_circle_rounded, size: 20),
+                  label: Text(
+                    isEng ? 'Save & Enter 🚀' : 'حفظ والدخول للنظام 🚀',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    final pass = passController.text.trim();
+                    final confirm = confirmPassController.text.trim();
+
+                    if (name.isEmpty || pass.isEmpty) {
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? '⚠️ Please enter Manager name and PIN code' : '⚠️ يرجى إدخال اسم المدير والرقم السري',
+                      );
+                      return;
+                    }
+
+                    if (pass != confirm) {
+                      TopNotification.showWarning(
+                        ctx,
+                        isEng ? '⚠️ PIN codes do not match' : '⚠️ الرقم السري غير متطابق مع التأكيد',
+                      );
+                      return;
+                    }
+
+                    try {
+                      await authProvider.setupOrUpdateManager(
+                        username: name,
+                        password: pass,
+                      );
+
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('saved_last_username', name);
+
+                      if (mounted) {
+                        setState(() {
+                          _selectedUsername = name;
+                          _usernameController.text = name;
+                        });
+                      }
+
+                      if (context.mounted) {
+                        Navigator.pop(ctx);
+                        TopNotification.showSuccess(
+                          context,
+                          isEng ? '🎉 Manager account "$name" saved successfully!' : '🎉 تم حفظ حساب المدير "$name" والدخول للنظام بنجاح!',
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        TopNotification.showError(ctx, '❌ $e');
+                      }
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildInitialSetupCard(bool isEng, [bool isDark = false]) {
@@ -256,6 +466,7 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                       filled: true,
                       fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                     ),
+                    onSubmitted: (_) => _handleCompleteInitialSetup(),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -275,6 +486,7 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                       filled: true,
                       fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                     ),
+                    onSubmitted: (_) => _handleCompleteInitialSetup(),
                   ),
                 ],
               ),
@@ -371,7 +583,9 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
 
   void _handleLogin() async {
     final isEng = context.read<SettingsProvider>().isEnglish;
-    final username = _selectedUsername ?? _usernameController.text.trim();
+    final username = _useManualUsernameInput
+        ? _usernameController.text.trim()
+        : (_selectedUsername ?? _usernameController.text.trim());
     final password = _normalizeArabicNumerals(_passwordController.text.trim());
 
     if (username.isEmpty || password.isEmpty) {
@@ -406,6 +620,10 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
       setState(() {
         _errorMessage = null;
       });
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_last_username', username);
+      } catch (_) {}
     }
   }
 
@@ -620,7 +838,8 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                     final newUsername = newUsernameController.text.trim();
                     final newUserPassword = newUserPasswordController.text.trim();
 
-                    if (managerName.isEmpty || managerPassword.isEmpty) {
+                    final needsAuth = !(managerList.isEmpty || (managerList.length == 1 && managerList.first.username == '1'));
+                    if (needsAuth && (managerName.isEmpty || managerPassword.isEmpty)) {
                       TopNotification.showWarning(
                         ctx,
                         isEng ? '⚠️ Please enter manager credentials for authorization' : '⚠️ يرجى إدخال اسم ورقم سري المدير للموافقة',
@@ -846,9 +1065,18 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
       );
     }
 
+    if (_selectedUsername == null && userList.isNotEmpty) {
+      final defaultUser = userList.firstWhere(
+        (u) => u.isManager,
+        orElse: () => userList.first,
+      );
+      _selectedUsername = defaultUser.username;
+      _usernameController.text = defaultUser.username;
+    }
+
     final activeLoginUserValue = userList.any((u) => u.username == _selectedUsername)
         ? _selectedUsername
-        : null;
+        : (userList.isNotEmpty ? userList.first.username : null);
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey.shade100,
@@ -995,8 +1223,8 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                         ),
                         const SizedBox(height: 18),
 
-                        // Username Selector Dropdown / Field
-                        if (userList.isNotEmpty) ...[
+                        // Username Selector Dropdown / Manual Field
+                        if (userList.isNotEmpty && !_useManualUsernameInput) ...[
                           DropdownButtonFormField<String>(
                             initialValue: activeLoginUserValue,
                             dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
@@ -1028,6 +1256,18 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                                 Icons.person,
                                 color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
                               ),
+                              suffixIcon: Tooltip(
+                                message: isEng ? 'Type username manually' : 'كتابة اسم المستخدم يدوياً',
+                                child: IconButton(
+                                  icon: const Icon(Icons.edit_note_rounded, size: 22),
+                                  onPressed: () {
+                                    setState(() {
+                                      _useManualUsernameInput = true;
+                                      _isPasswordFocused = false;
+                                    });
+                                  },
+                                ),
+                              ),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -1041,53 +1281,76 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                               fillColor: isDark ? const Color(0xFF111827) : Colors.white,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             ),
-                            items: userList.map((u) {
-                              final roleLabel = isEng
-                                  ? (u.isManager ? 'Manager' : 'Cashier')
-                                  : u.role;
+                            items: [
+                              ...userList.map((u) {
+                                final roleLabel = isEng
+                                    ? (u.isManager ? 'Manager' : 'Cashier')
+                                    : u.role;
 
-                              return DropdownMenuItem<String>(
-                                value: u.username,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      u.username,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : Colors.black87,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: u.isManager
-                                            ? (isDark ? Colors.purple.shade900.withValues(alpha: 0.5) : Colors.purple.shade50)
-                                            : (isDark ? Colors.blue.shade900.withValues(alpha: 0.5) : Colors.blue.shade50),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        roleLabel,
+                                return DropdownMenuItem<String>(
+                                  value: u.username,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        u.username,
                                         style: TextStyle(
-                                          fontSize: 11,
-                                          color: u.isManager
-                                              ? (isDark ? Colors.purple.shade200 : Colors.purple)
-                                              : (isDark ? Colors.blue.shade200 : Colors.blue),
                                           fontWeight: FontWeight.bold,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                          fontSize: 15,
                                         ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: u.isManager
+                                              ? (isDark ? Colors.purple.shade900.withValues(alpha: 0.5) : Colors.purple.shade50)
+                                              : (isDark ? Colors.blue.shade900.withValues(alpha: 0.5) : Colors.blue.shade50),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          roleLabel,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: u.isManager
+                                                ? (isDark ? Colors.purple.shade200 : Colors.purple)
+                                                : (isDark ? Colors.blue.shade200 : Colors.blue),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              DropdownMenuItem<String>(
+                                value: '__setup_manager__',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.add_moderator_rounded, color: Colors.purple, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isEng ? '+ Setup / Register Manager Account' : '+ تسجيل / إعداد حساب مدير جديد',
+                                      style: const TextStyle(
+                                        color: Colors.purple,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
                                       ),
                                     ),
                                   ],
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                            ],
                             onChanged: (val) {
+                              if (val == '__setup_manager__') {
+                                _showSetupManagerDialog();
+                                return;
+                              }
                               setState(() {
                                 _selectedUsername = val;
                                 _errorMessage = null;
                                 if (val != null) {
-                                   _usernameController.text = val;
+                                  _usernameController.text = val;
                                 }
                               });
                             },
@@ -1103,10 +1366,11 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                               fontWeight: FontWeight.w500,
                             ),
                             onTap: () => setState(() => _isPasswordFocused = false),
-                            onChanged: (_) {
+                            onChanged: (val) {
                               if (_errorMessage != null) {
                                 setState(() => _errorMessage = null);
                               }
+                              _selectedUsername = val;
                             },
                             decoration: InputDecoration(
                               labelText: isEng ? 'Username or Manager Name' : 'اسم المستخدم أو المدير',
@@ -1119,6 +1383,17 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                                 Icons.person,
                                 color: isDark ? Colors.grey.shade300 : const Color(0xFF4B5563),
                               ),
+                              suffixIcon: userList.isNotEmpty
+                                  ? Tooltip(
+                                      message: isEng ? 'Select from list' : 'اختيار من قائمة المستخدمين',
+                                      child: IconButton(
+                                        icon: const Icon(Icons.list_alt_rounded, size: 22),
+                                        onPressed: () {
+                                          setState(() => _useManualUsernameInput = false);
+                                        },
+                                      ),
+                                    )
+                                  : null,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -1263,6 +1538,25 @@ class _LoginScreenState extends State<LoginScreen> with WindowListener {
                               ),
                             ),
                           ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Setup / Register Manager Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: _showSetupManagerDialog,
+                            icon: const Icon(Icons.admin_panel_settings_outlined, size: 20, color: Colors.purple),
+                            label: Text(
+                              isEng ? 'Setup / Register Manager Account 🛡️' : 'تسجيل / إعداد حساب المدير 🛡️',
+                              style: const TextStyle(
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
